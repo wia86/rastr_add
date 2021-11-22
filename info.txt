@@ -1,0 +1,8 @@
+#собрать exe
+#I:\rastr_add> pyinstaller --onefile --noconsole myscript.py
+
+# установил
+# win32com.client
+
+# float("4541.4"), float("12,1") не работает
+#bdjfbm

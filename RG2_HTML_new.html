@@ -1,0 +1,1017 @@
+<!-- В Internet Explorer в Меню > Сервис > Свойства обозревателя > Дополнительно
+Флажок: Разрешать запуск активного содержимого файлов на моем компьютере -->
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"><!--^ начало текста, $ – в конце  "+vbCrLf+_-->
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html" charset="UTF-8">
+        <title>RG2</title>
+        <style type="text/css">
+            /*общее */ 
+            html { overflow:  auto; 
+                  Height:auto;}
+            body { margin: 1%;
+                font-size: 16px;
+                }
+
+            div.cubik {outline: 2px solid rgb(129, 127, 127);padding: 2px;margin: 4px;width: 500px;}
+        </style>
+    </head>
+    <script type="text/javascript">
+        //дожидаемся полной загрузки страницы
+        var GlobalVibor;
+        var korr_div   ;
+        var rgm_div    ;
+        var rgm_1f , rgm_nf , rgm_overload  , otkl1 , otkl2, otkl3;
+        var rgm_tip; // 0 текущий файл, 1 папка, 2 ПЗ в ворд по вклвдке "перегрузки" 
+
+        window.onload = function () {
+            GlobalVibor = 2;  /* 1 -корректировать модели Global_kor_class   2-расчитать модели Global_raschot_class */ 
+            rgm_tip = 0;
+            korr_div    = document.getElementById("div_korr");   
+            rgm_div     = document.getElementById("div_rgm");  
+            rgm_1f       =  document.getElementById("id_rgm_1f");   
+            rgm_nf       =  document.getElementById("id_rgm_nf");    
+            rgm_overload =  document.getElementById("id_rgm_overload");  
+            otkl1 =  document.getElementById("ID_otkl1");   
+            otkl2 =  document.getElementById("ID_otkl2");  
+            otkl3 =  document.getElementById("ID_otkl3");  
+
+
+            //вешаем на него событие
+            rgm_1f.onclick = function() {  
+                document.getElementById("ID_IzFolder").style.display = "none";
+                document.getElementById("id_vibor_file").style.display = "none";
+                document.getElementById("ID_max_tok_save").disabled = false;
+                document.getElementById("ID_gost58670").disabled = false;
+                document.getElementById("ID_filtr_n2").disabled = false;
+                document.getElementById("ID_otkl_ssch").disabled = false;
+                document.getElementById("ID_protokol_XL").disabled = true;
+                document.getElementById("ID_pz_word").disabled = false;
+                document.getElementById("ID_pz_word_DIV").style.display = "none";
+                document.getElementById("ID_risunok_WORD_tip").style.display = "block";
+                rgm_tip = 0;
+            };
+            rgm_nf.onclick = function() {   
+                document.getElementById("ID_IzFolder").style.display = "block";
+                document.getElementById("id_vibor_file").style.display = "block";
+                document.getElementById("ID_max_tok_save").disabled = false;
+                document.getElementById("ID_gost58670").disabled = false;
+                document.getElementById("ID_filtr_n2").disabled = false;
+                document.getElementById("ID_otkl_ssch").disabled = false;
+                document.getElementById("ID_protokol_XL").disabled = false;
+                document.getElementById("ID_pz_word").disabled = false;
+                document.getElementById("ID_pz_word_DIV").style.display = "none";
+                document.getElementById("ID_risunok_WORD_tip").style.display = "block";
+                rgm_tip = 1;
+            };   
+            rgm_overload.onclick = function() {    // по таблице перегрузки
+                document.getElementById("ID_IzFolder").style.display = "block";
+                document.getElementById("id_vibor_file").style.display = "none";
+                document.getElementById("ID_ff").checked = false;
+                document.getElementById("ID_max_tok_save").checked = false;
+                document.getElementById("ID_max_tok_save").disabled = true;
+                document.getElementById("ID_gost58670").checked = false;
+                document.getElementById("ID_gost58670").disabled = true;
+                document.getElementById("ID_filtr_n2").checked = false;
+                document.getElementById("ID_filtr_n2").disabled = true;
+                document.getElementById("ID_otkl_ssch").checked = false;
+                document.getElementById("ID_otkl_ssch").disabled = true;
+                document.getElementById("ID_protokol_XL").checked = false;
+                document.getElementById("ID_protokol_XL").disabled = true;
+                document.getElementById("ID_pz_word").disabled = true;
+                document.getElementById("ID_pz_word").checked = true;
+                document.getElementById("ID_pz_word_DIV").style.display = "block";
+                document.getElementById("ID_risunok_WORD_tip").style.display = "none";
+                rgm_tip = 2;
+            };   
+
+            otkl1.onclick = function() {  
+                if (otkl1.checked == false){
+                    document.getElementById("ID_filtr_n2").checked = false;
+                    document.getElementById("ID_filtr_n2").disabled = true;
+                }
+                else {
+                   // getElementById("ID_filtr_n2").checked = true;
+                   document.getElementById("ID_filtr_n2").disabled = false;
+                };
+
+            };   
+        };
+
+        function open_gl_div() {
+            if (GlobalVibor == 1){
+                GlobalVibor = 2;
+                korr_div.style.display = "none";
+                rgm_div.style.display = "block";
+            }
+            else {
+                GlobalVibor = 1;
+                korr_div.style.display = "block";
+                rgm_div.style.display = "none";
+            }
+        }    
+
+
+        function open_off_ob(ell) {
+            var div2 = document.getElementById(ell);
+            if (div2.style.display !== "none") {
+                div2.style.display = "none";}
+            else {
+                div2.style.display = "block"; }   /*inline */     
+        };
+
+        function off_ob(ell) {
+            var div4 = document.getElementById(ell);
+            div4.style.display = "none";
+         };
+
+         function open_ob(ell) {
+            var div5 = document.getElementById(ell);
+            div5.style.display = "block";
+         };
+
+        function open_ob_inline (ell) {
+            var div2 = document.getElementById(ell);
+            if (div2.style.display !== "none") {
+                div2.style.display = "none";}
+            else {
+                div2.style.display = "inline"; }   /*inline */     
+        };
+
+    </script>
+    
+    <body SCROLL="NO" >
+        <button onclick = open_gl_div()>КОРРЕКТИРОВАТЬ МОДЕЛИ / РАСЧИТАТЬ РЕЖИМЫ</button>
+        <hr>
+        <!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр--><!--корр-->
+        <div id="div_korr" style="display: none;"> 
+            <label> КОРРЕКТИРОВАТЬ МОДЕЛИ</label><br>
+            <!--выбор папки / файл --> 
+            <form  name="form_kor" onsubmit="return false;" > 
+                <div class = "cubik">
+                    <input type="radio"  name="InputRadiokorr_papka_file" id=ID_korr_file  onclick =  off_ob("vibor_papka") checked><label for=ID_korr_file  > загруженный файл (сохранить перед запуском)</label><br>
+                    <input type="radio"  name="InputRadiokorr_papka_file" id=ID_korr_papka onclick = open_ob("vibor_papka")>        <label for=ID_korr_papka title="корректировать все файлы rg2 в папке, если не установлен фильтр"> папка с файлами: </label>
+
+                    <div id="vibor_papka" style="display: none;">   <!--выбор папки -->
+                        <textarea name="KIzFolder" cols=60 rows=2 title = "выбор папка с файлами для коррекции">H:\ОЭС Урала без ТЭ\Свердл_ЭС\КПР СЭ 2021\Модели\РМ Свердловская область v22 корр по ТУ</textarea><br>
+                        <label title = "куда сохранять измененные файлы, если пустое поле то не сохранять"> сохранить в: </label><br>
+                        <textarea name="KVFolder" cols=60 rows=2 title = "куда копируем измененные файлы режима.rg2, если пустое поле то не сохранять"></textarea><br>
+
+                        <input type = "checkbox" name="CB_name_izm" id=ID_name_izm onclick = open_off_ob("name_izm_DIV")> <label for=ID_name_izm > изменить название файлов </label> <br>  
+
+                            <div id="name_izm_DIV" style="display: none;">   <!-- изменить название файлов-->
+                                <label> добавить в конце имени файла: </label>  <input type ="text" name="name_izm_kon"  value = ""> <br>
+                                <label> заменить в имени: </label>  <input type ="text" name="name_izm_iz"  value = "" size=9> <label> на </label>  <input type ="text" name="name_izm_na"  value = "" size=9> 
+                            </div>   
+                        //фильтр файлов
+                        <input type = "checkbox" name="CB_KFiltr_file" id=ID_KFiltr_file onclick = open_off_ob("KFiltr_file_div")> 
+                        <label for=ID_KFiltr_file > фильтр файлов </label> <br>   
+
+                        <div id="KFiltr_file_div" style="display: none;">   <!-- фильтр-->
+
+                            <label>Количесво: </label>  <input type ="number" name="kol"  value = 0 min = 0 title = "количество файлов" style="width: 50px;"> <label> или </label><br>
+                            <label>годы: </label>       <input type = "text" name="uslovie_file_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                            <label>, зим/лет: </label>
+                            <select name="uslovie_file_zim_let" title = "зим или лет">
+                                <option value="" selected>-</option>
+                                <option value="зим">зим</option>
+                                <option value="лет">лет</option>
+                                <option value="паводок">паводок</option>
+                            </select> 
+                            <label>, макс/мин: </label>  
+                            <select name="uslovie_file_max_min" title = "макс или мин">
+                                <option value="" selected>-</option>
+                                <option value="макс">макс</option>
+                                <option value="мин">мин</option>
+                            </select> <br>
+                            <label>(доп имя): </label>  <input type = "text" name="uslovie_file_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                        </div>   
+
+                    </div>   
+                </div>
+                <!--БЛОКИ импорт файлов --> 
+                <div class = "cubik">
+                    <!--БЛОКИ--> 
+                    <input type = "checkbox" name="CB_bloki" id=ID_bloki onclick = open_off_ob("bloki_div")> 
+                    <label for=ID_bloki > выполнить задание из файла</label> <br>   
+                        <div id="bloki_div" style="display: none;margin-left:20px;"> 
+                            <textarea name="bloki_file" cols=55 rows=2 >H:\bloki.rbs</textarea>
+                        </div>
+                    <!--импорт файлов--> 
+                    <input type = "checkbox" name="CB_ImpRg2" id=ID_ImpRg2 onclick = open_off_ob("ImpRg2_div")> 
+                    <label for=ID_ImpRg2 title="точность импорта числовых значений зависит от отчности зажанной в шаблоне(нр режим.rg2)"> импорт из файлов</label> <br>   
+
+                        <div id="ImpRg2_div" style="display: none;margin-left:20px;"> 
+                            <!--VTV ветви--> 
+                            <input type = "checkbox" name="CB_VTV" id=ID_VTV onclick = open_off_ob("VTV_div")> 
+                            <label for=ID_VTV > таблица ветви </label> <br>   
+                                <div id="VTV_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_VTV" id=ID_Filtr_VTV onclick = open_off_ob("Filtr_VTV_div")> <label for=ID_Filtr_VTV > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_VTV_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_VTV_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_VTV_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_VTV_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_VTV_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_VTVFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>       <input type="text" name="param_VTVFolder" value = "ip,iq,np" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_VTVFolder"    value = "vetv" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_VTVFolder"  value = "sel" size = 9 > 
+                                    <select name="tip_VTVFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" >загрузить</option>
+                                        <option value="2" selected>обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                            <!--NDE узлы--> 
+                            <input type = "checkbox" name="CB_NDE" id=ID_NDE onclick = open_off_ob("NDE_div")> 
+                            <label for=ID_NDE > таблица узлы </label> <br>   
+                                <div id="NDE_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_NDE" id=ID_Filtr_NDE onclick = open_off_ob("Filtr_NDE_div")> <label for=ID_Filtr_NDE > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_NDE_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_NDE_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_NDE_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_NDE_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_NDE_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_NDEFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>       <input type="text" name="param_NDEFolder" value = "" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_NDEFolder"    value = "node" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_NDEFolder"  value = "sel" size = 9 > 
+                                    <select name="tip_NDEFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" >загрузить</option>
+                                        <option value="2" selected>обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                            <!--GNR генераторы--> 
+                            <input type = "checkbox" name="CB_GNR" id=ID_GNR onclick = open_off_ob("GNR_div")> 
+                            <label for=ID_GNR > таблица генераторы </label> <br>   
+                                <div id="GNR_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_GNR" id=ID_Filtr_GNR onclick = open_off_ob("Filtr_GNR_div")> <label for=ID_Filtr_GNR > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_GNR_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_GNR_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_GNR_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_GNR_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_GNR_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_GNRFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>       <input type="text" name="param_GNRFolder" value = "" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_GNRFolder"    value = "Generator" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_GNRFolder"  value = "sel" size = 9 > 
+                                    <select name="tip_GNRFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" >загрузить</option>
+                                        <option value="2" selected>обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                            <!--TERR районы--> 
+                            <input type = "checkbox" name="CB_TERR" id=ID_TERR onclick = open_off_ob("TERR_div")> 
+                            <label for=ID_TERR > таблица территории </label> <br>   
+                                <div id="TERR_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_TERR" id=ID_Filtr_TERR onclick = open_off_ob("Filtr_TERR_div")> <label for=ID_Filtr_TERR > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_TERR_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_TERR_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_TERR_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_TERR_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_TERR_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_TERRFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>       <input type="text" name="param_TERRFolder" value = "npa,name,Tc" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_TERRFolder"    value = "area2" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_TERRFolder"  value = "" size = 9 > 
+                                    <select name="tip_TERRFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" selected>загрузить</option>
+                                        <option value="2">обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                            <!--OBED объединения--> 
+                            <input type = "checkbox" name="CB_OBED" id=ID_OBED onclick = open_off_ob("OBED_div")> 
+                            <label for=ID_OBED > таблица объединения </label> <br>   
+                                <div id="OBED_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_OBED" id=ID_Filtr_OBED onclick = open_off_ob("Filtr_OBED_div")> <label for=ID_Filtr_OBED > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_OBED_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_OBED_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_OBED_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_OBED_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_OBED_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_OBEDFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>       <input type="text" name="param_OBEDFolder" value = "no,name,Tc" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_OBEDFolder"    value = "darea" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_OBEDFolder"  value = "" size = 9 > 
+                                    <select name="tip_OBEDFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" selected>загрузить</option>
+                                        <option value="2">обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                            <!--RAJ районы--> 
+                            <input type = "checkbox" name="CB_RAJ" id=ID_RAJ onclick = open_off_ob("RAJ_div")> 
+                            <label for=ID_RAJ > таблица районы </label> <br>   
+                                <div id="RAJ_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_RAJ" id=ID_Filtr_RAJ onclick = open_off_ob("Filtr_RAJ_div")> <label for=ID_Filtr_RAJ > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_RAJ_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_RAJ_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_RAJ_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_RAJ_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_RAJ_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_RAJFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>       <input type="text" name="param_RAJFolder" value = "na,no,name,Tc" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_RAJFolder"    value = "area" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_RAJFolder"  value = "" size = 9 > 
+                                    <select name="tip_RAJFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" selected>загрузить</option>
+                                        <option value="2">обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                            <!--NGA нагрузочные группы--> 
+                            <input type = "checkbox" name="CB_NGA" id=ID_NGA onclick = open_off_ob("NGA_div")> 
+                            <label for=ID_NGA > таблица нагрузочные группы </label> <br>   
+                                <div id="NGA_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_NGA" id=ID_Filtr_NGA onclick = open_off_ob("Filtr_NGA_div")> <label for=ID_Filtr_NGA > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_NGA_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_NGA_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_NGA_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_NGA_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_NGA_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_NGAFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>       <input type="text" name="param_NGAFolder" value = "nga,name" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_NGAFolder"    value = "ngroup" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_NGAFolder"  value = "" size = 9 > 
+                                    <select name="tip_NGAFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" selected>загрузить</option>
+                                        <option value="2">обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                            <!--I_T ток от температуры--> 
+                            <input type = "checkbox" name="CB_I_T" id=ID_I_T onclick = open_off_ob("I_T_div")> 
+                            <label for=ID_I_T > таблица зависимости тока от температуры </label> <br>   
+                                <div id="I_T_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_I_T" id=ID_Filtr_I_T onclick = open_off_ob("Filtr_I_T_div")> <label for=ID_Filtr_I_T > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_I_T_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_I_T_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_I_T_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_I_T_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_I_T_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_I_TFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>       <input type="text" name="param_I_TFolder" value = "Num,Tc,Idop,Name" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_I_TFolder"    value = "graphikIT" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_I_TFolder"  value = "" size = 9 > 
+                                    <select name="tip_I_TFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" selected>загрузить</option>
+                                        <option value="2">обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                            <!--PQ--> 
+                            <input type = "checkbox" name="CB_PQ" id=ID_PQ onclick = open_off_ob("PQ_div")> 
+                            <label for=ID_PQ >таблица PQ диаграммы </label> <br>   
+                                <div id="PQ_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_PQ" id=ID_Filtr_PQ onclick = open_off_ob("Filtr_PQ_div")> <label for=ID_Filtr_PQ > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_PQ_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_PQ_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_PQ_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_PQ_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_PQ_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_PQFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>       <input type="text" name="param_PQFolder" value = "Num,P,Qmin,Qmax" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_PQFolder"    value = "graphik2" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_PQFolder"  value = "" size = 9 > 
+                                    <select name="tip_PQFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" selected>загрузить</option>
+                                        <option value="2">обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                            <!--SHN--> 
+                            <input type = "checkbox" name="CB_SHN" id=ID_SHN onclick = open_off_ob("SHN_div")> 
+                            <label for=ID_SHN > таблица СХН </label> <br>   
+                                <div id="SHN_div" style="display: none;margin-left:20px;"> 
+
+                                    <input type = "checkbox" name="CB_Filtr_SHN" id=ID_Filtr_SHN onclick = open_off_ob("Filtr_SHN_div")> <label for=ID_Filtr_SHN > фильтр файлов </label> <br>   
+
+                                        <div id="Filtr_SHN_div" style="display: none;">   <!-- фильтр-->
+                                            <label>годы: </label>       
+                                            <input type = "text" name="Filtr_SHN_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                                            <label>, зим/лет: </label>
+                                            <select name="Filtr_SHN_zim_let" title = "зим или лет">
+                                                <option value="" selected>-</option>
+                                                <option value="зим">зим</option>
+                                                <option value="лет">лет</option>
+                                                <option value="паводок">паводок</option>
+                                            </select> 
+                                            <label>, макс/мин: </label>  
+                                            <select name="Filtr_SHN_max_min" title = "макс или мин">
+                                                <option value="" selected>-</option>
+                                                <option value="макс">макс</option>
+                                                <option value="мин">мин</option>
+                                            </select> <br>
+                                            <label>(доп имя): </label>  <input type = "text" name="Filtr_SHN_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например (30°C ПЭВТ;МДП), можно выбрать одно или несколько" >  
+                                        </div>   
+
+                                    <label > выбор файла: </label>     <input type="text" name="file_SHNFolder"   value = "I:\пример.rg2" size = 45 > <br>
+                                    <label > параметры: </label>         <input type="text" name="param_SHNFolder" value = "nsx,p0,p1,p2,frec,q0,q1,q2,frecq,umin,q4,q3,p4,p3" size = 45 > <br>                                        
+                                    <label > таблица: </label>         <input type="text" name="tab_SHNFolder"    value = "polin" size = 9 > 
+                                    <label > выборка: </label>         <input type="text" name="vibor_SHNFolder"  value = "" size = 9 > 
+                                    <select name="tip_SHNFolder">
+                                        <option value="0">присоединить </option>
+                                        <option value="1" selected>загрузить</option>
+                                        <option value="2">обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div>
+                        </div>
+                </div> 
+                <!--ФУНКЦИИ --> 
+                <div class = "cubik">
+                    <!--PQN XL--> 
+                    <input type = "checkbox" name="CB_import_PQN_XL" id=ID_import_PQN_XL onclick = open_off_ob("import_PQN_XL_div")> 
+                    <label for=ID_import_PQN_XL > импорт pn,qn из XL</label> <br>   
+
+                        <div id="import_PQN_XL_div" style="display: none;margin-left:20px;"> 
+                            <input type = "checkbox" name="CB_import_PQN_XL_name_st" id=ID_import_PQN_XL_name_st > 
+                            <label for=ID_import_PQN_XL_name_st title="если не отметить то используется полное название файла без расширения"> использовать неполное имя файлов, нр '2020 зим макс' </label> <br>  
+                            <label>имя файла XL: </label>
+                            <textarea name="T_NPQ_Excel" cols="55" rows="2" >D:\ОЭС Юга\КПР КУБАНИ\модели\pq нагрузки 14 замечания рду.xlsm</textarea><br>
+                            <label>имя листа XL: </label>
+                            <input type = "text" name="T_NPQ_Sheets" size = 45 value = "ny!" > 
+                            <select name="calc_PQN_z">
+                                <option value="1"selected>заменить </option>
+                                <option value="2" >прибавить</option>
+                                <option value="3" >вычесть</option>
+                                <option value="4">умножить</option>
+                            </select>
+                        </div> 
+                    <!--POP XL --> 
+                    <input type = "checkbox" name="CB_tab_pop" id=ID_tab_pop onclick = open_off_ob("tab_pop_div") title="первая строка  название, нр 2019 зим макс, первый столбец номер района:na=1, терр npa=1, объединение: no=1"> 
+                    <label for=ID_tab_pop > задать потребление из XL</label> <br>   
+
+                        <div id="tab_pop_div" style="display: none;margin-left:20px;"> 
+
+                            <input type = "checkbox" name="CB_tab_pop_z" id=ID_tab_pop_z > <label for=ID_tab_pop_z> только заполнить поле pop_zad без корректировки потребления </label> <br>  
+                            <input type = "checkbox" name="CB_tab_pop_name_st" id=ID_tab_pop_name_st > <label for=ID_tab_pop_name_st title="если не отметить то используется полное название файла без расширения"> использовать неполное имя файлов, нр '2020 зим макс' </label> <br>  
+                            <input type = "checkbox" name="CB_pop_DopName" id=ID_pop_DopName > <label for=ID_pop_DopName title="в XL 2 строка под названием режима, проверяет только первое доп имя в названии файла">  проверить совпадение доп имени в названии файла  </label> <br>  
+                            
+                            <label>имя файла XL: </label>
+                            <textarea name="T_File_pop" cols="50" rows="2" >I:\ОЭС Юга\КПР Колмыкии\модели\2021\для корр потребл\З+10\потребления по другим системам З+10.xlsx</textarea><br>
+                            <label>имя листа XL: </label>
+                            <input type = "text" name="T_sheet_pop_name" size = 45 value = "pop" > <br>
+                            <label>не менять pn,qn в узлах: </label>
+                            <input type = "text" name="T_pop_save_pn" size = 35 value = "" title="'1 2' номера узлов через пробел для отметки или 'sel'"> <br>
+                        </div> 
+                    <!--import_export_xl --> 
+                    <input type = "checkbox" name="CB_import_export_xl" id=ID_import_export_xl onclick = open_off_ob("import_export_xl_div")> 
+                    <label for=ID_import_export_xl > копирование таблиц между rastr и XL</label> <br>   
+
+                        <div id="import_export_xl_div" style="display: none;margin-left:20px;"> 
+                            <label>имя таблицы в rastr: </label>
+                            <input type = "text" name="T_table" size = 30 value = "Generator" > <br>
+
+                            <input type = "checkbox" name="CB_export_xl" id=ID_export_xl onclick = open_off_ob("export_xl_div")> 
+                            <label for=ID_export_xl title="если не отметить то из rastr в XL"> из XL в rastr </label> <br>  
+
+                                <div id="export_xl_div" style="display: none;"> 
+                                    <label>имя файла XL: </label>
+                                    <input type = "text" name="T_XL_table1" size = 40 value = "C:\1.xlsx" > <br>
+                                    <label>имя листа XL: </label>
+                                    <input type = "text" name="T_XL_table2" size = 40 value = "Generator" > <br>
+                                    <label>параметры импорта: </label>
+                                    <select name="tip_export_xl">
+                                        <option value="0" selected>присоединить </option>
+                                        <option value="1">загрузить</option>
+                                        <option value="2">обновить</option>
+                                        <option value="3">объединить</option>
+                                    </select>
+                                </div> 
+                        </div> 
+                    <!--AutoShunt --> 
+                    <input type = "checkbox" name="CB_AutoShuntForm" id=ID_AutoShuntForm onclick = open_ob_inline("AutoShuntForm_div") > 
+                        <label for =ID_AutoShuntForm title = " формат '-3500(120-124)*2'" > записать bsh записать в AutoBsh </label><br> 
+                        <div style="display: none;" id=AutoShuntForm_div>
+                            <label style="margin-left:10px;"> выборка: </label>
+                            <input type = "text" id=ID_AutoShuntFormSel name="AutoShuntFormSel" size = 5 value = "" > <br> 
+                        </div>
+                    <input type = "checkbox" name="CB_AutoShuntIzm" id=ID_AutoShuntIzm onclick = open_ob_inline("AutoShuntIzm_div")> 
+                        <label for=ID_AutoShuntIzm title = " формат '-3500(120-124)*2'" >изиенить bsh в сооветствии с AutoBsh </label><br> 
+                        <div style="display: none;" id=AutoShuntIzm_div>
+                            <label style="margin-left:10px;"> выборка: </label>
+                            <input type = "text" id=ID_AutoShuntIzmSel name="AutoShuntIzmSel" size = 5 value = "" > <br> 
+                        </div>
+                </div>
+                <!--ФУНКЦИИ 2 --> 
+                <div class = "cubik">
+                    <input type = "checkbox" name="CB_np_zad_sub" id=ID_np_zad_sub> 
+                    <label for=ID_np_zad_sub title="c одинаковыми  ip iq и np=0"> задать номер паралельности у ветвей</label> <br>   
+
+                    <input type = "checkbox" name="CB_name_txt_korr" id=ID_name_txt_korr> 
+                    <label for=ID_name_txt_korr title="node-name,dname;vetv-dname;Generator-Name; удалить пробелы в начале и конце, заменить два пробела на один, английские менять на русские буквы"> исправить наименования узлов и ветвей</label> <br>   
+
+                    <input type = "checkbox" name="CB_uhom_korr_sub" id=ID_uhom_korr_sub> 
+                    <label for=ID_uhom_korr_sub title="для ряда 6,10,35,110,150,220,330,500,750"> исправить номинальные напряжения в узлах </label> <br>   
+
+                    <input type = "checkbox" name="CB_SHN_ADD" id=ID_SHN_ADD> 
+                    <label for=ID_SHN_ADD > добавить номера СХН в узлах</label> <br>   
+                </div>
+                <!--протоколы XL  и rastr-->                 
+                <div class = "cubik">
+                    <!--ПРОВЕРКА --> 
+                    <input type = "checkbox" name="CB_kontrol_rg2" id=ID_kontrol_rg2 onclick = open_off_ob("kontrol_rg2_div")> 
+                    <label for = ID_kontrol_rg2  title = "" >расчет режима и контроль параметров режима </label><br> 
+
+                    <div style="display: none;margin-left:15px;" id=kontrol_rg2_div>
+
+                        <div style="outline: 1px solid rgb(194, 191, 191);">
+                            <label > выборка в таблице узлы: </label>
+                            <input type = "text" name="kontrol_rg2_Sel" size = 30 value = "(na>0&na<13)" title="для узлов, вервей и генераторов" checked> <br> 
+
+                            <input type = "checkbox" name="CB_U" id=ID_U_rg2 checked> 
+                            <label for = ID_U_rg2  title = "напряжения в узлах должны быть ниже наибольшего рабочего и выше otv_min и 5.8 кВ - для сети 6 кВ ,9.7-10,32-35,100-110,205-220,315-330,490-500,730-750" > контроль напряжений </label><br> 
+
+                            <input type = "checkbox" name="CB_I" id=ID_I_rg2 checked> 
+                            <label for = ID_I_rg2  title = "расчет ДТН в соответствие с температурой в имени файла, i_zag>=0.1, проверка наличия n_it,n_it_av в таблице График_Iдоп_от_Т(graphikIT)" > контроль допустимых токов, n_it</label><br> 
+
+                            <input type = "checkbox" name="CB_gen" id=ID_gen_rg2 checked> 
+                            <label for = ID_gen_rg2  title = "наличие NumPQ в таблице PQ-диаграммы (graphik2)" > контроль Pmin, Pmax и NumPQ генераторов</label><br> 
+                        </div>
+
+                        <input type = "checkbox" name="CB_s" id=ID_s_rg2 checked> 
+                        <label for = ID_s_rg2  title = "переток в сечениях не должен превышать pmax + 0,1" > контроль pmax сечений </label><br> 
+
+                        <input type = "checkbox" name="CB_na" id=ID_na_rg2 checked> 
+                        <label for = ID_na_rg2  title = "отклонение pop не более 1 % от pop_zad" > контроль pop_zad районов </label><br> 
+
+                        <input type = "checkbox" name="CB_npa" id=ID_npa_rg2 checked> 
+                        <label for = ID_npa_rg2  title = "отклонение pop не более 1 % от pop_zad" > контроль pop_zad территорий </label><br> 
+
+                        <input type = "checkbox" name="CB_no" id=ID_no_rg2 checked> 
+                        <label for = ID_no_rg2  title = "отклонение pp не более 1 % от pop_zad" > контроль pop_zad объединений </label><br> 
+                    </div>
+                    <!--протоколы XL--> 
+                    <input type = "checkbox" name="CB_printXL" id=ID_printXL onclick = open_off_ob("printXL_div")> 
+                    <label for = ID_printXL  title = "" > вывод данных из моделей в XL </label><br> 
+                    <div style="display: none;margin-left:10px;" id=printXL_div>
+
+                        <div style="outline: 1px solid rgb(194, 191, 191);">
+                            <label > сводные таблицы: </label><br>
+                            <!--сечения --> 
+                            <input type = "checkbox" name="CB_print_sech" id=ID_print_sech onclick = open_off_ob (print_sech_div)>
+                            <label for = ID_print_sech  title = "" > сечения </label><br> 
+                                <div style="display: none;margin-left:10px;" id=print_sech_div>
+                                    <label> выборка в таблице сечения: </label>
+                                    <input type = "text" name="setsel_sech" size = 25 value = "" title="ns=1"><br> 
+                                </div>
+                            <!--районы --> 
+                            <input type = "checkbox" name="CB_print_area" id=ID_print_area onclick = open_off_ob("print_area_div")> 
+                            <label for = ID_print_area  title = "" > районы </label><br> 
+                                <div style="display: none;margin-left:10px;" id=print_area_div>
+                                    <label> выборка в таблице районы: </label>
+                                    <input type = "text" name="setsel_area" size = 25 value = "na>0" title="na=1"><br> 
+                                </div>
+                            <!--территории --> 
+                            <input type = "checkbox" name="CB_print_area2" id=ID_print_area2 onclick = open_off_ob("print_area2_div")> 
+                            <label for = ID_print_area2  title = "" > территории </label><br> 
+                                <div style="display: none;margin-left:10px;" id=print_area2_div>
+                                    <label> выборка в таблице территории: </label>
+                                    <input type = "text" name="setsel_area2" size = 25 value = "npa>0" title="npa=1"><br> 
+                                </div>
+                            <!--обединения --> 
+                            <input type = "checkbox" name="CB_print_darea" id=ID_print_darea onclick = open_off_ob("print_darea_div")> 
+                            <label for = ID_print_darea  title = "" > обединения </label><br> 
+                                <div style="display: none;margin-left:10px;" id=print_darea_div>
+                                    <label> выборка в таблице объединения: </label>
+                                    <input type = "text" name="setsel_darea" size = 25 value = "no>0" title="no=1"><br> 
+                                </div>
+                            <!--таблица на выбор --> 
+                            <input type = "checkbox" name="CB_print_tab_log" id=ID_print_tab_log onclick = open_off_ob("print_tab_log_div")> 
+                            <label for = ID_print_tab_log  title = "" > таблица на выбор </label><br> 
+                                <div style="display: none;margin-left:10px;" id=print_tab_log_div>
+                                    <label> таблица: </label>
+                                    <input type = "text" name="print_tab_log_ar_tab" size = 60 value = "Generator" title=""><br> 
+
+                                    <label>выборка: </label>
+                                    <input type = "text" name="print_tab_log_ar_set" size = 60 value = "Num>0" title=""><br>   
+                                                                        
+                                    <label>поля для вывода: </label>
+                                    <input type = "text" name="print_tab_log_ar_cols" size = 50 value = "Num,Name,sta,Node,P,Pmax,Pmin,value" title=""><br> 
+
+                                    <label>строки в сводной: </label>
+                                    <input type = "text" name="print_tab_log_rows" size = 50 value = "Num,Name" title=""><br> 
+                                    <label>столбцы в сводной: </label>
+                                    <input type = "text" name="print_tab_log_cols" size = 50 value = "год,лет/зим,макс/мин,доп_имя1,доп_имя2" title=""><br> 
+                                    <label>значения в сводной: </label>
+                                    <input type = "text" name="print_tab_log_vals" size = 50 value = "P,Pmax" title=""><br> 
+
+                                </div>
+                            </div>
+                        <!--вывод заданных параметров -->  
+                        <input type = "checkbox" name="CB_print_parametr" id=ID_print_parametr onclick = open_ob_inline("print_parametr_div")>
+                            <label for = ID_print_parametr  title = "" > вывод заданных параметров </label><br>
+                                <div style="display: none;margin-left:10px;" id=print_parametr_div>
+                                    <textarea name="TA_parametr_vibor" cols=55 rows=3 title="таблица: ny-node,vetv-vetv,Num-Generator,na-area,npa-area2,no-darea,nga-ngroup,ns-sechen" >vetv=1,160,3|160,5,3/r|x|b;ny=111|16/pg|qg|pn|qn|name </textarea>
+                                </div>
+
+                        <!--баланс реактивной мощности --> 
+                        <input type = "checkbox" name="CB_print_balans_Q" id=ID_print_balans_Q onclick = open_ob_inline("print_balans_Q_div")> 
+                        <label for = ID_print_balans_Q  title = "" > баланс реактивной мощности </label><br>
+                            <div style="display: none;margin-left:10px;" id=print_balans_Q_div>
+                                <label>выборка в таблице районы: </label>
+                                <input type = "text" name="balans_Q_vibor" size = 15 value = "na=1" title="0 тоже район,даже если в районах не задан ">
+                            </div>
+                    </div>
+                </div>                
+                <button name="run_krg2" >выполнить</button>
+            </form>
+        </div>
+
+        <!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет--><!--расчет-->
+        <div id="div_rgm" > 
+            <label > РАСЧИТАТЬ РЕЖИМЫ </label><br>
+            <!--выбор папки / файл --> 
+            <form  name="form_rgm" onsubmit="return false;" > 
+                <div class = "cubik">
+                    <input type="radio"  name="ir_rgm_zad" id = "id_rgm_1f"  checked title="при использовании импорта из файла, нужно сохранить расчетный файл перед запуском"><label for = id_rgm_1f title="сохранять при использовании импорта из файла"> загруженный файл (сохранить перед запуском)</label><br>
+                    <input type="radio"  name="ir_rgm_zad" id = "id_rgm_nf"              ><label for = id_rgm_nf> папка с файлами: </label><br>
+                    <input type="radio"  name="ir_rgm_zad" id = "id_rgm_overload"        ><label for = id_rgm_overload> перегрузки XL: </label><br>
+
+                    <div style="display: none" id=ID_pz_word_DIV>
+                        <hr>
+                        <label  > Имя файла XL: </label><textarea name="T_run_pz_word_XL" cols=55 rows=4 title = "">I:\ОЭС Урала ТЭ\!КПР ХМАО ЯНАО ТО\Модели2\v117\без надстройков2\протокол расчета n-1,1(29_10_2021г 11ч_20м_14c, !zad 2018 зима макс ХМАО НЮЭС -Росляк корр.rg2).xlsm</textarea><br>
+                        <label  >  Лист: </label><input type = "text" id=ID_run_pz_word name="T_run_pz_word_XL_list" size = 13 value = "перегрузки">
+                    </div>
+                    <!--выбор папки -->
+                    <div id=ID_IzFolder style="display: none;">
+                        <hr>
+                        <label >Папка с файлами для расчета:</label><br>
+                        <textarea name="IzFolder"  cols=60 rows=2  >H:\ОЭС Урала без ТЭ\Свердл_ЭС\КПР СЭ 2021\Модели\РМ Свердловская область v22 корр по ТУ</textarea>
+                    </div>
+                    
+
+
+                    <div id="id_vibor_file" style="display: none;"> 
+                        <input type = "checkbox" name="CB_filtr_file" id=ID_ff onclick = open_off_ob("filtr_file")> <label for=ID_ff > фильтр файлов </label> <br>   
+
+                        <div id="filtr_file" style="display: none;">   <!-- фильтр-->
+
+                            <label>Количесво: </label>  <input type ="number" name="kol"  value = 0 min = 0 title = "количество расчитываемых файлов" style="width: 50px;"> <label> или </label><br>
+                            <label>годы: </label>       <input type = "text" name="uslovie_file_god" size = 5 title = "в формате: 2021,2023-2026,2029" >  
+                            <label>, зим/лет: </label>
+                            <select name="uslovie_file_zim_let" title = "зим или лет">
+                                <option value="" selected>-</option>
+                                <option value="зим">зим</option>
+                                <option value="лет">лет</option>
+                                <option value="паводок">паводок</option>
+                            </select> 
+                            <label>, макс/мин: </label>  
+                            <select name="uslovie_file_max_min" title = "макс или мин">
+                                <option value="" selected>-</option>
+                                <option value="макс">макс</option>
+                                <option value="мин">мин</option>
+                            </select> <br>
+                            <label>(доп имя): </label>  <input type = "text" name="uslovie_file_dop_name"  size = 50 title = "дополнительные имена указанны в скобочках в названии файла через ; например 30°C ПЭВТ;МДП, можно выбрать одно или несколько" >  
+                        </div>   
+                    </div>   
+                </div>
+                <!-- УСЛОВИЯ ПЕРЕБОРА -->
+                <div class = "cubik">
+                    <label>Количество отключаемых элиментов: </label>
+                    <input type = "checkbox" name="CB_otkl1" id=ID_otkl1 checked> <label for=ID_otkl1 > один, </label>
+                    <input type = "checkbox" name="CB_otkl2" id=ID_otkl2 > <label for=ID_otkl2 > два, </label>
+                    <input type = "checkbox" name="CB_otkl3" id=ID_otkl3 > <label for=ID_otkl3 > три </label><br> 
+
+                    
+
+
+                    <label>Поле для выбора отключаемых ветвей и узлов: </label><input type = "text" name="in_vibor_otkl" size = 2 value = "otkl1"><br>
+
+                    <input type = "checkbox" name="CB_filtr_n2" id=ID_filtr_n2 > 
+                    <label for=ID_filtr_n2  title="работает только при расчете н-1"> фильтры для сочетаний н-2 и н-3 </label>                    
+
+                        <input type = "number" id=ID_viborka_comb  name="viborka_comb"  value = 10 min=0 style="width: 40px;" title="Сочетание  рассматривать, если при отключении любого элемента из сочетания сумма изменения загрузки других больше на (0 не использовать этот фильтр): "> <label> % </label>    
+                    <br>
+
+
+                    <input type = "checkbox" checked  id= ID_remont_shema name="CB_remont_shema" > 
+                    <label for=ID_remont_shema title = "отключать узлы" title = " n-2 при ремонте ветви учитывать ремонтную схему(remont_add),а otkl_add не учитывать, при отключении учитывать доп откл (otkl_add)" > учитывать доп. отключения и ремонтные схемы </label> <br>
+            
+                        <input type = "checkbox" id= ID_FLAG_automatika name="CB_FLAG_automatika" > 
+                        <label for=ID_FLAG_automatika title = "используется поле automatika" > функция действия ПА </label> 
+                        <button name="run_name_step" >заполнить name_step</button><br>
+
+                        <input type = "checkbox" id=ID_AutoShunt name="CB_AutoShunt" checked> 
+                        <label for=ID_AutoShunt title = "используется поле AutoBsh" > функция включения/отключения СКРМ </label> <br>    
+
+                        <input type = "checkbox" id= ID_max_tok_save name="CB_max_tok_save"> 
+                        <label for=ID_max_tok_save  > запись максимальных токов </label> <br>    
+
+                    <input type = "checkbox" checked id= ID_otkl_ssch name="CB_otkl_ssch"> 
+                    <label for=ID_otkl_ssch title = "отключать узлы"  > отключать СШ </label> <br>
+
+                    <input type = "checkbox" checked  id= ID_gost58670 name="CB_gost58670" > 
+                    <label for=ID_gost58670 title = " если темпертура а-в то в н-2 не выводить перегрузку если превышен ддтн(мдн), но не превышено адтн(адн)" > учет ГОСТа 58670  </label> 
+
+                </div> 
+                <!-- РАСЧЕТНЫЕ ФУНКЦИИ -->
+                <div class = "cubik">
+                    <label>Расчетная температура задается: </label><br>
+                        &nbsp&nbsp&nbsp<input type="radio"  name="zad_temp_Radio" id=ID_zad_temp1 ><label for = ID_zad_temp1> в полях Tc расчетных файлах</label><br>
+                        &nbsp&nbsp&nbsp<input type="radio"  name="zad_temp_Radio" id=ID_zad_temp2 checked ><label for = ID_zad_temp2> в названии файлов </label><br>
+                        &nbsp&nbsp&nbsp<input type="radio"  name="zad_temp_Radio" id=ID_zad_temp3 >
+
+                        <label for=ID_zad_temp3 > зимой  </label> <input type = "number" name="temp_zim"  value = -5 id=ID_temp_zim style="width: 50px;">
+                        <label for=ID_zad_temp3 >, летом </label> <input type = "number" name="temp_let"  value = 25 id=ID_temp_let style="width: 50px;"><br>
+                </div> 
+                <!-- ЗАДАНИЕ КОНТРОЛЬ, ОТКЛ, импорт из файла -->
+                <div class = "cubik">
+                    <label>Задание отключаемых и контролируемых узлов и ветвей: </label><br>
+
+                                <input type="radio"  name="Zad_RG2_Radio" id=ID_Zad_RG1 style="margin-left:10px;"onclick =off_ob("ID_Zad_RG2_file") checked><label for = ID_Zad_RG1> задано в расчетных файлах </label> <br>
+                                <input type="radio"  name="Zad_RG2_Radio" id=ID_Zad_RG2 style="margin-left:10px;"onclick =off_ob("ID_Zad_RG2_file")><label for = ID_Zad_RG2 title="ветви выбираются с номинальным напряжением 110 кВ и выше, узлы выбираются 110-220 кВ"> автоматически, выборка в таблице узлы: </label>
+                                <input type = "text" id=ID_viborka_raschot name="viborka_raschot" size = 5 value = "na=1" title="выборка в таблице node"><br>
+                                
+                                <input type="radio"  name="Zad_RG2_Radio" id=ID_Zad_RG3  style="margin-left:10px;" onclick = open_ob("ID_Zad_RG2_file")>
+
+                                    <label for = ID_Zad_RG3 title="файл в расчетной папке, должен начиналься с ! и типа.rg2"> импорт из файла </label><br>
+                                    <div style = "display: none;margin-left:15px;" id = ID_Zad_RG2_file>
+                                        <input type = "checkbox"  id = ID_zad_folder name="CB_zad_folder" > 
+                                        <label for=ID_zad_folder  > брать файлы задания из папки \zad </label> <br>  
+                                        <hr>
+                                        <input type = "checkbox"  id = ID_pole_node_af name="CB_pole_node_af"> 
+                                        <label for=ID_pole_node_af  > узлы </label>
+                                        <input type = "text" id=ID_pole_node_a name="pole_node_a" size = 55 value = "autosta,autoN,automatika,otkl_add,sta_otkl_add,remont_add,sta_remont_add"><br>
+
+                                        <input type = "checkbox"  id = ID_pole_node_kf name="CB_pole_node_kf" checked> 
+                                        <label for=ID_pole_node_kf  > узлы </label>
+                                        <input type = "text" id=ID_pole_node_k name="pole_node_k" size = 55 value = "otkl1,otkl2,otkl3,Kontrol,N"><br>
+
+                                        <input type = "checkbox"  id = ID_pole_vetv_af name="CB_pole_vetv_af" > 
+                                        <label for=ID_pole_vetv_af  > ветви </label>
+                                        <input type = "text" id=ID_pole_vetv_a name="pole_vetv_a" size = 55 value = "autosta,autoN,automatika,otkl_add,sta_otkl_add,remont_add,sta_remont_add"><br>
+
+                                        <input type = "checkbox"  id = ID_pole_vetv_kf name="CB_pole_vetv_kf" checked> 
+                                        <label for=ID_pole_vetv_kf  > ветви </label>
+                                        <input type = "text" id=ID_pole_vetv_k name="pole_vetv_k" size = 55 value = "otkl1,otkl2,otkl3,Kontrol,N,znak-"><br>
+                                    </div>
+
+                </div> 
+                <!-- протокол EXCEL -->
+                <div class = "cubik">
+
+                    <input type = "checkbox"  id = ID_protokol_XL name = "CB_protokol_XL"  onclick = open_off_ob("ID_protokol_XL_DIV")> 
+                    <label for= ID_protokol_XL> протокол EXCEL </label>
+
+                    <div style="display: none;margin-left:10px;" id=ID_protokol_XL_DIV>
+
+                        <input type = "checkbox" id = ID_XL_save name = "CB_XL_save" checked> 
+                        <label for=ID_XL_save  title="сохранить протокол в расчетную папку "> сохранить,</label>
+
+                        <input type = "checkbox" id = ID_XL_Visible name = "CB_XL_Visible"> 
+                        <label for=ID_XL_Visible  title="отображать заполнение таблиц"> отображать</label><br>
+
+                        <input type = "checkbox" id = ID_Tabl_otlk_kontrol name = "CB_Tabl_otlk_kontrol" onclick = open_off_ob("ID_otlk_kontrol_DIV")> 
+                        <label for=ID_Tabl_otlk_kontrol>заполнять таблицы контролируемые - отключаемые элементы</label><br>
+                        <div style="display: none;margin-left:15px;" id=ID_otlk_kontrol_DIV>
+                            <label title="0 добавлять в таблицу все расчеты, добавлять при загрузки более указанной величины, например 100, в процентах">добавлять отключения с загрузкой больше :</label>
+                            <input type = "number" id=ID_zagruz_add_tab name="zagruz_add_tab" style="width: 60px;" value = 100 min=0><br>
+                            <input type = "text" id=ID_tabl_name_OK1 name="tabl_name_OK1" size = 14 value = "    Таблица ">
+
+                            <input type = "number" id=ID_Ntabl_OK name="Ntabl_OK" value = 1 style="width: 60px;"  min=0 title="первый номер таблицы"><br>
+                            <textarea name="tabl_name_OK2" cols="60" rows="4" > - Результаты расчетов нормального и послеаварийных режимов работы электрических сетей 110 кВ и выше района размещения  с отключением одного электросетевого элемента из нормальной схемы. "</textarea>
+                        </div>
+                    </div>
+                </div> 
+                <!-- РИСУНКИ -->
+                <div class = "cubik">
+
+                    <input type = "checkbox" id = ID_risunok_word_rg2 name = "CB_risunok_word_rg2"  onclick = open_off_ob("ID_risunok_word_rg2_DIV")> 
+                    <label for= ID_risunok_word_rg2> рисунки WORD, RG2 </label>
+
+                    <div style="display: none;margin-left:10px;" id=ID_risunok_word_rg2_DIV>
+
+                        <input type = "checkbox" id = ID_risunok_rg2 name = CB_risunok_rg2 checked> 
+                        <label for=ID_risunok_rg2> сохранять RG2</label><br>
+
+                        <input type = "checkbox" id = ID_risunok_word name = "CB_risunok_word" onclick = open_off_ob("ID_risunok_WORD_DIV") > 
+                        <label for=ID_risunok_word> сформировать WORD </label> <br>  
+
+                        <div style="display: none;margin-left:15px;" id=ID_risunok_WORD_DIV>
+
+                            <input type = "checkbox" id = ID_orientation_doc name = "CB_orientation_doc" > 
+                            <label for=ID_orientation_doc  title="альбомная/книжная "> книжная ориентация,</label>
+                            <label for=ID_new_format_doc > размер страницы</label>
+                            <input type = "text" id = ID_new_format_doc name = "T_new_format_doc" size = 2 value = "A3" title="max(42   , 55.8 ), A0 (84.1 , 118.9), A1 (59.4 , 84.1 ), A2 (42.0 , 59.4 ), A3 (29.7 , 42.0 ), A4 (21.0 , 29.7 ) зависит от настроек принтера по умолчанию"><br>
+
+
+                            <input type = "checkbox" id = ID_DOC_save name = "CB_DOC_save" checked> 
+                            <label for=ID_DOC_save  title="сохранить WORD в расчетную папку "> сохранить</label>
+                            <input type = "checkbox" id = ID_DOC_visible name = "CB_DOC_visible" checked> 
+                            <label for=ID_DOC_visible  title=""> отображать</label><br>
+
+                            <input type = "text" id=ID_name_ris1 name="T_name_ris1" size = 13 value = "Рисунок К.1.">
+                            <input type = "number" id=ID_nomer_ris name="T_nomer_ris" value = 1 style="width: 60px;"  min=0 title="номер первого рисунка">
+                            <textarea name="T_graf_shot" cols=50 rows=2 title = "номер кадра/имя для рис;номер кадра/имя для рис. Номер кадра от 10 (ctrl+0 или ЗАПОМНИТЬ КАДР) до 19 (ctrl+9). Например, 11/Урайский  энергорайоны;12/Няганский энергорайоны">10</textarea><br>
+                        </div>
+                        
+                        <div  id=ID_risunok_WORD_tip>
+                            <hr>
+                            <input type = "checkbox" id = ID_risunok_zag name = "CB_risunok_zag"> 
+                            <label  for=ID_risunok_zag title=" с перегрузкой по I или снижению U">  только режимы с отклонениями от доп. значений</label><br>
+
+                            <input type = "checkbox" id = ID_risunok_nr name = "CB_risunok_nr"> 
+                            <label for=ID_risunok_nr >все нормальные режимы</label><br>
+
+                            <input type = "checkbox" id = ID_risunok_par name = "CB_risunok_par"> 
+                            <label  for=ID_risunok_par title=" все ПАРы, но с учетом фильтра">все ПАРы</label>    <br>  
+                        </div>
+
+                        <input type = "checkbox" id = ID_risunok_PZ name = "CB_risunok_PZ"> 
+                        <label  for=ID_risunok_PZ title=" с перегрузкой по I или снижению U">  рисунки для ПЗ</label><br>
+
+                    </div>
+                </div> 
+                <!-- ПЗ в ворд -->
+                <div class = "cubik">
+
+                    <input type = "checkbox" id = ID_pz_word name = CB_pz_word > 
+                    <label for= ID_pz_word> пояснительная записка </label>
+
+                </div> 
+                <!-- прочее -->
+
+                <div class = "cubik">
+                    <input type = "checkbox" id=ID_prochee onclick = open_off_ob("ID_prochee_DIV")> 
+                    <label for=ID_prochee> прочее </label>
+
+                    <div style="display: none;margin-left:10px;" id=ID_prochee_DIV>
+                        <label> при наличии в доп. имени файла - вставлять соответствующую строку в названия таблиц и рисунков: </label><br>
+                        <input type = "text" name=rg2_name_metka1 value="МДП_37_У-Т" size = 8></label><label>-</label> <input type = "text" size = 55 name=rg2_name_metka11 value="Переток мощности в КС «ОЭС Урала - ЭСТО» в направлении «из ОЭС Урала» близкий к МДП. "  ><br>
+                        <input type = "text" name=rg2_name_metka2 value="МДП_37_Т-У" size = 8></label><label>-</label><input type = "text" size = 55 name=rg2_name_metka21 value="Переток мощности в КС «ОЭС Урала - ЭСТО» в направлении «в ОЭС Урала» близкий к МДП. "><br>
+                        <input type = "text" name=rg2_name_metka3 value="макс ген"   size = 8></label><label>-</label><input type = "text" size = 55 name=rg2_name_metka31 value="Наличие генерации электростанций. "><br>
+                        <input type = "text" name=rg2_name_metka4 value="мин ген"    size = 8></label><label>-</label><input type = "text" size = 55 name=rg2_name_metka41 value="Отсутствие генерации электростанций. "><br>
+                    </div>
+                </div> 
+                <button name="run_rg2" >выполнить</button>
+            </form>
+        </div>  
+        <div id="div_set"> 
+            <form  name="form_set">
+                <input type = "checkbox" id = ID_log_save name = "CB_log_save" checked> 
+                <label for=ID_log_save  title="сохранить .txt файл в папку temp ">файл log.txt </label><br>
+
+                <input type = "checkbox" id = ID_LockEvent name = "CB_LockEvent" checked> 
+                <label for=ID_LockEvent  title="LockEvent и LogEnable"> блокировка</label><br>
+            </form>
+        </div> 
+    </body>
+</html>
