@@ -1,8 +1,8 @@
 import win32com.client
 # import datetime
 #import time
-from tkinter import *
-from tkinter import messagebox as mb
+#from tkinter import *
+#from tkinter import messagebox as mb
 #import os
 import webbrowser
 import eel
@@ -34,7 +34,7 @@ eel.js_gost()(print_num)
 eel.js_gost()(lambda n: print('Got this from Javascript:', n))
 
 
-mb.showinfo("Инфо","88888888")
+print('Got this from Javascript:')
 
 GL = None
 LogFile = None
