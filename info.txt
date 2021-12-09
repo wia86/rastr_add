@@ -1,9 +1,10 @@
 #собрать exe
-#I:\rastr_add> pyinstaller --onefile --noconsole myscript.py
+#I:\rastr_add> pyinstaller --onefile --noconsole main.py
+#I:\rastr_add> pyinstaller -F --noconsole main.py
 
 # установил
 # win32com.client
 
 # float("4541.4"), float("12,1") не работает
 #bdjfbm
-#
+os.getcwd() Вывод текущей директории https://pythonru.com/osnovy/rabota-s-fajlami-v-python-s-pomoshhju-modulja-os

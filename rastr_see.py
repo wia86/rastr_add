@@ -12,6 +12,8 @@ node = rastr.Tables("node")
 node_find = node.cols.Find("uhom")
 node_name = node.cols.item("name").ZS(0)
 node_name = node.Cols.Item("ny").ZN(0)
+node.cols.Item("ny").SetZ(0, 10)  # ndx=0 val=10
+
 SelString = node.SelString(0)
 node_size = node.Size
 vetv_size = rastr.Tables("vetv").size
