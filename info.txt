@@ -7,4 +7,4 @@
 
 # float("4541.4"), float("12,1") не работает
 #bdjfbm
-os.getcwd() Вывод текущей директории https://pythonru.com/osnovy/rabota-s-fajlami-v-python-s-pomoshhju-modulja-os
+os.getcwd() Вывод текущей директории
