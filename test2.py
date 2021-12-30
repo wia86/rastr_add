@@ -1,8 +1,10 @@
-import os, re
-import numpy as nm
+import os, re , random
+import numpy as np
 kkey = "df=34"
 key_pop = kkey[:kkey.find('=')]
-
+we = 0
+if we:
+    print('yes')
 
 name_file = '*[2026][зим][][0°C]'
 pattern_name = re.compile("(\[.*\])(\[.*\])(\[.*\])(\[.*\])")

@@ -3,13 +3,15 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils import get_column_letter
 # import pandas as pd
+from typing import Union, Any
 import sys
+import shutil
 from PyQt5 import QtWidgets
 from datetime import datetime
 from time import time
 import os
 import re
-import configparser
+import configparser  # создать ini файл
 # import random
 import logging
 import webbrowser
@@ -20,26 +22,46 @@ from qt_set import Ui_Settings  # импорт ui: pyuic5 qt_set.ui -o qt_set.py
 
 
 class SetWindow(QtWidgets.QMainWindow, Ui_Settings):
-    def __init__(self, *args, **kwargs):
-        super(SetWindow, self).__init__()  # *args, **kwargs
+    def __init__(self):
+        super(SetWindow, self).__init__()
         self.setupUi(self)
-        self.set_save.clicked.connect(lambda: self.set_save_ini())
+        self.load_ini()
+        self.set_save.clicked.connect(lambda: self.save_ini())
 
-    def set_save_ini(self):
+    def load_ini(self):
+        """Загрузить, создать или перезапичать ini файл"""
+        if os.path.exists('settings.ini'):
+            config = configparser.ConfigParser()
+            config.read('settings.ini')
+            try:
+                self.LE_path.setText(config['DEFAULT']["folder RastrWin3"])
+                self.LE_rg2.setText(config['DEFAULT']["шаблон rg2"])
+                self.LE_rst.setText(config['DEFAULT']["шаблон rst"])
+                self.LE_sch.setText(config['DEFAULT']["шаблон sch"])
+                self.LE_amt.setText(config['DEFAULT']["шаблон amt"])
+                self.LE_trn.setText(config['DEFAULT']["шаблон trn"])
+            except LookupError:
+                logging.error('файл settings.ini не читается, перезаписан')
+                self.save_ini()
+        else:
+            logging.info('создан файл settings.ini')
+            self.save_ini()
+
+    def save_ini(self):
         config = configparser.ConfigParser()
         config['DEFAULT'] = {
             "folder RastrWin3": self.LE_path.text(),
-            "шаблон rg2":       self.LE_rg2.text(),
-            "шаблон rst":       self.LE_rst.text(),
-            "шаблон sch":       self.LE_sch.text(),
-            "шаблон amt":       self.LE_amt.text(),
-            "шаблон trn":       self.LE_trn.text()}
+            "шаблон rg2": self.LE_rg2.text(),
+            "шаблон rst": self.LE_rst.text(),
+            "шаблон sch": self.LE_sch.text(),
+            "шаблон amt": self.LE_amt.text(),
+            "шаблон trn": self.LE_trn.text()}
         with open('settings.ini', 'w') as configfile:
             config.write(configfile)
 
 
 class EditWindow(QtWidgets.QMainWindow, Ui_MainCor):
-    def __init__(self, *args, **kwargs):
+    def __init__(self):
         super(EditWindow, self).__init__()  # *args, **kwargs
         self.setupUi(self)
         # скрыть параметры при старте
@@ -64,10 +86,10 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor):
         self.CB_print_tab_log.clicked.connect(lambda: self.show_hide(self.CB_print_tab_log, self.GB_sel_tabl))
         self.CB_print_parametr.clicked.connect(lambda: self.show_hide(self.CB_print_parametr, self.TA_parametr_vibor))
         self.CB_print_balans_Q.clicked.connect(lambda: self.show_hide(self.CB_print_balans_Q, self.balans_Q_vibor))
-
-        self.run_krg2.clicked.connect(lambda: start())
+        GeneralSettings.calc_set = 1
+        self.run_krg2.clicked.connect(lambda: start_cor())
         self.SetBut.clicked.connect(lambda: ui_set.show())
-    # @staticmethod
+
     def show_hide(self, source, receiver):
         if source.isChecked():
             receiver.show()
@@ -75,89 +97,86 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor):
             receiver.hide()
 
 
-class GeneralSettings:  # GS. для хранения общих параметров
-    def __init__(self):
-        self.calc_set = 1  # 1 -корректировать модели CorSettings, 2-расчитать модели Global_raschot_class
-        self.N_rg2_File = 0  # счетчик расчетных файлов
-        self.kod_rgm = 0  # 0 сошелся, 1 развалился
-        self.now = datetime.now()
+class GeneralSettings:
+    """Для хранения общих настроек"""
+    calc_set = None  # 1 -корректировать модели CorModel, 2-расчитать модели Global_raschot_class
+    set_save = {}
+    set_info = {}
 
-        self.time_start = time()
-        self.now_start = self.now.strftime("%d-%m-%Y %H:%M")
-        self.set_save = {
-            "folder RastrWin3": r"C:\Users\User\Documents\RastrWin3",
-            "шаблон rg2": r"C:\Users\User\Documents\RastrWin3\SHABLON\режим.rg2",
-            "шаблон rst": r"C:\Users\User\Documents\RastrWin3\SHABLON\динамика.rst",
-            "шаблон sch": r"C:\Users\User\Documents\RastrWin3\SHABLON\сечения.sch",
-            "шаблон amt": r"C:\Users\User\Documents\RastrWin3\SHABLON\автоматика.amt",
-            "шаблон trn": r"C:\Users\User\Documents\RastrWin3\SHABLON\трансформаторы.trn"}
-
-
-    # self.set = {
+    # set = {
     #     "calc_val": {1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"}
     # }
 
-    def end_gl(self):  # по завершению макроса
-        if self.calc_set == 2:
-            if (GLR.kol_test_da + GLR.kol_test_net) > 0:
-                percentages = str(round(GLR.kol_test_net / (GLR.kol_test_da + GLR.kol_test_net) * 100))
-            else:
-                percentages = "0"
+    def __init__(self):
+        # прочитать ini файл
+        if os.path.exists('settings.ini'):
+            config = configparser.ConfigParser()
+            config.read('settings.ini')
+            try:
+                for key in config['DEFAULT']:
+                    GeneralSettings.set_save[key] = config['DEFAULT'][key]
+            except LookupError:
+                raise LookupError('файл settings.ini не читается')
+        else:
+            raise LookupError("Отсутствует файл settings.ini")
 
-        result_info = (f"""РАСЧЕТ ЗАКОНЧЕН!
-          Начало расчета {self.now_start} конец {self.now.strftime('%d-%m-%Y %H-%M')}
-          Затрачено: {str(round(time() - self.time_start))} с. ({str(round((time() - self.time_start) / 60, 1))} мин)""")
-        if self.calc_set == 2:
-            result_info += f"""\n Сочетаний отфильтровано: {str(GLR.kol_test_net)} 
-                из {str(GLR.kol_test_da + GLR.kol_test_net)} ({percentages} %)
-                Скорость расчета: {str(round(GLR.kol_test_da / (time() - self.time_start), 1))} сочетаний/сек."""
-        logging.info(result_info)
-        mb.showinfo("Инфо", result_info)
-        webbrowser.open("log_file.log")
+        self.file_num = 0  # счетчик расчетных файлов
+        self.kod_rgm = 0  # 0 сошелся, 1 развалился
+        self.now = datetime.now()
+        self.time_start = time()
+        self.now_start = self.now.strftime("%d-%m-%Y %H:%M")
+
+    def the_end(self):  # по завершению
+        time_spent = round(time() - self.time_start, 2)
+        time_spent_minut = round(time_spent / 60, 1)
+        self.set_info['end_info'] = (
+                f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {self.now.strftime('%d-%m-%Y %H-%M')}" +
+                f" \nЗатрачено: {str(time_spent)} секунд или {str(time_spent_minut)} минут")
+        logging.info(self.set_info['end_info'])
 
 
-class CorSettings():  # CS. для хранения общих параметров - КОРРЕКЦИЯ ФАЙЛОВ
-    dict_import_model = {}  # хранение объектов класса ImportFromModel
+class CorModel(GeneralSettings):
+    """Коррекция файлов"""
 
     def __init__(self):
+        super(CorModel, self).__init__()
         self.set = {
-            # в KIzFolder абсолютный путь к папке с файлами или файлу
-            "KIzFolder": r"I:\rastr_add\test",  # расчетный файл или папка с файлами
-            # KInFolder папка в которую сохранять измененные файлы, "" не сохранять
+            "KIzFolder": r"I:\rastr_add\test",  # в KIzFolder абсолютный путь к папке с файлами или файлу
+            # KInFolder папка в которую сохранять измененные файлы(или файл), "" не сохранять
             # результаты работы программы (.xlsx) сохраняются в папку KInFolder, если ее нет то в KIzFolder
             "KInFolder": r"I:\rastr_add\test_result",
-            # ФИЛЬТР ФАЙЛОВ: False все файлы, True в соответствии с фильтром
+            # ФИЛЬТР ФАЙЛОВ: False все файлы, True в соответствии с фильтром--------------------------------------------
             "KFilter_file": True,
             "max_file_count": 2,  # максимальное количество расчетных файлов
             # нр("2019,2021-2027","зим","мин","1°C;МДП") (год, зим, макс, доп имя разделитель , или ;)
-            "cor_criterion_start": {"years": "2026-2027",
+            "cor_criterion_start": {"years": "2026",
                                     "season": "",
                                     "max_min": "",
                                     "add_name": ""},
             # импорт значений из excel, коррекция потребления-----------------------------------------------------------
-            "import_val_XL": False,
+            "import_val_XL": True,
             "excel_cor_file": r"I:\rastr_add\test\примеры.xlsx",
-            "excel_cor_sheet": "[импорт из моделей][XL->RastrWin][pop]",
+            "excel_cor_sheet": "[импорт из моделей][XL->RastrWin]",
             # ----------------------------------------------------------------------------------------------------------
-            "import_export_xl": False,  # False нет, True  import или export из xl в растр
-            "table": "Generator",  # нр "oborudovanie"
-            "export_xl": True,  # False нет, True - export из xl в растр
-            "XL_table": [r"C:\Users\User\Desktop\1.xlsx", "Generator"],  # полный адрес и имя листа
-            "tip_export_xl": 1,  # 1 загрузить, 0 присоединить 2 обновить
+            # "import_export_xl": False,  # False нет, True  import или export из xl в растр
+            # "table": "Generator",  # нр "oborudovanie"
+            # "export_xl": True,  # False нет, True - export из xl в растр
+            # "XL_table": [r"C:\Users\User\Desktop\1.xlsx", "Generator"],  # полный адрес и имя листа
+            # "tip_export_xl": 1,  # 1 загрузить, 0 присоединить 2 обновить
             # ----------------------------------------------------------------------------------------------------------
             # что бы узел с скрм  вкл и отк этот  сопротивление единственной ветви r+x<0.2 и pn:qn:0
-            "AutoShuntForm": False,  # False нет, True сущ bsh записать в автошунт
-            "AutoShuntFormSel": "(na>0|na<13)",  # строка выборка узлов
-            "AutoShuntIzm": False,  # False нет, True вкл откл шунтов  autobsh
-            "AutoShuntIzmSel": "(na>0|na<13)",  # строка выборка узлов
-            # проверка параметров режима:
-            # напряжений в узлах; дтн  в линиях(rastr.CalcIdop по GradusZ);
+            # "AutoShuntForm": False,  # False нет, True сущ bsh записать в автошунт
+            # "AutoShuntFormSel": "(na>0|na<13)",  # строка выборка узлов
+            # "AutoShuntIzm": False,  # False нет, True вкл откл шунтов  autobsh
+            # "AutoShuntIzmSel": "(na>0|na<13)",  # строка выборка узлов
+            # проверка параметров режима--------------------------------------------------------------------------------
+            # напряжений в узлах; дтн  в линиях(rastr.CalcIdop по degree_int);
             # pmax pmin относительно P у генераторов и pop_zad у территорий, объединений и районов; СЕЧЕНИЯ
             # выборка в таблице узлы "na=1|na=8)"
             "control_rg2": True,
-            "control_rg2_task": {'node': True, 'vetv': True, 'Gen': True, 'section': True, 'area': True
-                , 'area2': True, 'darea': True, 'sel_node': "na>0"},
-            # выводить данные из rastr в XL-----------------------------------------------------------------------------
+            "control_rg2_task": {'node': True, 'vetv': True, 'Gen': True, 'section': True, 'area': True,
+                                 'area2': True, 'darea': True, 'sel_node': "na>0"},
+            # выводить данные из моделей в XL---------------------------------------------------------------------------
             "printXL": True,
             "set_printXL": {
                 "sechen": {'add': True, "sel": "", 'tabl': "sechen", 'par': "ns,name,pmin,pmax,psech",
@@ -191,15 +210,15 @@ class CorSettings():  # CS. для хранения общих параметр�
             # БАЛАНС PQ_kor !!!0 тоже район,даже если в районах не задан "na>13&na<201"
             "print_balance_q": {'add': True, "sel": "na=3012"},
             # ---------------------------------------------------------------------------------------------------------
-            "block_beginning": 0,  # начало
-            "block_import": 0,  # начало
-            "block_end": 0,  # конец
+            "block_beginning": False,  # начало
+            "block_import": False,  # начало
+            "block_end": False,  # конец
             # ПРОЧИЕ НАСТРОЙКИ
-            "folder_result": '',  # папка для сохранения результатов
-            "folder_temp": '',  # папка для сохранения рабочих файлов
-            "collapse": ""}
+        }
+        self.rm = None
+        self.pxl = None
 
-        if visual_set == 1:
+        if VISUAL_SET == 1:
             self.set["KIzFolder"] = ui_edit.T_IzFolder.toPlainText()  # QPlainTextEdit
             self.set["KInFolder"] = ui_edit.T_InFolder.toPlainText()
             # фильтр
@@ -226,51 +245,189 @@ class CorSettings():  # CS. для хранения общих параметр�
             # импорт параметров режима
             if ui_edit.CB_ImpRg2.isChecked():
                 if ui_edit.CB_V.isChecked():
-                    self.import_from_model = None
-                    self.criterion_start = {"years": ui_edit.Filtr_god_V.text(),
-                                            "season": ui_edit.Filtr_sez_V.currentText(),
-                                            "max_min": ui_edit.Filtr_max_min_V.currentText(),
-                                            "add_name": ui_edit.Filtr_dop_name_V.text()}
-                    ImportFromModel.number += 1
-                    self.import_from_model = ImportFromModel(import_file_name=ui_edit.file_V.text()
-                                                             , criterion_start=self.criterion_start
-                                                             , tables=ui_edit.tab_V.text()
-                                                             , param=ui_edit.param_V.text()
-                                                             , sel=ui_edit.sel_V.text()
-                                                             , calc=ui_edit.tip_V.currentText())
-                    ImportFromModel.number += 1
-                    self.dict_import_model[ImportFromModel.number] = self.import_from_model
+                    ifm = ImportFromModel(import_file_name=ui_edit.file_V.text(),
+                                          criterion_start={"years": ui_edit.Filtr_god_V.text(),
+                                                           "season": ui_edit.Filtr_sez_V.currentText(),
+                                                           "max_min": ui_edit.Filtr_max_min_V.currentText(),
+                                                           "add_name": ui_edit.Filtr_dop_name_V.text()},
+                                          tables=ui_edit.tab_V.text(),
+                                          param=ui_edit.param_V.text(),
+                                          sel=ui_edit.sel_V.text(),
+                                          calc=ui_edit.tip_V.currentText())
+                    ImportFromModel.all_import_model.append(ifm)
                     # --------------------------------------------------------------------------------
-        for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
-            if 'file:///' in self.set[str_name]:
-                self.set[str_name] = self.set[str_name][8:]
+            for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
+                if 'file:///' in self.set[str_name]:
+                    self.set[str_name] = self.set[str_name][8:]
+
+    def run_cor(self):
+        """Запуск корректировки моделей"""
+        # определяем корректировать файл или файлы в папке по анализу "KIzFolder"
+        if os.path.isdir(self.set["KIzFolder"]):
+            self.set["folder_file"] = 'folder'  # если корр папка
+        elif os.path.isfile(self.set["KIzFolder"]):
+            self.set["folder_file"] = 'file'  # если корр файл
+            self.rm = RastrModel(full_name=self.set["KIzFolder"])
+        else:
+            mb.showerror("Ошибка в задании", "Не найден: " + self.set["KIzFolder"] + ", выход")
+            return False
+        # создать папку KInFolder
+        if self.set["KInFolder"]:
+            if not os.path.exists(self.set["KInFolder"]):
+                logging.info("Создана папка: " + self.set["KInFolder"])
+                os.mkdir(self.set["KInFolder"])
+
+        folder_save = self.set["KInFolder"] if self.set["KInFolder"] else self.set["KIzFolder"]
+
+        self.set['folder_result'] = folder_save + r"\result"  # папка для сохранения результатов
+        now = datetime.now()
+        self.set['name_time'] = self.set['folder_result'] + f"\\коррекция файлов ({now.strftime('%d-%m-%Y %H-%M')})"
+        if not os.path.exists(self.set['folder_result']):
+            os.mkdir(self.set['folder_result'])  # создать папку result
+        self.set['folder_temp'] = self.set['folder_result'] + r"\temp"  # папка для сохранения рабочих файлов
+        if not os.path.exists(self.set['folder_temp']):
+            os.mkdir(self.set['folder_temp'])  # создать папку temp
+
+        # if VISUAL_SET == 1 :
+        #     if IE_kform.CB_bloki.checked :
+        #         if len (IE_kform.bloki_file.value) > 0 :
+        #             logging.info( "загружен файл: " + IE_kform.bloki_file.value)
+        #             executeGlobal (CreateObject("Scripting.FileSystemObject").openTextFile(IE_kform.bloki_file.value).readAll())
+        #         else:
+        #             logging.info( "!!!НЕ УКАЗАН АДРЕС ФАЙЛА ЗАДАНИЯ!!!" )
+
+        # ЭКСПОРТ ИЗ МОДЕЛЕЙ
+        if self.set['block_import'] and VISUAL_SET == 0:
+            import_model()  # ИД для импорта
+        if self.set["import_val_XL"]:  # задать параметры узла по значениям в таблице excel (имя книги, имя листа)
+            sheets = re.findall("\[(.+?)\]", self.set["excel_cor_sheet"])
+            for sheet in sheets:
+                cor_xl(self.rm, self.set["excel_cor_file"], sheet, tip='export')
+
+        if len(ImportFromModel.all_import_model) > 0:
+            for im in ImportFromModel.all_import_model:
+                im.export_csv()
+        load_add = []
+        if ((self.set["printXL"] and self.set["set_printXL"]["sechen"]) or
+                (self.set["control_rg2"] and self.set["control_rg2_task"]["section"])):
+            load_add.append('sch')
+
+        if self.set["folder_file"] == 'folder':  # корр файлы в папке
+            files = os.listdir(self.set["KIzFolder"])  # список всех файлов в папке
+            self.rastr_files = list(filter(lambda x: x.endswith('.rg2') | x.endswith('.rst'), files))
+
+            for rastr_file in self.rastr_files:  # цикл по файлам .rg2 .rst в папке KIzFolder
+                full_name = self.set["KIzFolder"] + '\\' + rastr_file
+                full_name_new = self.set["KInFolder"] + '\\' + rastr_file
+                self.rm = RastrModel(full_name, self.set["KFilter_file"], self.set["cor_criterion_start"])
+                # отключен фильтр или соответствует ему
+                if not self.set["KFilter_file"] or self.rm.Name_st != "не подходит":
+                    self.file_num += 1
+                    if self.set["KFilter_file"]:
+                        if self.set["max_file_count"] > 0:
+                            self.set["max_file_count"] -= 1
+                        else:
+                            break
+                    self.rm.load(load_add=load_add)
+                    self.cor_file()
+                    if self.set["KInFolder"]:
+                        self.rm.save(full_name_new)
+                else:
+                    logging.debug("Файл отклонен, не соответствует фильтру: " + rastr_file)
+
+        elif self.set["folder_file"] == 'file':  # корр файл
+            self.rm.load(load_add=load_add)
+            self.cor_file()
+            if self.set["KInFolder"]:
+                self.rm.save(self.set["KInFolder"] + '\\' + self.rm.Name)
+
+        if self.set['printXL']:
+            self.pxl.finish()
+        if 'collapse' in self.set_info:
+            self.set_info['end_info'] += f"\nВНИМАНИЕ! развалились модели:\n[{self.set_info['collapse']}]. "
+
+        self.the_end()
+        shutil.copyfile('log_file.log', self.set['name_time'] + '.log')
+        webbrowser.open(self.set['name_time'] + '.log')
+        mb.showinfo("Инфо", self.set_info['end_info'])
+
+    def cor_file(self):
+        """Корректировать конкретный файл"""
+        if self.set['block_beginning']:
+            logging.info("\t***Блок начала ***")
+            block_b(self.rm)
+            logging.info("\t*** Конец блока начала ***")
+        # if VISUAL_SET == 1:
+        #    if self.IE_bloki:
+        #        logging.info( "\t" & "*** блок начала (bloki.rbs)***")
+        #        blok_n2 ()
+        #        logging.info( "\t" & "*** конец блока начала (bloki.rbs)***")
+
+        if len(ImportFromModel.all_import_model) > 0:
+            for im in ImportFromModel.all_import_model:
+                im.import_csv(self.rm)
+
+        if self.set["import_val_XL"]:  # задать параметры узла по значениям в таблице excel (имя книги, имя листа)
+            sheets = re.findall("\[(.+?)\]", self.set["excel_cor_sheet"])
+            for sheet in sheets:
+                cor_xl(self.rm, self.set["excel_cor_file"], sheet, tip='XL->RastrWin')
+        # if self.import_export_xl:
+        #     rastr_xl_tab (self.table , self.export_xl  , self.XL_table (0) , self.XL_table (1), self.tip_export_xl  )
+        # if self.AutoShuntForm:
+        #     add_AutoBsh (self.AutoShuntFormSel) #  процедура записывает из поля bsh в поле AutoBsh (выборка)
+        # if self.AutoShuntIzm:
+        #     AutoShunt_class_rec (self.AutoShuntIzmSel)#  процедура формирует Umin , Umax, AutoBsh , nBsh
+        #     AutoShunt_class_kor ()  #  процедура меняет Bsh  и записывает AutoShunt_list
+        #     AutoShunt_list = ""
+        #
+        # if VISUAL_SET = 1:
+        #     if self.IE_CB_np_zad_sub:
+        #         np_zad_sub ()   #  задать номер паралельности у ветвей с одинаковым ip i iq
+        #     if self.IE_CB_name_txt_korr:
+        #         name_txt_korr ()#   name_probel (r_table , r_tabl_pole), izm_bukvi(r_table , r_tabl_pole)#  удалить пробелы в начале и конце, заменить два пробела на один, английские менять на русские буквы
+        #     if self.IE_CB_uhom_korr_sub:
+        #         uhom_korr_sub ("")      #  исправить номинальные напряжения в узлах для ряда 6,10,35,110,150,220,330,500,750
+        #     if self.IE_CB_SHN_ADD:
+        #         SHN_ADD () #  добавить зависимость СХН
+        #     if self.IE_bloki:
+        #         logging.info( "\t" & "блок конца (bloki.rbs)" )
+        #         blok_k2 ()
+        #         logging.info( "\t" & "*** конец блока конца *** " )
+
+        if self.set['block_end']:
+            logging.info("\t*** Блок конца ***")
+            block_e(self.rm)
+            logging.info("\t*** Конец блока конца ***")
+        if self.set['control_rg2']:
+            control_rg2(self.rm, self.set['control_rg2_task'])  # расчет и контроль параметров режима
+        if self.set['printXL']:
+            if not type(self.pxl) == PrintXL:
+                self.pxl = PrintXL(self.set)
+            self.pxl.add_val(self.rm)
 
 
-def block_b():
-    sel0('block_b')
-    #  Del_sel ()
-    rgm("block_b")
+def block_b(rm):
+    sel0(rm.rastr, 'block_b')
+    rm.rgm("block_b")
 
 
 def import_model():
     """ ИД для импорта из модели(выполняется после блока начала)"""
-    import_from_model = ImportFromModel(import_file_name=r"I:\rastr_add\test\импорт.rg2"
-                                        , criterion_start={"years": "2026",
-                                                           "season": "зим",
-                                                           "max_min": "макс",
-                                                           "add_name": ""}
-                                        , tables="node;vetv;Generator"
-                                        , param="sel"
-                                        , sel="sel"
-                                        , calc=2)
-    ImportFromModel.number += 1
-    CS.dict_import_model[ImportFromModel.number] = import_from_model
-    # --------------------------------------------------------------------------------
+    ifm = ImportFromModel(import_file_name=r"I:\rastr_add\test\импорт.rg2",
+                          criterion_start={"years": "2026",
+                                           "season": "зим",
+                                           "max_min": "макс",
+                                           "add_name": ""},
+                          tables="node;vetv;Generator",
+                          param="sel",
+                          sel="sel",
+                          calc='2')
+    ImportFromModel.all_import_model.append(ifm)
 
 
-def block_e():
-    # sel0('block_e')
-    rgm("block_e")
+def block_e(rm):
+    sel0(rm.rastr, 'block_e')
+    rm.rgm("block_e")
 
 
 # <<<<<<<<<<<<<<<<<<<<СПРАВКА>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -299,7 +456,7 @@ def block_e():
 # name0 ()           #  поиск узлов и генераторов без имени
 # nyNum0 ()           #  поиск узлов и генераторов с номером 0
 # <<<прочее>>>
-# if RG.test_name (array ("2020","","","")) :
+# if self.rm.test_name (array ("2020","","","")) :
 # = otklonenie_seshen (nomer_sesh)   #   возвращает величину отклонения psech от  pmax   + превышение; - недобор
 # = rastr.Calc("sum,max,min,val","area","qn","vibor") - функция (vibor не может быть "")
 #  ПОТРЕБЛЕНИЕ cor_pop(zone,new_pop, task_save) npa_cor_pop(zone,new_pop, task_save)#  територия CorOb(ob,new_pop, task_save)#  обединение
@@ -312,26 +469,29 @@ def block_e():
 #    Delet_node_VL_sub () #  удалить промежкточные точки на ЛЭП при отсутствии магнитной связи
 
 
-class CurrentFile:
-    # RG  RG. для хранения параметров текущего расчетного файла
-    def __init__(self, rastr_file, Filter_file=False, Uslovie_file={}):
-        global CS
-        global GLR
-        self.Name = os.path.basename(rastr_file)  # вернуть имя с расширением "2020 зим макс.rg2"
-        self.Name_Base = self.Name[:-4]  # вернуть имя без расширения "2020 зим макс"
+class RastrModel(GeneralSettings):
+    """
+    для хранения параметров текущего расчетного файла
+    """
+
+    def __init__(self, full_name: str, filter_file: bool = False, condition_file: dict = None):
+        self.full_name = full_name
+        self.dir = os.path.dirname(full_name)
+        self.Name = os.path.basename(full_name)  # вернуть имя с расширением "2020 зим макс.rg2"
+        self.name_base = self.Name[:-4]  # вернуть имя без расширения "2020 зим макс"
         self.tip_file = self.Name[-3:]  # rst или rg2
-        self.shablon = GS.set_save["шаблон " + self.tip_file]
+        self.pattern = self.set_save["шаблон " + self.tip_file]
         self.kod_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 лет макс 4 лет мин 5 паводок макс
-        self.temp_a_v_gost = False  # True темературы  а-в - зима + лето ПЭВТ
+        self.temp_a_v_gost = False  # True температуры:  а-в - зима + лето ПЭВТ
         self.TabRgmCount = 1  # счетчик режимов в каждой таблице
         self.txt_dop = ""
-        self.GradusZ = 0
-        self.Gradus = ""
+        self.degree_int = 0
+        self.degree_str = ""
         self.loadRGM = False
         self.DopNameStr = ""
         self.name_list = ["-", "-", "-"]
         pattern_name = re.compile("^(20[1-9][0-9])\s(лет\w?|зим\w?|паводок)\s?(макс|мин)?")
-        match = re.search(pattern_name, self.Name_Base)
+        match = re.search(pattern_name, self.name_base)
         if match:
             if match.re.groups == 3:
                 self.name_list = [match[1], match[2], match[3]]
@@ -339,19 +499,19 @@ class CurrentFile:
                     self.name_list = "-"
                 if self.name_list[1] == "паводок":
                     self.kod_name_rg2 = 5
-                    self.SezonName = "Паводок"
+                    self.season_name = "Паводок"
                 if self.name_list[1] == "зим" and self.name_list[2] == "макс":
                     self.kod_name_rg2 = 1
-                    self.SezonName = "Зимний максимум нагрузки"
+                    self.season_name = "Зимний максимум нагрузки"
                 if self.name_list[1] == "зим" and self.name_list[2] == "мин":
                     self.kod_name_rg2 = 2
-                    self.SezonName = "Зимний минимум нагрузки"
+                    self.season_name = "Зимний минимум нагрузки"
                 if self.name_list[1] == "лет" and self.name_list[2] == "макс":
                     self.kod_name_rg2 = 3
-                    self.SezonName = "Летний максимум нагрузки"
+                    self.season_name = "Летний максимум нагрузки"
                 if self.name_list[1] == "лет" and self.name_list[2] == "мин":
                     self.kod_name_rg2 = 4
-                    self.SezonName = "Летний минимум нагрузки"
+                    self.season_name = "Летний минимум нагрузки"
 
         self.god = self.name_list[0]
         if self.kod_name_rg2 > 0:
@@ -359,15 +519,15 @@ class CurrentFile:
             if self.kod_name_rg2 < 5:
                 self.Name_st += " " + self.name_list[2]
 
-            if GS.calc_set == 2:  # расчет режимов а не корр
-                if GLR.gost58670:
-                    if (self.kod_name_rg2 in [1, 2]) or ("ПЭВТ" in self.Name_Base):
-                        self.temp_a_v_gost = True  # зима + период экстремально высоких температур -ПЭВТ
+            # if GeneralSettings.calc_set == 2:  # расчет режимов а не корр
+            #     if GLR.gost58670:
+            #         if (self.kod_name_rg2 in [1, 2]) or ("ПЭВТ" in self.name_base):
+            #             self.temp_a_v_gost = True  # зима + период экстремально высоких температур -ПЭВТ
         else:
             self.Name_st = "не подходит"  # отсеиваем файлы задание и прочее
 
         pattern_name = re.compile("\((.+)\)")
-        match = re.search(pattern_name, self.Name_Base)
+        match = re.search(pattern_name, self.name_base)
         if match:
             self.DopNameStr = match[1]
 
@@ -378,46 +538,47 @@ class CurrentFile:
                 self.DopName = self.DopNameStr.split(";")
             else:
                 self.DopName = [self.DopNameStr]
-        if "°C" in self.Name_Base:
+        if "°C" in self.name_base:
             pattern_name = re.compile("(-?\d+((,|\.)\d*)?)\s?°C")  # -45.,14 °C
-            match = re.search(pattern_name, self.Name_Base)
+            match = re.search(pattern_name, self.name_base)
             if match:
-                self.Gradus = match[1].replace(',', '.')
-                self.GradusZ = float(self.Gradus)  # число
-                self.txt_dop = "Расчетная температура " + self.Gradus + " °C. "
+                self.degree_str = match[1].replace(',', '.')
+                self.degree_int = float(self.degree_str)  # число
+                self.txt_dop = "Расчетная температура " + self.degree_str + " °C. "
 
-        if GS.calc_set == 2:  # расчет режимов
+        if GeneralSettings.calc_set == 2:  # расчет режимов
 
             if self.kod_name_rg2 > 0:
-                if GLR.zad_temperatura == 1:
-                    if self.name_list[1] == "зим":
-                        self.GradusZ = GLR.temperatura_zima
-                    else:
-                        self.GradusZ = GLR.temperatura_leto
-
-                    self.Gradus = str(self.GradusZ)
-                    self.txt_dop = "Расчетная температура " + self.Gradus + " °C. "
+                # if GLR.zad_temperature == 1:
+                #     if self.name_list[1] == "зим":
+                #         self.degree_int = GLR.temperature_zima
+                #     else:
+                #         self.degree_int = GLR.temperature_leto
+                #
+                #     self.degree_str = str(self.degree_int)
+                #     self.txt_dop = "Расчетная температура " + self.degree_str + " °C. "
 
                 # for DopName_tek in self.DopName:
                 #     for each ii in GLR.rg2_name_metka
                 #         if trim (DopName_tek) = trim (ii (0)):
                 #             txt_dop = txt_dop + ii (1)
 
-                self.NAME_RG2_plus = self.SezonName + " " + self.god + " г"
+                self.NAME_RG2_plus = self.season_name + " " + self.god + " г"
                 if self.txt_dop != "":
                     self.NAME_RG2_plus += ". " + self.txt_dop
-                self.NAME_RG2_plus2 = self.SezonName + "(" + self.Gradus + " °C)"
-                self.TEXT_NAME_TAB = GLR.tabl_name_OK1 + str(
-                    GLR.Ntabl_OK) + GLR.tabl_name_OK2 + self.SezonName + " " + self.god + " г. " + self.txt_dop
+                self.NAME_RG2_plus2 = self.season_name + "(" + self.degree_str + " °C)"
+                # self.TEXT_NAME_TAB = GLR.tabl_name_OK1 + str(
+                #     GLR.Ntabl_OK) + GLR.tabl_name_OK2 + self.season_name + " " + self.god + " г. " + self.txt_dop
 
-        if Filter_file and self.kod_name_rg2 > 0:
-            if (''.join(Uslovie_file.values())).replace(' ', '') != '':  # условие не пустое ["","","",""]
-                if not self.test_name(Uslovie_file):
+        if filter_file and self.kod_name_rg2 > 0:
+            if not (''.join(condition_file.values())).replace(' ', ''):  # условие не пустое
+                if not self.test_name(condition_file):
                     self.Name_st = "не подходит"
 
-    def test_name(self, dict_uslovie, info=""):  # возвращает истина если имя режима соответствует условию
-        # нр dict_uslovie = {"years":"","season":"","max_min":"","add_name":""}-всегда истина,или год ("2020,2023-2025"), зим/лет("зим" "лет,зим"), макс/мин("макс" "мин"), доп имя("МДП:ТЭ-У" "41С,МДП:ТЭ-У")
-
+    def test_name(self, dict_uslovie: dict, info: str = ""):
+        """Возвращает истина, если имя режима соответствует условию:
+         нр, год("2020,2023-2025"), зим/лет/паводок("лет,зим"), макс/мин("макс"), доп имя("-41С;МДП:ТЭ-У")
+        {"years":"","season":"","max_min":"","add_name":""}-всегда истина"""
         if not dict_uslovie:
             return True
         if self.Name_st == "не подходит":
@@ -468,9 +629,46 @@ class CurrentFile:
                     return False
         return True
 
+    def load(self, rastr='', load_add: list = None):
+        """загрузить модель в Rastr
+        load_add=['amt','sch','trn'] расширения файлов которые нужно загрузить
+        загружается первый попавшийся файл в папке IzFolder"""
+        if rastr:
+            self.rastr = rastr
+        else:
+            self.rastr = win32com.client.Dispatch("Astra.Rastr")
+        self.rastr.Load(1, self.full_name, self.pattern)  # загрузить
+        logging.info("Загружен файл: " + self.full_name)
+        # Загрузить файлы load_add
+        if load_add:
+            for extension in load_add:
+                files = os.listdir(self.dir)
+                names = list(filter(lambda x: x.endswith('.' + extension), files))
+                if len(names) > 0:
+                    self.rastr.Load(1, self.dir + '\\' + names[0], self.set_save["шаблон " + extension])
+                    logging.info("Загружен файл: " + names[0])
 
-def str_in_list(id_str: str) -> list:
-    """функция из строки "2021,2023-2025" делает [2021,2023,2024,2025]"""
+    def save(self, full_name_new):
+        self.rastr.Save(full_name_new, self.pattern)
+        logging.info("Файл сохранен: " + full_name_new)
+
+    def rgm(self, txt: str = ""):
+        """Расчет режима"""
+        for i in ['', '', '', 'p', 'p', 'p']:
+            self.kod_rgm = self.rastr.rgm(i)
+            if not self.kod_rgm:  # 0 сошелся
+                if txt:
+                    logging.debug(f"\tрасчет режима: {txt}")
+                return True
+        # развалился
+        logging.error(f"расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!")
+        if self.calc_set == 1:
+            self.set_info['collapse'] += f" {self.name_base}: {txt}/"
+        return False
+
+
+def str_in_list(id_str: str):
+    """Функция из строки "2021,2023-2025" делает [2021,2023,2024,2025]"""
     years_list = id_str.replace(" ", "").split(',')
     if years_list != "":
         years_list_new = np.array([], int)
@@ -486,151 +684,7 @@ def str_in_list(id_str: str) -> list:
         return []
 
 
-def main_cor():  # головная процедура
-    global CS
-    global RG
-    global GS
-    global pxl
-    pxl = None
-    # определяем корректировать файл или файлы в папке по анализу "KIzFolder"
-    if os.path.isdir(CS.set["KIzFolder"]):
-        CS.set["folder_file"] = 'folder'  # если корр папка
-    elif os.path.isfile(CS.set["KIzFolder"]):
-        CS.set["folder_file"] = 'file'  # если корр файл
-        RG = CurrentFile(CS.set["KIzFolder"])
-    else:
-        mb.showerror("Ошибка в задании", "Не найден: " + CS.set["KIzFolder"] + ", выход")
-        return False
-    # создать папку KInFolder
-    if CS.set["KInFolder"]:
-        if not os.path.exists(CS.set["KInFolder"]):
-            logging.info("Создана папка: " + CS.set["KInFolder"])
-            os.mkdir(CS.set["KInFolder"])
-
-    folder_save = CS.set["KInFolder"] if CS.set["KInFolder"] else CS.set["KIzFolder"]
-
-    CS.set['folder_result'] = folder_save + r"\result"
-    if not os.path.exists(CS.set['folder_result']):
-        os.mkdir(CS.set['folder_result'])  # создать папку result
-    CS.set['folder_temp'] = CS.set['folder_result'] + r"\temp"
-    if not os.path.exists(CS.set['folder_temp']):
-        os.mkdir(CS.set['folder_temp'])  # создать папку temp
-
-    # if visual_set == 1 :
-    #     if IE_kform.CB_bloki.checked :
-    #         if len (IE_kform.bloki_file.value) > 0 :
-    #             logging.info( "загружен файл: " + IE_kform.bloki_file.value)
-    #             executeGlobal (CreateObject("Scripting.FileSystemObject").openTextFile(IE_kform.bloki_file.value).readAll())
-    #         else:
-    #             logging.info( "!!!НЕ УКАЗАН АДРЕС ФАЙЛА ЗАДАНИЯ!!!" )
-
-    # ЭКСПОРТ ИЗ МОДЕЛЕЙ
-    if CS.set['block_import'] == 1 and visual_set == 0:
-        import_model()  # ИД для импорта
-    if CS.set["import_val_XL"]:  # задать параметры узла по значениям в таблице excel (имя книги, имя листа)
-        sheets = re.findall("\[(.+?)\]", CS.set["excel_cor_sheet"])
-        for sheet in sheets:
-            cor_xl(CS.set["excel_cor_file"], sheet, tip='export')
-    # if IE_kform.CB_ImpRg2.checked: IE_ImpRg2()  # запуск ИД для импорта из задания IE
-    # if IE_kform.CB_bloki.checked: ImpRg22()  # запуск ИД для импорта из файла блоки
-    if len(CS.dict_import_model) > 0:
-        for import_from_model_i in CS.dict_import_model.values():
-            import_from_model_i.export_csv()
-
-    if CS.set["folder_file"] == 'folder':  # корр файлы в папке
-        files = os.listdir(CS.set["KIzFolder"])  # список всех файлов в папке
-        rastr_files = list(filter(lambda x: x.endswith('.rg2') | x.endswith('.rst'), files))  # фильтр файлов
-
-        for rastr_file in rastr_files:  # цикл по файлам .rg2 .rst в папке KIzFolder
-            full_name = CS.set["KIzFolder"] + '\\' + rastr_file
-            full_name_new = CS.set["KInFolder"] + '\\' + rastr_file
-            RG = CurrentFile(full_name, CS.set["KFilter_file"], CS.set["cor_criterion_start"])
-            if not CS.set["KFilter_file"] or RG.Name_st != "не подходит":  # отключен фильтр или соответствует ему
-                GS.N_rg2_File += 1
-                if CS.set["KFilter_file"]:
-                    if CS.set["max_file_count"] > 0:
-                        CS.set["max_file_count"] -= 1
-                    else:
-                        break
-                logging.info("Загружен файл: " + rastr_file)
-                rastr.Load(1, full_name, RG.shablon)  # загрузить
-                cor_file()
-                if CS.set["KInFolder"]:
-                    rastr.Save(full_name_new, RG.shablon)
-                    logging.info("Файл сохранен: " + full_name_new)
-            else:
-                logging.debug("Файл отклонен, не соответствует фильтру: " + rastr_file)
-
-    elif CS.set["folder_file"] == 'file':  # корр файл
-        rastr.Load(1, CS.set["KIzFolder"], RG.shablon)  # загрузить режим
-        logging.info("Загружен файл: " + CS.set["KIzFolder"])
-        cor_file()
-        if CS.set["KInFolder"]:
-            rastr.Save(CS.set["KInFolder"] + '\\' + RG.Name, RG.shablon)
-            logging.info("Файл сохранен: " + CS.set["KInFolder"])
-
-    if CS.set['printXL']:
-        pxl.finish()
-    if CS.set['collapse'] != "":
-        GS.result_info += f"\nВНИМАНИЕ! имеются модели которые развалились:\n[{CS.collapse}]. "
-
-
-def cor_file():
-    global pxl
-    if CS.set['block_beginning']:
-        logging.info("\t***Блок начала ***")
-        block_b()
-        logging.info("\t*** Конец блока начала ***")
-    # if visual_set == 1:
-    #    if CS.IE_bloki:
-    #        logging.info( "\t" & "*** блок начала (bloki.rbs)***" )
-    #        blok_n2 ()
-    #        logging.info( "\t" & "*** конец блока начала (bloki.rbs)***" )
-
-    if len(CS.dict_import_model) > 0:
-        for dict_import_model_i in CS.dict_import_model.values():
-            dict_import_model_i.import_csv()
-
-    if CS.set["import_val_XL"]:  # задать параметры узла по значениям в таблице excel (имя книги, имя листа)
-        sheets = re.findall("\[(.+?)\]", CS.set["excel_cor_sheet"])
-        for sheet in sheets:
-            cor_xl(CS.set["excel_cor_file"], sheet, tip='XL->RastrWin')
-    # if CS.import_export_xl:
-    #     rastr_xl_tab (CS.table , CS.export_xl  , CS.XL_table (0) , CS.XL_table (1), CS.tip_export_xl  )
-    # if CS.AutoShuntForm:
-    #     add_AutoBsh (CS.AutoShuntFormSel) #  процедура записывает из поля bsh в поле AutoBsh (выборка)
-    # if CS.AutoShuntIzm:
-    #     AutoShunt_class_rec (CS.AutoShuntIzmSel)#  процедура формирует Umin , Umax, AutoBsh , nBsh
-    #     AutoShunt_class_kor ()  #  процедура меняет Bsh  и записывает GS.AutoShunt_list
-    #     GS.AutoShunt_list = ""
-    #
-    # if visual_set = 1:
-    #     if CS.IE_CB_np_zad_sub:
-    #         np_zad_sub ()   #  задать номер паралельности у ветвей с одинаковым ip i iq
-    #     if CS.IE_CB_name_txt_korr:
-    #         name_txt_korr ()#   name_probel (r_table , r_tabl_pole), izm_bukvi(r_table , r_tabl_pole)#  удалить пробелы в начале и конце, заменить два пробела на один, английские менять на русские буквы
-    #     if CS.IE_CB_uhom_korr_sub:
-    #         uhom_korr_sub ("")      #  исправить номинальные напряжения в узлах для ряда 6,10,35,110,150,220,330,500,750
-    #     if CS.IE_CB_SHN_ADD:
-    #         SHN_ADD () #  добавить зависимость СХН
-    #     if CS.IE_bloki:
-    #         logging.info( "\t" & "блок конца (bloki.rbs)" )
-    #         blok_k2 ()
-    #         logging.info( "\t" & "*** конец блока конца *** " )
-    #
-    if CS.set['block_end']:
-        logging.info("\t*** Блок конца ***")
-        block_e()
-        logging.info("\t*** Конец блока конца ***")
-    if CS.set['control_rg2']:
-        control_rg2(CS.set['control_rg2_task'])  # расчет и контроль параметров режима
-    if CS.set['printXL']:
-        if not type(pxl) == PrintXL:
-            pxl = PrintXL()
-        pxl.add_val()
-
-
-def cor_xl(excel_file_name, sheet, tip=''):
+def cor_xl(rm, excel_file_name: str, sheet: str, tip: str = ''):
     """задать параметры по значениям в таблице excel (имя книги, имя листа,
     тип tip='export' или tip='XL->RastrWin'  )"""
     logging.info(f"\t Задать значения из excel, книга: {excel_file_name}, лист: {sheet}")
@@ -650,35 +704,34 @@ def cor_xl(excel_file_name, sheet, tip=''):
         for row in range(3, xl.max_row + 1):
             if xl.cell(row, 1).value and '#' not in xl.cell(row, 1).value:
                 """ ИД для импорта из модели(выполняется после блока начала)"""
-                import_from_model = ImportFromModel(import_file_name=xl.cell(row, 1).value
-                                                    , criterion_start={"years": xl.cell(row, 6).value,
-                                                                       "season": xl.cell(row, 7).value,
-                                                                       "max_min": xl.cell(row, 8).value,
-                                                                       "add_name": xl.cell(row, 9).value}
-                                                    , tables=xl.cell(row, 2).value
-                                                    , param=xl.cell(row, 4).value
-                                                    , sel=xl.cell(row, 3).value
-                                                    , calc=xl.cell(row, 5).value)
-                ImportFromModel.number += 1
-                CS.dict_import_model[ImportFromModel.number] = import_from_model
-        # --------------------------------------------------------------------------------
+                ifm = ImportFromModel(import_file_name=xl.cell(row, 1).value,
+                                      criterion_start={"years": xl.cell(row, 6).value,
+                                                       "season": xl.cell(row, 7).value,
+                                                       "max_min": xl.cell(row, 8).value,
+                                                       "add_name": xl.cell(row, 9).value},
+                                      tables=xl.cell(row, 2).value,
+                                      param=xl.cell(row, 4).value,
+                                      sel=xl.cell(row, 3).value,
+                                      calc=xl.cell(row, 5).value)
+                ImportFromModel.all_import_model.append(ifm)
+
     elif tip == 'XL->RastrWin' and calc_val != "Параметры импорта из файлов RastrWin":
         name_files = ""
         dict_param_column = {}  # {"pn":10-столбец}
-        # шаг по колонкам и запись в словарь всех столбцов для корр
+        # Шаг по колонкам и запись в словарь всех столбцов для коррекции
         for column_name_file in range(2, xl.max_column + 1):
             if xl.cell(1, column_name_file).value not in ["", None]:
                 name_files = xl.cell(1, column_name_file).value.split("|")  # list [name_file, name_file]
             if xl.cell(2, column_name_file).value:
                 duct_add = False
                 for name_file in name_files:
-                    if name_file in [RG.Name_Base, "*"]:
+                    if name_file in [rm.name_base, "*"]:
                         duct_add = True
                     if "*" in name_file and len(name_file) > 7:
                         pattern_name = re.compile("\[(.*)\]\[(.*)\]\[(.*)\]\[(.*)\]")
                         match = re.search(pattern_name, name_file)
                         if match.re.groups == 4:
-                            if RG.test_name(dict_uslovie={"years": match[1], "season": match[2],
+                            if rm.test_name(dict_uslovie={"years": match[1], "season": match[2],
                                                           "max_min": match[3], "add_name": match[4]},
                                             info=f"\tcor_xl, условие: {name_file}, "):
                                 duct_add = True
@@ -687,7 +740,7 @@ def cor_xl(excel_file_name, sheet, tip=''):
         logging.debug("\t" + str(dict_param_column))
 
         if len(dict_param_column) == 0:
-            logging.info(f"\t {RG.Name_Base} НЕ НАЙДЕН на листе {sheet} книги {excel_file_name}")
+            logging.info(f"\t {rm.name_base} НЕ НАЙДЕН на листе {sheet} книги {excel_file_name}")
         else:
             calc_vals = {1: "ЗАМЕНИТЬ", 2: "+", 3: "-", 0: "*"}
             # 1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"
@@ -699,15 +752,17 @@ def cor_xl(excel_file_name, sheet, tip=''):
                         if new_val != None:
                             if param not in ["pop", "pp"]:
                                 if calc_val == 1:
-                                    cor(str(kkey), f"{param}={new_val}", True)
+                                    cor(rm.rastr, str(kkey), f"{param}={new_val}", True)
                                 else:
-                                    cor(str(kkey), f"{param}={param}{calc_vals[calc_val]}{new_val}", True)
+                                    cor(rm.rastr, str(kkey), f"{param}={param}{calc_vals[calc_val]}{new_val}", True)
                             else:
-                                cor_pop(kkey, new_val)  # изменить потребление, CS.pop_save_pn
+                                cor_pop(rm.rastr, kkey, new_val)  # изменить потребление
 
 
-def cor_pop(zone, new_pop, task_save=None):
-    """ район("na=3", "npa=2" или "no=1", значение потребления, задание на сохранение нагрузки узлов)"""
+def cor_pop(rastr, zone: str, new_pop: Union[int, float], task_save: str = None):
+    """Изменить потребление
+    (rastr, zone:"na=3", "npa=2" или "no=1", new_pop - значение потребления,
+    задание на сохранение нагрузки узлов)"""
     eps = 0.003 if new_pop < 50 else 0.0003  # точность расчета, *100=%
     react_cor = True  # менять реактивное потребление пропорционально
     if '=' not in str(zone):
@@ -773,7 +828,7 @@ def cor_pop(zone, new_pop, task_save=None):
             return True
 
 
-def cor(keys, tasks, cor_print=True):
+def cor(rastr, keys: str, tasks: str, cor_print: bool = True):
     """  коррекция  в таблицах rastr, например:
     ("125 ny=25", "pn=10.2 qn=5.4") для узла,
     ("ny", "Tc=0") для всех узлов таблицы,
@@ -794,7 +849,7 @@ def cor(keys, tasks, cor_print=True):
                     set_row = ""
                 else:
                     set_row = "ny=" + key_equally[-1]
-                grup_cor("node", task_equally[0], set_row, task_equally[1])
+                grup_cor(rastr, "node", task_equally[0], set_row, task_equally[1])
                 #  (таблица, корр параметр, выборка, формула для расчета параметра)
 
             elif len(key_comma) > 2:  # Ветвь
@@ -806,80 +861,65 @@ def cor(keys, tasks, cor_print=True):
                     else:
                         key_comma2 = key_equally[1].split(",")
                         set_row = f"ip={key_comma2[0]}&iq={key_comma2[1]}&np={key_comma2[2]}"
-                grup_cor("vetv", task_equally[0], set_row, task_equally[1])
+                grup_cor(rastr, "vetv", task_equally[0], set_row, task_equally[1])
 
             elif key_equally[0] in ["g", "Num"]:  # генератор
                 set_row = "" if (key == "g" or key == "Num") else "Num=" + key_equally[1]
-                grup_cor("Generator", task_equally[0], set_row, task_equally[1])
+                grup_cor(rastr, "Generator", task_equally[0], set_row, task_equally[1])
 
             elif key_equally[0] == "no":  # объединене
                 set_row = '' if key == "no" else "no=" + key_equally[1]
-                grup_cor("darea", task_equally[0], set_row, task_equally[1])
+                grup_cor(rastr, "darea", task_equally[0], set_row, task_equally[1])
 
             elif key_equally[0] == "na":  # район
                 set_row = '' if key == "na" else "na=" + key_equally[1]
-                grup_cor("area", task_equally[0], set_row, task_equally[1])
+                grup_cor(rastr, "area", task_equally[0], set_row, task_equally[1])
 
             elif key_equally[0] == "npa":  # территория
                 set_row = '' if key == "npa" else "npa=" + key_equally[1]
-                grup_cor("area2", task_equally[0], set_row, task_equally[1])
+                grup_cor(rastr, "area2", task_equally[0], set_row, task_equally[1])
 
             elif key_equally[0] == "nga":  # нагрузочные группы
                 set_row = '' if key == "nga" else "nga=" + key_equally[1]
-                grup_cor("ngroup", task_equally[0], set_row, task_equally[1])
+                grup_cor(rastr, "ngroup", task_equally[0], set_row, task_equally[1])
 
     if cor_print:
         logging.info(f"\t cor {keys},  {tasks}")
 
 
-def grup_cor(tabl, param, viborka, formula):
-    """групповая коррекция (таблица, параметр корр, выборка, формула для расчета параметра)"""
-    # global rastr
+def grup_cor(rastr, tabl: str, param: str, selection: str, formula: str):
+    """Групповая коррекция (rastr, таблица, параметр корр, выборка, формула для расчета параметра)"""
     if rastr.tables.Find(tabl) < 0:
         logging.error(f"\tВНИМАНИЕ! в rastrwin не загружена таблица {tabl}")
         return False
-    ptabl = rastr.tables(tabl)
-    if ptabl.cols.Find(param) < 0:
+    table = rastr.tables(tabl)
+    if table.cols.Find(param) < 0:
         logging.error(f"ВНИМАНИЕ! в таблице {tabl} нет параметра {param}")
         return False
-    pparam = ptabl.cols.item(param)
-    ptabl.setsel(viborka)
+    pparam = table.cols.item(param)
+    table.setsel(selection)
     pparam.Calc(formula)
     return True
 
 
-def rgm(txt=""):
-    GS.kod_rgm = rastr.rgm("")
-    if GS.kod_rgm == 1: GS.kod_rgm = rastr.rgm("")
-    if GS.kod_rgm == 1: GS.kod_rgm = rastr.rgm("")
-    if GS.kod_rgm == 1: GS.kod_rgm = rastr.rgm("p")
-    if GS.kod_rgm == 1: GS.kod_rgm = rastr.rgm("p")
-    if GS.kod_rgm == 1:
-        if GS.calc_set == 1:
-            CS.set['collapse'] += f" {RG.Name_base}: {txt}/"
-        logging.error(f"расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!")
-    else:
-        if txt:
-            logging.debug(f"\tрасчет режима: {txt}")
-
-
-def control_rg2(dict_task):
+def control_rg2(rm, dict_task):
     """  контроль  dict_task = {'node': True, 'vetv': True, 'Gen': True, 'section': True, 'area': True, 'area2': True,
         'darea': True, 'sel_node': "na>0"}  """
+    rastr = rm.rastr
     node = rastr.tables("node")
     branch = rastr.tables("vetv")
     generator = rastr.tables("Generator")
     chart_pq = rastr.tables("graphik2")
     graph_it = rastr.tables("graphikIT")
 
-    rgm("control_rg2")
+    rm.rgm("control_rg2")
     # НАПРЯЖЕНИЯ
     if dict_task["node"]:
         logging.info("\tКонтроль напряжений.")
 
         uh = [6, 10, 35, 110, 220, 330, 500, 750]  # номинальные напряжения
         umin_n = [5.8, 9.7, 32, 100, 205, 315, 490, 730]  # минимальные нормальное напряжения для контроля
-        unr = [7.2, 12, 42, 126, 252, 363, 525, 787]  # наибольшее работчее напряжения
+        unr = [7.2, 12, 42, 126, 252, 363, 525, 787]  # наибольшее рабочее напряжения
 
         node.setsel(dict_task["sel_node"])
         j = node.FindNextSel(-1)
@@ -921,8 +961,8 @@ def control_rg2(dict_task):
                 j = node.FindNextSel(j)
     # ТОКИ
     if dict_task['vetv']:
-        rastr.CalcIdop(RG.GradusZ, 0.0, "")
-        logging.info("\tКонтроль токовой загрузки, расчетная температура: " + RG.Gradus)
+        rastr.CalcIdop(rm.degree_int, 0.0, "")
+        logging.info("\tКонтроль токовой загрузки, расчетная температура: " + rm.degree_str)
         if dict_task["sel_node"] != "":
             if node.cols.Find("sel1") < 0:
                 node.Cols.Add("sel1", 3)  # добавить столбцы
@@ -1019,16 +1059,19 @@ def control_rg2(dict_task):
     else:
         logging.error("\tФайл сечений не загружеин")
 
-    if dict_task['area']: control_pop('area')
-    if dict_task['area2']: control_pop('area2')
-    if dict_task['darea']: control_pop('darea')
+    if dict_task['area']:
+        control_pop(rastr, 'area')
+    if dict_task['area2']:
+        control_pop(rastr, 'area2')
+    if dict_task['darea']:
+        control_pop(rastr, 'darea')
 
 
-def control_pop(zone):
+def control_pop(rastr, zone: str):
     """zone =  'darea', 'area', 'area2'"""
     key_sone = {'darea': 'no', 'area': 'na', 'area2': 'npa'
         , 'darea_pop': 'pp', 'area_pop': 'pop', 'area2_pop': 'pop'
-        , 'darea_name': 'обединений', 'area_name': 'районов', 'area2_name': 'территорий'}
+        , 'darea_name': 'объединений', 'area_name': 'районов', 'area2_name': 'территорий'}
 
     logging.info("\tКонтроль pop_zad " + key_sone[zone + '_name'])
     tabl = rastr.tables(zone)
@@ -1049,29 +1092,34 @@ def control_pop(zone):
             j = tabl.FindNextSel(j)
 
 
-def sheet_exists(сur_workbook, sh_name):  # проверка существования лист в книге
-    for sheeti in сur_workbook.Sheets:
-        if sheeti.name == sh_name:
+def sheet_exists(book, sh_name: str):  # проверка существования лист в книге
+    for sheet_i in book.Sheets:
+        if sheet_i.name == sh_name:
             return True
     return False
 
 
 class ImportFromModel:
     """ импорта данных из файлов .rg2, .rst и др.
-     import_file_name = полное имя файла
-     criterion_start={"years": "","season": "","max_min": "", "add_name": ""} условие выполнения
-     tables= таблица для импорта, нр "node;vetv"
-     param= параметры для импорта: "" все параметры или перечисление, нр 'sel,sta'(ключи не обязательно)
-     sel= выборка нр "sel" или "" - все
-     calc= {"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
-    number = 0
+    import_file_name = полное имя файла
+    criterion_start={"years": "","season": "","max_min": "", "add_name": ""} условие выполнения
+    tables= таблица для импорта, нр "node;vetv"
+    param= параметры для импорта: "" все параметры или перечисление, нр 'sel,sta'(ключи не обязательно)
+    sel= выборка нр "sel" или "" - все
+    calc= {"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
+    all_import_model = []  # хранение объектов класса ImportFromModel
     calc_str = {"обновить": 2, "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}
 
-    def __init__(self, import_file_name='', criterion_start={}, tables='', param='', sel='', calc='2'):
+    def __init__(self, import_file_name='', criterion_start: dict = None, tables='', param='', sel='',
+                 calc: (int, str) = '2'):
         if not os.path.exists(import_file_name):
             logging.error("Ошибка в задании, не найден файл: " + import_file_name)
             self.import_file_name = ''
         else:
+            self.folder_temp = os.path.dirname(import_file_name) + '\\temp'
+            if not os.path.exists(self.folder_temp):
+                os.mkdir(self.folder_temp)
+
             self.import_file_name = import_file_name
             self.basename = os.path.basename(import_file_name)
             self.criterion_start = criterion_start
@@ -1087,19 +1135,20 @@ class ImportFromModel:
                     logging.error("Ошибка в задании, не распознано задание calc ImportFromModel: " + str(calc))
                     self.import_file_name = ''
             self.file_csv = []
-
+            number = str(len(self.all_import_model))
             for tabl in self.tables:
-                self.file_csv.append(f"{CS.set['folder_temp']}\\{self.basename}_{tabl}_{str(self.number)}.csv")
+                self.file_csv.append(f"{self.folder_temp}\\{self.basename}_{tabl}_{number}.csv")
                 self.param.append(param)
 
     def export_csv(self):
         """Экспорт данных из файла в csv"""
-        if self.import_file_name != '':
-            rastr.Load(1, self.import_file_name, GS.set_save['шаблон ' + self.import_file_name[-3:]])
-            logging.info("\tЭкспорт из файла:" + self.import_file_name)
+        if self.import_file_name:
+            rastr = win32com.client.Dispatch("Astra.Rastr")
+            rastr.Load(1, self.import_file_name, GeneralSettings.set_save['шаблон ' + self.import_file_name[-3:]])
+            logging.info("\tЭкспорт из файла:" + self.import_file_name + ' в CSV')
             for index in range(len(self.tables)):
                 if not self.param[index]:  # если все параметры
-                    self.param[index] = all_cols(self.tables[index])
+                    self.param[index] = all_cols(rastr, self.tables[index])
                 else:
                     if rastr.Tables(self.tables[index]).Key not in self.param[index]:
                         self.param[index] += ',' + rastr.Tables(self.tables[index]).Key
@@ -1107,35 +1156,27 @@ class ImportFromModel:
                 logging.info(f"\t\tТаблица: {self.tables[index]}. Выборка: {self.sel}"
                              + f"\n\t\tПараметры: {self.param[index]}"
                              + f"\n\t\tФайл CSV: {self.file_csv[index]}")
-                export_CSV(self.file_csv[index], self.tables[index], self.param[index], self.sel)
 
-    def import_csv(self):
+                tab = rastr.Tables(self.tables[index])
+                tab.setsel(self.sel)
+                tab.WriteCSV(1, self.file_csv[index], self.param[index], ";")  # 0 дописать, 1 заменить
+
+    def import_csv(self, rm):
         """Импорт данных из csv в файла"""
-        if self.import_file_name != '':
-            logging.info("\tИмпорт из файла:" + self.import_file_name)
-            for index in range(len(self.tables)):
-                if RG.test_name(self.criterion_start, info='ImportFromModel'):
-                    for index in range(len(self.tables)):
-                        logging.info(f"\t\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {str(self.calc)}"
-                                     + f"\n\t\tФайл CSV: {self.file_csv[index]}"
-                                     + f"\n\t\tПараметры: {self.param[index]}")
-                        import_CSV(self.file_csv[index], self.tables[index], self.param[index], self.calc)
+        if self.import_file_name:
+            logging.info("\tИмпорт из CSV в модель:" + self.import_file_name)
+            if rm.test_name(self.criterion_start, info='ImportFromModel'):
+                for index in range(len(self.tables)):
+                    logging.info(f"\t\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {str(self.calc)}" +
+                                 f"\n\t\tФайл CSV: {self.file_csv[index]}" +
+                                 f"\n\t\tПараметры: {self.param[index]}")
+                    """{"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
+                    tab = rm.rastr.Tables(self.tables[index])
+                    tab.ReadCSV(self.calc, self.file_csv[index], self.param[index], ";", '')
 
 
-def export_CSV(file, table, param, vibor):
-    tab = rastr.Tables(table)
-    tab.setsel(vibor)
-    tab.WriteCSV(1, file, param, ";")  # 0 дописать, 1 заменить
-
-
-def import_CSV(file, table, param, type_add):
-    """{"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
-    tab = rastr.Tables(table)
-    tab.ReadCSV(type_add, file, param, ";", "")
-
-
-def all_cols(tab):
-    """Возвращает все колонки таблицы: 'ny,uhom....'"""
+def all_cols(rastr, tab):
+    """Возвращает все колонки таблицы: ny,uhom...."""
     cls = rastr.Tables(tab).Cols
     cols_list = []
     for col in range(cls.Count):
@@ -1146,57 +1187,57 @@ def all_cols(tab):
 
 
 class PrintXL:
-    """класс печать данных в excel"""
-
-    #  _log  значит протокол для сводной
-    #  _p  значит параметры
-
-    def __init__(self):  # добавить листы и первая строка с названиями
-        global CS
+    """Класс печать данных в excel"""
+    #  ...._log  лист протокол для сводной
+    def __init__(self, set):  # добавить листы и первая строка с названиями
+        self.excel = None
+        self.wbook = None
+        self.set = set
         self.list_name = ["name_rg2", "год", "лет/зим", "макс/мин", "доп_имя1", "доп_имя2", "доп_имя3"]
         self.book = Workbook()
         #  создать лист xl и присвоить ссылку на него
-        for key in CS.set['set_printXL']:
-            if CS.set['set_printXL'][key]['add']:
-                CS.set['set_printXL'][key]["sheet"] = self.book.create_sheet(key + "_log")
+        for key in self.set['set_printXL']:
+            if self.set['set_printXL'][key]['add']:
+                self.set['set_printXL'][key]["sheet"] = self.book.create_sheet(key + "_log")
                 # записать первую строку параметров
-                header_list = self.list_name + CS.set['set_printXL'][key]['par'].split(',')
-                CS.set['set_printXL'][key]["sheet"].append(header_list)
+                header_list = self.list_name + self.set['set_printXL'][key]['par'].split(',')
+                self.set['set_printXL'][key]["sheet"].append(header_list)
 
-        if CS.set['print_parameters']['add']:
-            CS.set['print_parameters']["sheet"] = self.book.create_sheet('parameters')
+        if self.set['print_parameters']['add']:
+            self.set['print_parameters']["sheet"] = self.book.create_sheet('parameters')
 
-        if CS.set['print_balance_q']['add']:
-            CS.set['print_balance_q']["sheet"] = self.book.create_sheet("balance_Q")
-            self.balans_Q_X0 = 5
+        if self.set['print_balance_q']['add']:
+            self.set['print_balance_q']["sheet"] = self.book.create_sheet("balance_Q")
+            self.balans_q_x0 = 5
 
-    def add_val(self):
+    def add_val(self, rm):
+        rastr = rm.rastr
         logging.info("\tВывод данных из моделей в XL")
-        if RG.Name_st == "не подходит":
-            DopName_list = ['-'] * 3
+        if rm.Name_st == "не подходит":
+            dop_name_list = ['-'] * 3
         else:
-            DopName_list = RG.DopName[:3]
-            if len(DopName_list) < 3:
-                DopName_list += ['-'] * (3 - len(DopName_list))
-        list_name_z = [RG.Name_Base, RG.god, RG.name_list[1], RG.name_list[2]] + DopName_list
+            dop_name_list = rm.DopName[:3]
+            if len(dop_name_list) < 3:
+                dop_name_list += ['-'] * (3 - len(dop_name_list))
+        list_name_z = [rm.name_base, rm.god, rm.name_list[1], rm.name_list[2]] + dop_name_list
 
-        for key in CS.set['set_printXL']:
-            if not CS.set['set_printXL'][key]['add']:
+        for key in self.set['set_printXL']:
+            if not self.set['set_printXL'][key]['add']:
                 continue
             # проверка наличия таблицы
-            if rastr.Tables.Find(CS.set['set_printXL'][key]['tabl']) < 0:
-                logging.error("В RastrWin не загружена таблица " + CS.set['set_printXL'][key]['tabl'])
-                CS.set['set_printXL'][key]['add'] = False
+            if rastr.Tables.Find(self.set['set_printXL'][key]['tabl']) < 0:
+                logging.error("В RastrWin не загружена таблица " + self.set['set_printXL'][key]['tabl'])
+                self.set['set_printXL'][key]['add'] = False
                 continue
 
             # принт данных из растр в таблицу для СВОДНОЙ
-            r_table = rastr.tables(CS.set['set_printXL'][key]['tabl'])
-            sheet = CS.set['set_printXL'][key]["sheet"]
-            param_list = CS.set['set_printXL'][key]['par'].split(',')
+            r_table = rastr.tables(self.set['set_printXL'][key]['tabl'])
+            sheet = self.set['set_printXL'][key]["sheet"]
+            param_list = self.set['set_printXL'][key]['par'].split(',')
             param_list = [param_list[i] if r_table.cols.Find(param_list[i]) > -1 else '-' for i in
                           range(len(param_list))]
 
-            setsel = CS.set['set_printXL'][key]['sel'] if CS.set['set_printXL'][key]['sel'] else ""
+            setsel = self.set['set_printXL'][key]['sel'] if self.set['set_printXL'][key]['sel'] else ""
             r_table.setsel(setsel)
             index = r_table.FindNextSel(-1)
             while index >= 0:
@@ -1204,15 +1245,15 @@ class PrintXL:
                     list_name_z + [r_table.cols.item(val).ZN(index) if val != '-' else '-' for val in param_list])
                 index = r_table.FindNextSel(index)
 
-        if CS.set['print_parameters']['add']:
-            dict_tables = {'n': 'node', 'v': 'vetv', 'g': 'Generator', 'na': 'area', 'npa': 'area2', 'no': 'darea'
-                , 'nga': 'ngroup', 'ns': 'sechen'}
-            sheet = CS.set['print_parameters']["sheet"]
+        if self.set['print_parameters']['add']:
+            dict_tables = {'n': 'node', 'v': 'vetv', 'g': 'Generator', 'na': 'area', 'npa': 'area2', 'no': 'darea',
+                 'nga': 'ngroup', 'ns': 'sechen'}
+            sheet = self.set['print_parameters']["sheet"]
             if sheet.max_row == 1:
                 one_row_list = self.list_name[:]
             val_list = list_name_z[:]
 
-            for task_i in CS.set['print_parameters']['sel'].replace(' ', '').split(';'):
+            for task_i in self.set['print_parameters']['sel'].replace(' ', '').split(';'):
                 key_row, key_column = task_i.split("/")  # нр key_row = "ny=8|9"   key_column = "pn|qn"
                 key_column = key_column.split('|')  # ['pn','qn']
                 key_row = key_row.split('=')  # ['n','8|9']
@@ -1228,6 +1269,7 @@ class PrintXL:
                         ipiqnp = key_i.split(",")  # ветвь
                         if len(ipiqnp) != 3:
                             logging.error("print_parameters, ошибка: " + key_i)
+
                     for key_column_i in key_column:
                         choice = key_row[0] + '=' + key_i
                         if tabl_key == "vetv":
@@ -1252,10 +1294,10 @@ class PrintXL:
                 sheet.append(one_row_list)
             sheet.append(val_list)
 
-        if CS.set['print_balance_q']['add']:
+        if self.set['print_balance_q']['add']:
             pass
 
-    def finish(self) -> None:
+    def finish(self):
         # преобразовать в объект таблицу и удалить листы с одной строкой
         sheet_couple = {}
 
@@ -1271,10 +1313,10 @@ class PrintXL:
                 tab.tableStyleInfo = style
                 sheet.add_table(tab)
                 if 'log' in sheet_name:
-                    self.book.create_sheet(sheet_name.replace('log', 'сводая'))
-                    sheet_couple[sheet_name] = sheet_name.replace('log', 'сводая')
-
-        self.book.save("xl.xlsx")
+                    self.book.create_sheet(sheet_name.replace('log', 'сводная'))
+                    sheet_couple[sheet_name] = sheet_name.replace('log', 'сводная')
+        name_xl_file = self.set['name_time'] + '.xlsx'
+        self.book.save(name_xl_file)
         self.book = None
 
         self.excel = win32com.client.Dispatch("Excel.Application")
@@ -1283,29 +1325,19 @@ class PrintXL:
         self.excel.EnableEvents = False  # отслеживание событий
         self.excel.StatusBar = False  # отображение информации в строке статуса excel
 
-        self.wbook = self.excel.Workbooks.Open(os.getcwd() + '\\xl.xlsx')
+        self.wbook = self.excel.Workbooks.Open(name_xl_file)
         for n in range(self.wbook.sheets.count):
             if self.wbook.sheets[n].Name in sheet_couple:
                 self.pivot_tables(self.wbook.sheets[n].Name, sheet_couple[self.wbook.sheets[n].Name])
-
+        if self.set['folder_result']:
+            self.wbook.Save()
         self.excel.Visible = True
         self.excel.ScreenUpdating = True  # обновление экрана
         self.excel.Calculation = -4105  # xlCalculationAutomatic
         self.excel.EnableEvents = True  # отслеживание событий
         self.excel.StatusBar = True  # отображение информации в строке статуса excel
-        self.excel = None
 
-        # excel_file = pd.read_excel('xl.xlsx')
-        # report_table = excel_file.pivot_table(index='name',
-        #                                       columns='name_rg2',
-        #                                       values='na',
-        #                                       aggfunc='max').round(0)
-        #
-        # report_table.to_excel('xl2.xlsx',
-        #                       sheet_name='Report',
-        #                       startrow=4)
-
-        # if CS.print_balans_Q:
+        # if self.print_balans_Q:
         #     XL_print_balans_Q.Columns(4).ColumnWidth = 33
         #     diapozon = XL_print_balans_Q.UsedRange.address
         #     With
@@ -1323,112 +1355,112 @@ class PrintXL:
         # .Borders(12).LineStyle = 1  #
         # .WrapText = True  # перенос текста в ячейке
         # .Font.Name = "Times  Roman"
-        if CS.set['folder_result']:
-            now = datetime.now()
-            file_name = CS.set['folder_result'] + f"\\коррекция файлов ({now.strftime('%d-%m-%Y %H-%M')}).xlsm"
-            self.wbook.SaveAs(file_name, 52)  # 52 *.xlsm 51 *.xlsx
 
     def pivot_tables(self, s_log: str, s_pivot: str) -> None:
-        """создать сводную таблицу
-        :param s_log: имя листа с исходной таблицей
-        :param s_pivot: имя листа для вставки сводной"""
+        """Создать сводную таблицу
+        s_log: имя листа с исходной таблицей
+        s_pivot: имя листа для вставки сводной"""
         for n in range(self.wbook.sheets.count):
             if s_log == self.wbook.sheets[n].Name:
                 tab_log = self.wbook.sheets[n].ListObjects[0]
-        rows = CS.set['set_printXL'][s_log[:-4]]['rows'].split(",")
-        columns = CS.set['set_printXL'][s_log[:-4]]['columns'].split(",")
-        values = CS.set['set_printXL'][s_log[:-4]]['values'].split(",")
+        rows = self.set['set_printXL'][s_log[:-4]]['rows'].split(",")
+        columns = self.set['set_printXL'][s_log[:-4]]['columns'].split(",")
+        values = self.set['set_printXL'][s_log[:-4]]['values'].split(",")
 
-        PTCache = self.wbook.PivotCaches().add(1, tab_log)  # создать КЭШ xlDatabase, ListObjects
-        PT = PTCache.CreatePivotTable(s_pivot + "!R1C1", "Сводная " + s_log[:-4])  # создать сводную таблицу
-        PT.ManualUpdate = True  # не обновить сводную
+        pt_cache = self.wbook.PivotCaches().add(1, tab_log)  # создать КЭШ xlDatabase, ListObjects
+        pt = pt_cache.CreatePivotTable(s_pivot + "!R1C1", "Сводная " + s_log[:-4])  # создать сводную таблицу
+        pt.ManualUpdate = True  # не обновить сводную
         # print(s_log, s_pivot)
-        PT.AddFields(RowFields=rows, ColumnFields=columns, PageFields=["name_rg2"], AddToTable=False)
+        pt.AddFields(RowFields=rows, ColumnFields=columns, PageFields=["name_rg2"], AddToTable=False)
         # добавить поля фильтра которых нет в столбцах и строках
-        # PT.AddFields RowFields:=poleRow_arr, ColumnFields:=poleCol_arr, PageFields:=Array("name_rg", "лет/зим", "макс/мин", "доп_имя1", "доп_имя2") #  добавить поля
+        # pt.AddFields RowFields:=poleRow_arr, ColumnFields:=poleCol_arr,
+        # PageFields:=Array("name_rg", "лет/зим", "макс/мин", "доп_имя1", "доп_имя2") #  добавить поля
 
         for val in values:
-            PT.AddDataField(PT.PivotFields(val), val + " ", -4157)  # xlSum #  добавить поле в область значений
+            pt.AddDataField(pt.PivotFields(val), val + " ", -4157)  # xlSum добавить поле в область значений
             # Field                      Caption             def формула расчета
-            PT.PivotFields(val + " ").NumberFormat = "0"
+            pt.PivotFields(val + " ").NumberFormat = "0"
 
         # .PivotFields("na").ShowDetail = True #  группировка
-        PT.RowAxisLayout(1)  # xlTabularRow показывать в табличной форме!!!!
+        pt.RowAxisLayout(1)  # xlTabularRow показывать в табличной форме!!!!
         if len(values) > 0:
-            PT.DataPivotField.Orientation = 1  # xlRowField"Значения" в столбцах или строках xlColumnField
+            pt.DataPivotField.Orientation = 1  # xlRowField"Значения в столбцах или строках xlColumnField
 
         # .DataPivotField.Position = 1 #  позиция в строках
-        PT.RowGrand = False  # удалить строку общих итогов
-        PT.ColumnGrand = False  # удалить столбец общих итогов
-        PT.MergeLabels = True  # обединять одинаковые ячейки
-        PT.HasAutoFormat = False  # не обновлять ширину при обнавлении
-        PT.NullString = "--"  # заменять пустые ячейки
-        PT.PreserveFormatting = False  # сохранять формат ячеек при обнавлении
-        PT.ShowDrillIndicators = False  # показывать кнопки свертывания
-        # PT.PivotCache.MissingItemsLimit = 0 # xlMissingItemsNone
+        pt.RowGrand = False  # удалить строку общих итогов
+        pt.ColumnGrand = False  # удалить столбец общих итогов
+        pt.MergeLabels = True  # объединять одинаковые ячейки
+        pt.HasAutoFormat = False  # не обновлять ширину при обновлении
+        pt.NullString = "--"  # заменять пустые ячейки
+        pt.PreserveFormatting = False  # сохранять формат ячеек при обнавлении
+        pt.ShowDrillIndicators = False  # показывать кнопки свертывания
+        # pt.PivotCache.MissingItemsLimit = 0 # xlMissingItemsNone
         # xlMissingItemsNone для норм отображения уникальных значений автофильтра
         for row in rows:
-            PT.PivotFields(row).Subtotals = [False, False, False, False, False, False, False, False, False, False,
+            pt.PivotFields(row).Subtotals = [False, False, False, False, False, False, False, False, False, False,
                                              False, False]  # промежуточные итоги и фильтры
         for column in columns:
-            PT.PivotFields(column).Subtotals = [False, False, False, False, False, False, False, False, False, False,
+            pt.PivotFields(column).Subtotals = [False, False, False, False, False, False, False, False, False, False,
                                                 False, False]  # промежуточные итоги и фильтры
-        PT.ManualUpdate = False  # обновить сводную
-        PT.TableStyle2 = ""  # стиль
+        pt.ManualUpdate = False  # обновить сводную
+        pt.TableStyle2 = ""  # стиль
         if s_log[:-4] in ["area", "area2", "darea"]:
-            PT.ColumnRange.ColumnWidth = 10  # ширина строк
-            PT.RowRange.ColumnWidth = 9
-            PT.RowRange.Columns(1).ColumnWidth = 7
-            PT.RowRange.Columns(2).ColumnWidth = 20
-            PT.RowRange.Columns(3).ColumnWidth = 10
-            PT.RowRange.Columns(6).ColumnWidth = 20
-        PT.DataBodyRange.HorizontalAlignment = -4108  # xlCenter
+            pt.ColumnRange.ColumnWidth = 10  # ширина строк
+            pt.RowRange.ColumnWidth = 9
+            pt.RowRange.Columns(1).ColumnWidth = 7
+            pt.RowRange.Columns(2).ColumnWidth = 20
+            pt.RowRange.Columns(3).ColumnWidth = 10
+            pt.RowRange.Columns(6).ColumnWidth = 20
+        pt.DataBodyRange.HorizontalAlignment = -4108  # xlCenter
         # .DataBodyRange.NumberFormat = "#,##0"
         # формат
-        PT.TableRange1.WrapText = True  # перенос текста в ячейке
-        PT.TableRange1.Borders(7).LineStyle = 1  # лево
-        PT.TableRange1.Borders(8).LineStyle = 1  # верх
-        PT.TableRange1.Borders(9).LineStyle = 1  # низ
-        PT.TableRange1.Borders(10).LineStyle = 1  # право
-        PT.TableRange1.Borders(11).LineStyle = 1  # внутри вертикаль
-        PT.TableRange1.Borders(12).LineStyle = 1  #
+        pt.TableRange1.WrapText = True  # перенос текста в ячейке
+        pt.TableRange1.Borders(7).LineStyle = 1  # лево
+        pt.TableRange1.Borders(8).LineStyle = 1  # верх
+        pt.TableRange1.Borders(9).LineStyle = 1  # низ
+        pt.TableRange1.Borders(10).LineStyle = 1  # право
+        pt.TableRange1.Borders(11).LineStyle = 1  # внутри вертикаль
+        pt.TableRange1.Borders(12).LineStyle = 1  #
 
 
-def sel0(txt=''):
-    """ Cнять отметку узлов, ветвей и генераторов"""
+def sel0(rastr, txt=''):
+    """ Снять отметку узлов, ветвей и генераторов"""
     rastr.Tables("node").cols.item("sel").Calc("0")
     rastr.Tables("vetv").cols.item("sel").Calc("0")
     rastr.Tables("Generator").cols.item("sel").Calc("0")
     if txt != '':
-        logging.info("\tCнять отметку узлов, ветвей и генераторов")
+        logging.info("\tСнять отметку узлов, ветвей и генераторов")
 
 
-def start():
-    global GS
-    global CS
-    GS = GeneralSettings()
-    if GS.calc_set == 1:
-        CS = CorSettings()  # CS - это глобальный класс кор
-        main_cor()  # korr
-    if GS.calc_set == 2:
-        mainRG()  # rashot
-    GS.end_gl()
+def start_cor():
+    """Запуск корректировки моделей"""
+    global CM
+    CM = CorModel()
+    CM.run_cor()
+
+
+def start_calc():
+    """Запуск расчета моделей"""
+    pass
 
 
 if __name__ == '__main__':
-    visual_set = 1  # 1 задание через QT, 0 - в коде
+    VISUAL_SET = 0  # 1 задание через QT, 0 - в коде
+    GeneralSettings.calc_set = 1  # 1 -корректировать модели CorModel, 2-расчитать модели Global_raschot_class
+    CM = None  # глобальный объект класса CorModel
     # https://docs.python.org/3/library/logging.html
     logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
                         format='%(asctime)s %(levelname)s:%(message)s')  # debug, INFO, WARNING, ERROR и CRITICAL
-    rastr = win32com.client.Dispatch("Astra.Rastr")
 
-    if visual_set == 0:
-        start()
+    if not VISUAL_SET:  # в коде
+        if GeneralSettings.calc_set == 1:
+            start_cor()  # corr
+        if GeneralSettings.calc_set == 2:
+            start_calc()  # calc
     else:
-        app = QtWidgets.QApplication([])# Новый экземпляр QApplication
+        app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
         app.setApplicationName("Правка моделей RastrWin")
-        ui_edit = EditWindow()# Сздание инстанса класса
+        ui_edit = EditWindow()
         ui_edit.show()
         ui_set = SetWindow()
-        # ui_set.show()
-        sys.exit(app.exec_())# Запуск
+        sys.exit(app.exec_())  # Запуск
