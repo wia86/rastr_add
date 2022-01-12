@@ -12,3 +12,5 @@ class one(root):
 r1= root(10)
 o1= one(10)
 p=1
+
+locals().get('r[8]')

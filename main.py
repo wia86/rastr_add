@@ -86,7 +86,6 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor):
         self.CB_print_tab_log.clicked.connect(lambda: self.show_hide(self.CB_print_tab_log, self.GB_sel_tabl))
         self.CB_print_parametr.clicked.connect(lambda: self.show_hide(self.CB_print_parametr, self.TA_parametr_vibor))
         self.CB_print_balans_Q.clicked.connect(lambda: self.show_hide(self.CB_print_balans_Q, self.balans_Q_vibor))
-        GeneralSettings.calc_set = 1
         self.run_krg2.clicked.connect(lambda: start_cor())
         self.SetBut.clicked.connect(lambda: ui_set.show())
 
@@ -98,14 +97,15 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor):
 
 
 class GeneralSettings:
-    """Для хранения общих настроек"""
-    calc_set = None  # 1 -корректировать модели CorModel, 2-расчитать модели Global_raschot_class
+    """
+    Для хранения общих настроек
+    """
+    # коллекция настроек, которые хранятся в ini файле
     set_save = {}
-    set_info = {}
-
-    # set = {
-    #     "calc_val": {1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"}
-    # }
+    # коллекция для хранения информации о расчете
+    set_info = {"calc_val": {1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"},
+                'collapse': '',
+                'end_info': ''}
 
     def __init__(self):
         # прочитать ini файл
@@ -121,7 +121,6 @@ class GeneralSettings:
             raise LookupError("Отсутствует файл settings.ini")
 
         self.file_num = 0  # счетчик расчетных файлов
-        self.kod_rgm = 0  # 0 сошелся, 1 развалился
         self.now = datetime.now()
         self.time_start = time()
         self.now_start = self.now.strftime("%d-%m-%Y %H:%M")
@@ -215,7 +214,6 @@ class CorModel(GeneralSettings):
             "block_end": False,  # конец
             # ПРОЧИЕ НАСТРОЙКИ
         }
-        self.rm = None
         self.pxl = None
 
         if VISUAL_SET == 1:
@@ -244,6 +242,19 @@ class CorModel(GeneralSettings):
             self.set["control_rg2_task"]['sel_node'] = ui_edit.kontrol_rg2_Sel.text()
             # импорт параметров режима
             if ui_edit.CB_ImpRg2.isChecked():
+                # узлы -----------------------------------------------------------------------------
+                if ui_edit.CB_N.isChecked():
+                    ifm = ImportFromModel(import_file_name=ui_edit.file_N.text(),
+                                          criterion_start={"years": ui_edit.Filtr_god_N.text(),
+                                                           "season": ui_edit.Filtr_sez_N.currentText(),
+                                                           "max_min": ui_edit.Filtr_max_min_N.currentText(),
+                                                           "add_name": ui_edit.Filtr_dop_name_N.text()},
+                                          tables=ui_edit.tab_N.text(),
+                                          param=ui_edit.param_N.text(),
+                                          sel=ui_edit.sel_N.text(),
+                                          calc=ui_edit.tip_N.currentText())
+                    ImportFromModel.all_import_model.append(ifm)
+                # ветви -----------------------------------------------------------------------------
                 if ui_edit.CB_V.isChecked():
                     ifm = ImportFromModel(import_file_name=ui_edit.file_V.text(),
                                           criterion_start={"years": ui_edit.Filtr_god_V.text(),
@@ -255,7 +266,79 @@ class CorModel(GeneralSettings):
                                           sel=ui_edit.sel_V.text(),
                                           calc=ui_edit.tip_V.currentText())
                     ImportFromModel.all_import_model.append(ifm)
-                    # --------------------------------------------------------------------------------
+                # генераторы -----------------------------------------------------------------------------
+                if ui_edit.CB_G.isChecked():
+                    ifm = ImportFromModel(import_file_name=ui_edit.file_G.text(),
+                                          criterion_start={"years": ui_edit.Filtr_god_G.text(),
+                                                           "season": ui_edit.Filtr_sez_G.currentText(),
+                                                           "max_min": ui_edit.Filtr_max_min_G.currentText(),
+                                                           "add_name": ui_edit.Filtr_dop_name_G.text()},
+                                          tables=ui_edit.tab_G.text(),
+                                          param=ui_edit.param_G.text(),
+                                          sel=ui_edit.sel_G.text(),
+                                          calc=ui_edit.tip_G.currentText())
+                    ImportFromModel.all_import_model.append(ifm)
+                # районы -----------------------------------------------------------------------------
+                if ui_edit.CB_A.isChecked():
+                    ifm = ImportFromModel(import_file_name=ui_edit.file_A.text(),
+                                          criterion_start={"years": ui_edit.Filtr_god_A.text(),
+                                                           "season": ui_edit.Filtr_sez_A.currentText(),
+                                                           "max_min": ui_edit.Filtr_max_min_A.currentText(),
+                                                           "add_name": ui_edit.Filtr_dop_name_A.text()},
+                                          tables=ui_edit.tab_A.text(),
+                                          param=ui_edit.param_A.text(),
+                                          sel=ui_edit.sel_A.text(),
+                                          calc=ui_edit.tip_A.currentText())
+                    ImportFromModel.all_import_model.append(ifm)
+                # территории -----------------------------------------------------------------------------
+                if ui_edit.CB_A2.isChecked():
+                    ifm = ImportFromModel(import_file_name=ui_edit.file_A2.text(),
+                                          criterion_start={"years": ui_edit.Filtr_god_A2.text(),
+                                                           "season": ui_edit.Filtr_sez_A2.currentText(),
+                                                           "max_min": ui_edit.Filtr_max_min_A2.currentText(),
+                                                           "add_name": ui_edit.Filtr_dop_name_A2.text()},
+                                          tables=ui_edit.tab_A2.text(),
+                                          param=ui_edit.param_A2.text(),
+                                          sel=ui_edit.sel_A2.text(),
+                                          calc=ui_edit.tip_A2.currentText())
+                    ImportFromModel.all_import_model.append(ifm)
+                # объединения -----------------------------------------------------------------------------
+                if ui_edit.CB_D.isChecked():
+                    ifm = ImportFromModel(import_file_name=ui_edit.file_D.text(),
+                                          criterion_start={"years": ui_edit.Filtr_god_D.text(),
+                                                           "season": ui_edit.Filtr_sez_D.currentText(),
+                                                           "max_min": ui_edit.Filtr_max_min_D.currentText(),
+                                                           "add_name": ui_edit.Filtr_dop_name_D.text()},
+                                          tables=ui_edit.tab_D.text(),
+                                          param=ui_edit.param_D.text(),
+                                          sel=ui_edit.sel_D.text(),
+                                          calc=ui_edit.tip_D.currentText())
+                    ImportFromModel.all_import_model.append(ifm)
+                # объединения -----------------------------------------------------------------------------
+                if ui_edit.CB_PQ.isChecked():
+                    ifm = ImportFromModel(import_file_name=ui_edit.file_PQ.text(),
+                                          criterion_start={"years": ui_edit.Filtr_god_PQ.text(),
+                                                           "season": ui_edit.Filtr_sez_PQ.currentText(),
+                                                           "max_min": ui_edit.Filtr_max_min_PQ.currentText(),
+                                                           "add_name": ui_edit.Filtr_dop_name_PQ.text()},
+                                          tables=ui_edit.tab_PQ.text(),
+                                          param=ui_edit.param_PQ.text(),
+                                          sel=ui_edit.sel_PQ.text(),
+                                          calc=ui_edit.tip_PQ.currentText())
+                    ImportFromModel.all_import_model.append(ifm)
+                # IT -----------------------------------------------------------------------------
+                if ui_edit.CB_IT.isChecked():
+                    ifm = ImportFromModel(import_file_name=ui_edit.file_IT.text(),
+                                          criterion_start={"years": ui_edit.Filtr_god_IT.text(),
+                                                           "season": ui_edit.Filtr_sez_IT.currentText(),
+                                                           "max_min": ui_edit.Filtr_max_min_IT.currentText(),
+                                                           "add_name": ui_edit.Filtr_dop_name_IT.text()},
+                                          tables=ui_edit.tab_IT.text(),
+                                          param=ui_edit.param_IT.text(),
+                                          sel=ui_edit.sel_IT.text(),
+                                          calc=ui_edit.tip_IT.currentText())
+                    ImportFromModel.all_import_model.append(ifm)
+
             for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
                 if 'file:///' in self.set[str_name]:
                     self.set[str_name] = self.set[str_name][8:]
@@ -267,7 +350,7 @@ class CorModel(GeneralSettings):
             self.set["folder_file"] = 'folder'  # если корр папка
         elif os.path.isfile(self.set["KIzFolder"]):
             self.set["folder_file"] = 'file'  # если корр файл
-            self.rm = RastrModel(full_name=self.set["KIzFolder"])
+            rm = RastrModel(full_name=self.set["KIzFolder"])
         else:
             mb.showerror("Ошибка в задании", "Не найден: " + self.set["KIzFolder"] + ", выход")
             return False
@@ -302,11 +385,8 @@ class CorModel(GeneralSettings):
         if self.set["import_val_XL"]:  # задать параметры узла по значениям в таблице excel (имя книги, имя листа)
             sheets = re.findall("\[(.+?)\]", self.set["excel_cor_sheet"])
             for sheet in sheets:
-                cor_xl(self.rm, self.set["excel_cor_file"], sheet, tip='export')
+                cor_xl(self.set["excel_cor_file"], sheet, tip='export')
 
-        if len(ImportFromModel.all_import_model) > 0:
-            for im in ImportFromModel.all_import_model:
-                im.export_csv()
         load_add = []
         if ((self.set["printXL"] and self.set["set_printXL"]["sechen"]) or
                 (self.set["control_rg2"] and self.set["control_rg2_task"]["section"])):
@@ -319,31 +399,34 @@ class CorModel(GeneralSettings):
             for rastr_file in self.rastr_files:  # цикл по файлам .rg2 .rst в папке KIzFolder
                 full_name = self.set["KIzFolder"] + '\\' + rastr_file
                 full_name_new = self.set["KInFolder"] + '\\' + rastr_file
-                self.rm = RastrModel(full_name, self.set["KFilter_file"], self.set["cor_criterion_start"])
+                rm = RastrModel(full_name, self.set["KFilter_file"], self.set["cor_criterion_start"])
                 # отключен фильтр или соответствует ему
-                if not self.set["KFilter_file"] or self.rm.Name_st != "не подходит":
+                if not self.set["KFilter_file"] or rm.Name_st != "не подходит":
                     self.file_num += 1
                     if self.set["KFilter_file"]:
                         if self.set["max_file_count"] > 0:
                             self.set["max_file_count"] -= 1
                         else:
                             break
-                    self.rm.load(load_add=load_add)
-                    self.cor_file()
+                    rm.load(load_add=load_add)
+                    self.cor_file(rm)
                     if self.set["KInFolder"]:
-                        self.rm.save(full_name_new)
+                        rm.save(full_name_new)
                 else:
                     logging.debug("Файл отклонен, не соответствует фильтру: " + rastr_file)
 
         elif self.set["folder_file"] == 'file':  # корр файл
-            self.rm.load(load_add=load_add)
-            self.cor_file()
+            rm.load(load_add=load_add)
+            self.cor_file(rm)
             if self.set["KInFolder"]:
-                self.rm.save(self.set["KInFolder"] + '\\' + self.rm.Name)
+                rm.save(self.set["KInFolder"] + '\\' + rm.Name)
+
+        ImportFromModel.all_import_model=[]
 
         if self.set['printXL']:
             self.pxl.finish()
-        if 'collapse' in self.set_info:
+
+        if self.set_info['collapse']:
             self.set_info['end_info'] += f"\nВНИМАНИЕ! развалились модели:\n[{self.set_info['collapse']}]. "
 
         self.the_end()
@@ -351,26 +434,29 @@ class CorModel(GeneralSettings):
         webbrowser.open(self.set['name_time'] + '.log')
         mb.showinfo("Инфо", self.set_info['end_info'])
 
-    def cor_file(self):
-        """Корректировать конкретный файл"""
-        if self.set['block_beginning']:
-            logging.info("\t***Блок начала ***")
-            block_b(self.rm)
-            logging.info("\t*** Конец блока начала ***")
+    def cor_file(self, rm):
+        """Обработать файл rm"""
+
+        if 'block_beginning' in self.set:
+            if self.set['block_beginning']:
+                logging.info("\t***Блок начала ***")
+                block_b(rm)
+                logging.info("\t*** Конец блока начала ***")
         # if VISUAL_SET == 1:
         #    if self.IE_bloki:
         #        logging.info( "\t" & "*** блок начала (bloki.rbs)***")
         #        blok_n2 ()
         #        logging.info( "\t" & "*** конец блока начала (bloki.rbs)***")
 
-        if len(ImportFromModel.all_import_model) > 0:
+        if ImportFromModel.all_import_model:
             for im in ImportFromModel.all_import_model:
-                im.import_csv(self.rm)
+                im.import_csv(rm)
 
-        if self.set["import_val_XL"]:  # задать параметры узла по значениям в таблице excel (имя книги, имя листа)
-            sheets = re.findall("\[(.+?)\]", self.set["excel_cor_sheet"])
-            for sheet in sheets:
-                cor_xl(self.rm, self.set["excel_cor_file"], sheet, tip='XL->RastrWin')
+        if "import_val_XL" in self.set:  # задать параметры узла по значениям в таблице excel (имя книги, имя листа)
+            if self.set["import_val_XL"]:
+                sheets = re.findall("\[(.+?)\]", self.set["excel_cor_sheet"])
+                for sheet in sheets:
+                    cor_xl(self.set["excel_cor_file"], sheet, rm=rm, tip='XL->RastrWin')
         # if self.import_export_xl:
         #     rastr_xl_tab (self.table , self.export_xl  , self.XL_table (0) , self.XL_table (1), self.tip_export_xl  )
         # if self.AutoShuntForm:
@@ -394,16 +480,22 @@ class CorModel(GeneralSettings):
         #         blok_k2 ()
         #         logging.info( "\t" & "*** конец блока конца *** " )
 
-        if self.set['block_end']:
-            logging.info("\t*** Блок конца ***")
-            block_e(self.rm)
-            logging.info("\t*** Конец блока конца ***")
-        if self.set['control_rg2']:
-            control_rg2(self.rm, self.set['control_rg2_task'])  # расчет и контроль параметров режима
-        if self.set['printXL']:
-            if not type(self.pxl) == PrintXL:
-                self.pxl = PrintXL(self.set)
-            self.pxl.add_val(self.rm)
+        if 'block_end' in self.set:
+            if self.set['block_end']:
+                logging.info("\t*** Блок конца ***")
+                block_e(rm)
+                logging.info("\t*** Конец блока конца ***")
+
+        if 'control_rg2' in self.set:
+            if self.set['control_rg2']:
+                if not control_rg2(rm, self.set['control_rg2_task']):  # расчет и контроль параметров режима
+                    self.set_info['collapse'] += rm.name_base + ', '
+
+        if 'printXL' in self.set:
+            if self.set['printXL']:
+                if not type(self.pxl) == PrintXL:
+                    self.pxl = PrintXL(self.set)
+                self.pxl.add_val(rm)
 
 
 def block_b(rm):
@@ -456,7 +548,7 @@ def block_e(rm):
 # name0 ()           #  поиск узлов и генераторов без имени
 # nyNum0 ()           #  поиск узлов и генераторов с номером 0
 # <<<прочее>>>
-# if self.rm.test_name (array ("2020","","","")) :
+# if rm.test_name (array ("2020","","","")) :
 # = otklonenie_seshen (nomer_sesh)   #   возвращает величину отклонения psech от  pmax   + превышение; - недобор
 # = rastr.Calc("sum,max,min,val","area","qn","vibor") - функция (vibor не может быть "")
 #  ПОТРЕБЛЕНИЕ cor_pop(zone,new_pop, task_save) npa_cor_pop(zone,new_pop, task_save)#  територия CorOb(ob,new_pop, task_save)#  обединение
@@ -518,11 +610,8 @@ class RastrModel(GeneralSettings):
             self.Name_st = self.god + " " + self.name_list[1]
             if self.kod_name_rg2 < 5:
                 self.Name_st += " " + self.name_list[2]
-
-            # if GeneralSettings.calc_set == 2:  # расчет режимов а не корр
-            #     if GLR.gost58670:
-            #         if (self.kod_name_rg2 in [1, 2]) or ("ПЭВТ" in self.name_base):
-            #             self.temp_a_v_gost = True  # зима + период экстремально высоких температур -ПЭВТ
+            if (self.kod_name_rg2 in [1, 2]) or ("ПЭВТ" in self.name_base):
+                self.temp_a_v_gost = True  # зима + период экстремально высоких температур -ПЭВТ
         else:
             self.Name_st = "не подходит"  # отсеиваем файлы задание и прочее
 
@@ -546,77 +635,85 @@ class RastrModel(GeneralSettings):
                 self.degree_int = float(self.degree_str)  # число
                 self.txt_dop = "Расчетная температура " + self.degree_str + " °C. "
 
-        if GeneralSettings.calc_set == 2:  # расчет режимов
+        # if CALC_SET == 2:  # расчет режимов
+        #     if self.kod_name_rg2 > 0:
+        # if GLR.zad_temperature == 1:
+        #     if self.name_list[1] == "зим":
+        #         self.degree_int = GLR.temperature_zima
+        #     else:
+        #         self.degree_int = GLR.temperature_leto
+        #
+        #     self.degree_str = str(self.degree_int)
+        #     self.txt_dop = "Расчетная температура " + self.degree_str + " °C. "
 
-            if self.kod_name_rg2 > 0:
-                # if GLR.zad_temperature == 1:
-                #     if self.name_list[1] == "зим":
-                #         self.degree_int = GLR.temperature_zima
-                #     else:
-                #         self.degree_int = GLR.temperature_leto
-                #
-                #     self.degree_str = str(self.degree_int)
-                #     self.txt_dop = "Расчетная температура " + self.degree_str + " °C. "
+        # for DopName_tek in self.DopName:
+        #     for each ii in GLR.rg2_name_metka
+        #         if trim (DopName_tek) = trim (ii (0)):
+        #             txt_dop = txt_dop + ii (1)
 
-                # for DopName_tek in self.DopName:
-                #     for each ii in GLR.rg2_name_metka
-                #         if trim (DopName_tek) = trim (ii (0)):
-                #             txt_dop = txt_dop + ii (1)
-
-                self.NAME_RG2_plus = self.season_name + " " + self.god + " г"
-                if self.txt_dop != "":
-                    self.NAME_RG2_plus += ". " + self.txt_dop
-                self.NAME_RG2_plus2 = self.season_name + "(" + self.degree_str + " °C)"
-                # self.TEXT_NAME_TAB = GLR.tabl_name_OK1 + str(
-                #     GLR.Ntabl_OK) + GLR.tabl_name_OK2 + self.season_name + " " + self.god + " г. " + self.txt_dop
+        # self.NAME_RG2_plus = self.season_name + " " + self.god + " г"
+        # if self.txt_dop != "":
+        #     self.NAME_RG2_plus += ". " + self.txt_dop
+        # self.NAME_RG2_plus2 = self.season_name + "(" + self.degree_str + " °C)"
+        # self.TEXT_NAME_TAB = GLR.tabl_name_OK1 + str(
+        #     GLR.Ntabl_OK) + GLR.tabl_name_OK2 + self.season_name + " " + self.god + " г. " + self.txt_dop
 
         if filter_file and self.kod_name_rg2 > 0:
             if not (''.join(condition_file.values())).replace(' ', ''):  # условие не пустое
                 if not self.test_name(condition_file):
                     self.Name_st = "не подходит"
 
-    def test_name(self, dict_uslovie: dict, info: str = ""):
-        """Возвращает истина, если имя режима соответствует условию:
-         нр, год("2020,2023-2025"), зим/лет/паводок("лет,зим"), макс/мин("макс"), доп имя("-41С;МДП:ТЭ-У")
-        {"years":"","season":"","max_min":"","add_name":""}-всегда истина"""
-        if not dict_uslovie:
+    def test_name(self, condition: dict, info: str = "") -> bool:
+        """
+        Проверка имени файла на соответствие условию condition
+        Возвращает True, если имя режима соответствует условию condition:
+        нр, год("2020,2023-2025"), зим/лет/паводок("лет,зим"), макс/мин("макс"), доп имя("-41С;МДП:ТЭ-У")
+        condition = {"years":"","season":"","max_min":"","add_name":""}-всегда истина
+        str = для вывода в протокол
+        """
+        if not condition:
             return True
         if self.Name_st == "не подходит":
             return False
-        if dict_uslovie['years']:
-            fff = False
-            for us in str_in_list(str(dict_uslovie['years'])):
-                if int(self.god) == us:
-                    fff = True
-            if not fff:
-                logging.debug(info + self.Name + f" Год '{self.god}' не проходит по условию: "
-                              + str(dict_uslovie['years']))
-                return False
-        if dict_uslovie['season']:
-            if dict_uslovie['season'].strip():  # ПРОВЕРКА "зим" "лет" "паводок"
+
+        if 'years' in condition:
+            if condition['years']:
                 fff = False
-                temp = dict_uslovie['season'].replace(' ', '')
-                for us in temp.split(","):
-                    if self.name_list[1] == us:
+                for us in str_in_list(str(condition['years'])):
+                    if int(self.god) == us:
                         fff = True
                 if not fff:
-                    logging.debug(info + self.Name + f" Сезон '{self.name_list[1]}' не проходит по условию: "
-                                  + dict_uslovie['season'])
+                    logging.debug(info + self.Name + f" Год '{self.god}' не проходит по условию: "
+                                  + str(condition['years']))
                     return False
 
-        if dict_uslovie['max_min']:
-            if dict_uslovie['max_min'].strip():  # ПРОВЕРКА "макс" "мин"
-                if self.name_list[2] != dict_uslovie['max_min'].replace(' ', ''):
-                    logging.debug(info + self.Name + f" '{self.name_list[2]}' не проходит по условию: "
-                                  + dict_uslovie['max_min'])
-                    return False
+        if 'season' in condition:
+            if condition['season']:
+                if condition['season'].strip():  # ПРОВЕРКА "зим" "лет" "паводок"
+                    fff = False
+                    temp = condition['season'].replace(' ', '')
+                    for us in temp.split(","):
+                        if self.name_list[1] == us:
+                            fff = True
+                    if not fff:
+                        logging.debug(info + self.Name + f" Сезон '{self.name_list[1]}' не проходит по условию: "
+                                      + condition['season'])
+                        return False
 
-        if dict_uslovie['add_name']:
-            if dict_uslovie['add_name'].strip():  # ПРОВЕРКА (-41С;МДП:ТЭ-У)
-                if ";" in dict_uslovie['add_name']:
-                    temp = dict_uslovie['add_name'].split(";")
+        if 'max_min' in condition:
+            if condition['max_min']:
+                if condition['max_min'].strip():  # ПРОВЕРКА "макс" "мин"
+                    if self.name_list[2] != condition['max_min'].replace(' ', ''):
+                        logging.debug(info + self.Name + f" '{self.name_list[2]}' не проходит по условию: "
+                                      + condition['max_min'])
+                        return False
+
+        if 'add_name' in condition:
+            if condition['add_name'].strip():  # ПРОВЕРКА (-41С;МДП:ТЭ-У)
+                if ";" in condition['add_name']:
+                    temp = condition['add_name'].split(";")
                 else:
-                    temp = dict_uslovie['add_name'].split(",")
+                    temp = condition['add_name'].split(",")
                 fff = False
                 for us in temp:
                     for DopName_i in self.DopName:
@@ -624,7 +721,7 @@ class RastrModel(GeneralSettings):
                             fff = True
                 if not fff:
                     logging.debug(
-                        info + self.Name + f" Доп. имя {self.DopNameStr} не проходит по условию: " + dict_uslovie[
+                        info + self.Name + f" Доп. имя {self.DopNameStr} не проходит по условию: " + condition[
                             'add_name'])
                     return False
         return True
@@ -652,18 +749,16 @@ class RastrModel(GeneralSettings):
         self.rastr.Save(full_name_new, self.pattern)
         logging.info("Файл сохранен: " + full_name_new)
 
-    def rgm(self, txt: str = ""):
+    def rgm(self, txt: str = "") -> bool:
         """Расчет режима"""
         for i in ['', '', '', 'p', 'p', 'p']:
-            self.kod_rgm = self.rastr.rgm(i)
-            if not self.kod_rgm:  # 0 сошелся
+            kod_rgm = self.rastr.rgm(i)  # 0 сошелся, 1 развалился
+            if not kod_rgm:  # 0 сошелся
                 if txt:
                     logging.debug(f"\tрасчет режима: {txt}")
                 return True
         # развалился
         logging.error(f"расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!")
-        if self.calc_set == 1:
-            self.set_info['collapse'] += f" {self.name_base}: {txt}/"
         return False
 
 
@@ -684,7 +779,7 @@ def str_in_list(id_str: str):
         return []
 
 
-def cor_xl(rm, excel_file_name: str, sheet: str, tip: str = ''):
+def cor_xl(excel_file_name: str, sheet: str, rm=None, tip: str = ''):
     """задать параметры по значениям в таблице excel (имя книги, имя листа,
     тип tip='export' или tip='XL->RastrWin'  )"""
     logging.info(f"\t Задать значения из excel, книга: {excel_file_name}, лист: {sheet}")
@@ -731,8 +826,8 @@ def cor_xl(rm, excel_file_name: str, sheet: str, tip: str = ''):
                         pattern_name = re.compile("\[(.*)\]\[(.*)\]\[(.*)\]\[(.*)\]")
                         match = re.search(pattern_name, name_file)
                         if match.re.groups == 4:
-                            if rm.test_name(dict_uslovie={"years": match[1], "season": match[2],
-                                                          "max_min": match[3], "add_name": match[4]},
+                            if rm.test_name(condition={"years": match[1], "season": match[2],
+                                                       "max_min": match[3], "add_name": match[4]},
                                             info=f"\tcor_xl, условие: {name_file}, "):
                                 duct_add = True
                 if duct_add:
@@ -905,6 +1000,9 @@ def grup_cor(rastr, tabl: str, param: str, selection: str, formula: str):
 def control_rg2(rm, dict_task):
     """  контроль  dict_task = {'node': True, 'vetv': True, 'Gen': True, 'section': True, 'area': True, 'area2': True,
         'darea': True, 'sel_node': "na>0"}  """
+    if not rm.rgm("control_rg2"):
+        return False
+
     rastr = rm.rastr
     node = rastr.tables("node")
     branch = rastr.tables("vetv")
@@ -912,8 +1010,7 @@ def control_rg2(rm, dict_task):
     chart_pq = rastr.tables("graphik2")
     graph_it = rastr.tables("graphikIT")
 
-    rm.rgm("control_rg2")
-    # НАПРЯЖЕНИЯ
+    # Напряжения
     if dict_task["node"]:
         logging.info("\tКонтроль напряжений.")
 
@@ -1066,6 +1163,8 @@ def control_rg2(rm, dict_task):
     if dict_task['darea']:
         control_pop(rastr, 'darea')
 
+    return True
+
 
 def control_pop(rastr, zone: str):
     """zone =  'darea', 'area', 'area2'"""
@@ -1100,18 +1199,21 @@ def sheet_exists(book, sh_name: str):  # проверка существован
 
 
 class ImportFromModel:
-    """ импорта данных из файлов .rg2, .rst и др.
-    import_file_name = полное имя файла
-    criterion_start={"years": "","season": "","max_min": "", "add_name": ""} условие выполнения
-    tables= таблица для импорта, нр "node;vetv"
-    param= параметры для импорта: "" все параметры или перечисление, нр 'sel,sta'(ключи не обязательно)
-    sel= выборка нр "sel" или "" - все
-    calc= {"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
     all_import_model = []  # хранение объектов класса ImportFromModel
     calc_str = {"обновить": 2, "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}
 
-    def __init__(self, import_file_name='', criterion_start: dict = None, tables='', param='', sel='',
-                 calc: (int, str) = '2'):
+    def __init__(self, import_file_name: str = '', criterion_start: dict = {}, tables: str = '', param='',
+                 sel: str = '', calc: Union[int, str] = '2'):
+        """
+        Импорт данных из файлов .rg2, .rst и др.
+        Создает папку temp в папке с файлом и сохраняет в ней .csv файлы
+        import_file_name = полное имя файла
+        criterion_start={"years": "","season": "","max_min": "", "add_name": ""} условие выполнения
+        tables = таблица для импорта, нр "node;vetv"
+        param= параметры для импорта: "" все параметры или перечисление, нр 'sel,sta'(ключи не обязательно)
+        sel= выборка нр "sel" или "" - все
+        calc= число типа int или слово {"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}
+        """
         if not os.path.exists(import_file_name):
             logging.error("Ошибка в задании, не найден файл: " + import_file_name)
             self.import_file_name = ''
@@ -1125,7 +1227,7 @@ class ImportFromModel:
             self.criterion_start = criterion_start
             self.tables = tables.split(";")  # разделить на ["таблицы"]
             self.param = []
-            self.sel = sel if sel != None else ''
+            self.sel = sel
             if type(calc) == int:
                 self.calc = calc
             else:
@@ -1140,32 +1242,31 @@ class ImportFromModel:
                 self.file_csv.append(f"{self.folder_temp}\\{self.basename}_{tabl}_{number}.csv")
                 self.param.append(param)
 
-    def export_csv(self):
-        """Экспорт данных из файла в csv"""
-        if self.import_file_name:
-            rastr = win32com.client.Dispatch("Astra.Rastr")
-            rastr.Load(1, self.import_file_name, GeneralSettings.set_save['шаблон ' + self.import_file_name[-3:]])
-            logging.info("\tЭкспорт из файла:" + self.import_file_name + ' в CSV')
-            for index in range(len(self.tables)):
-                if not self.param[index]:  # если все параметры
-                    self.param[index] = all_cols(rastr, self.tables[index])
-                else:
-                    if rastr.Tables(self.tables[index]).Key not in self.param[index]:
-                        self.param[index] += ',' + rastr.Tables(self.tables[index]).Key
+            # Экспорт данных из файла в .csv файлы в папку temp
+            if self.import_file_name:
+                rastr = win32com.client.Dispatch("Astra.Rastr")
+                rastr.Load(1, self.import_file_name, GeneralSettings.set_save['шаблон ' + self.import_file_name[-3:]])
+                logging.info("\tЭкспорт из файла:" + self.import_file_name + ' в CSV')
+                for index in range(len(self.tables)):
+                    if not self.param[index]:  # если все параметры
+                        self.param[index] = all_cols(rastr, self.tables[index])
+                    else:
+                        if rastr.Tables(self.tables[index]).Key not in self.param[index]:
+                            self.param[index] += ',' + rastr.Tables(self.tables[index]).Key
 
-                logging.info(f"\t\tТаблица: {self.tables[index]}. Выборка: {self.sel}"
-                             + f"\n\t\tПараметры: {self.param[index]}"
-                             + f"\n\t\tФайл CSV: {self.file_csv[index]}")
+                    logging.info(f"\t\tТаблица: {self.tables[index]}. Выборка: {self.sel}"
+                                 + f"\n\t\tПараметры: {self.param[index]}"
+                                 + f"\n\t\tФайл CSV: {self.file_csv[index]}")
 
-                tab = rastr.Tables(self.tables[index])
-                tab.setsel(self.sel)
-                tab.WriteCSV(1, self.file_csv[index], self.param[index], ";")  # 0 дописать, 1 заменить
+                    tab = rastr.Tables(self.tables[index])
+                    tab.setsel(self.sel)
+                    tab.WriteCSV(1, self.file_csv[index], self.param[index], ";")  # 0 дописать, 1 заменить
 
     def import_csv(self, rm):
         """Импорт данных из csv в файла"""
         if self.import_file_name:
             logging.info("\tИмпорт из CSV в модель:" + self.import_file_name)
-            if rm.test_name(self.criterion_start, info='ImportFromModel'):
+            if rm.test_name(condition=self.criterion_start, info='ImportFromModel'):
                 for index in range(len(self.tables)):
                     logging.info(f"\t\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {str(self.calc)}" +
                                  f"\n\t\tФайл CSV: {self.file_csv[index]}" +
@@ -1188,6 +1289,7 @@ def all_cols(rastr, tab):
 
 class PrintXL:
     """Класс печать данных в excel"""
+
     #  ...._log  лист протокол для сводной
     def __init__(self, set):  # добавить листы и первая строка с названиями
         self.excel = None
@@ -1247,7 +1349,7 @@ class PrintXL:
 
         if self.set['print_parameters']['add']:
             dict_tables = {'n': 'node', 'v': 'vetv', 'g': 'Generator', 'na': 'area', 'npa': 'area2', 'no': 'darea',
-                 'nga': 'ngroup', 'ns': 'sechen'}
+                           'nga': 'ngroup', 'ns': 'sechen'}
             sheet = self.set['print_parameters']["sheet"]
             if sheet.max_row == 1:
                 one_row_list = self.list_name[:]
@@ -1445,22 +1547,23 @@ def start_calc():
 
 
 if __name__ == '__main__':
-    VISUAL_SET = 0  # 1 задание через QT, 0 - в коде
-    GeneralSettings.calc_set = 1  # 1 -корректировать модели CorModel, 2-расчитать модели Global_raschot_class
+    VISUAL_SET = 1  # 1 задание через QT, 0 - в коде
+    CALC_SET = 1  # 1 -корректировать модели CorModel, 2-рассчитать модели Global_raschot_class
     CM = None  # глобальный объект класса CorModel
     # https://docs.python.org/3/library/logging.html
     logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
                         format='%(asctime)s %(levelname)s:%(message)s')  # debug, INFO, WARNING, ERROR и CRITICAL
 
     if not VISUAL_SET:  # в коде
-        if GeneralSettings.calc_set == 1:
+        if CALC_SET == 1:
             start_cor()  # corr
-        if GeneralSettings.calc_set == 2:
+        if CALC_SET == 2:
             start_calc()  # calc
     else:
-        app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
-        app.setApplicationName("Правка моделей RastrWin")
-        ui_edit = EditWindow()
-        ui_edit.show()
-        ui_set = SetWindow()
-        sys.exit(app.exec_())  # Запуск
+        if CALC_SET == 1:
+            app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
+            app.setApplicationName("Правка моделей RastrWin")
+            ui_edit = EditWindow()
+            ui_edit.show()
+            ui_set = SetWindow()
+            sys.exit(app.exec_())  # Запуск

@@ -208,7 +208,7 @@
              </size>
             </property>
             <property name="plainText">
-             <string>I:\rastr_add\test2</string>
+             <string>I:\rastr_add\test_result</string>
             </property>
            </widget>
           </item>
@@ -258,7 +258,7 @@
                <item>
                 <widget class="QLabel" name="label_27">
                  <property name="text">
-                  <string>Максимальное количество расчетных файлов:</string>
+                  <string>Количество расчетных файлов:</string>
                  </property>
                 </widget>
                </item>
@@ -533,7 +533,7 @@
              <set>Qt::ImhNone</set>
             </property>
             <property name="currentIndex">
-             <number>7</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="node">
              <attribute name="title">
@@ -590,7 +590,7 @@
                   </size>
                  </property>
                  <property name="text">
-                  <string>I:\пример.rg2</string>
+                  <string>I:\rastr_add\test\импорт2.rg2</string>
                  </property>
                 </widget>
                </item>
@@ -631,7 +631,7 @@
                   </size>
                  </property>
                  <property name="text">
-                  <string>vetv</string>
+                  <string>node</string>
                  </property>
                 </widget>
                </item>
@@ -725,7 +725,7 @@
                   </size>
                  </property>
                  <property name="text">
-                  <string>ip,iq,np</string>
+                  <string/>
                  </property>
                 </widget>
                </item>
@@ -747,7 +747,7 @@
                </size>
               </property>
               <property name="text">
-               <string>фильтр файлов</string>
+               <string>условие выполнения</string>
               </property>
              </widget>
              <widget class="QFrame" name="FFN">
@@ -1028,7 +1028,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>sel</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -1088,7 +1088,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>sel</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -1103,7 +1103,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>фильтр файлов</string>
+                 <string>условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -1321,7 +1321,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\пример.rg2</string>
+                   <string>I:\rastr_add\test\импорт2.rg2</string>
                   </property>
                  </widget>
                 </item>
@@ -1354,7 +1354,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>vetv</string>
+                   <string>Generator</string>
                   </property>
                  </widget>
                 </item>
@@ -1440,7 +1440,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>ip,iq,np</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -1455,7 +1455,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>фильтр файлов</string>
+                 <string>условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -1673,7 +1673,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\пример.rg2</string>
+                   <string>I:\rastr_add\test\импорт2.rg2</string>
                   </property>
                  </widget>
                 </item>
@@ -1706,7 +1706,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>vetv</string>
+                   <string>area</string>
                   </property>
                  </widget>
                 </item>
@@ -1792,7 +1792,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>ip,iq,np</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -1807,7 +1807,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>фильтр файлов</string>
+                 <string>условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -2025,7 +2025,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\пример.rg2</string>
+                   <string>I:\rastr_add\test\импорт2.rg2</string>
                   </property>
                  </widget>
                 </item>
@@ -2058,7 +2058,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>vetv</string>
+                   <string>area2</string>
                   </property>
                  </widget>
                 </item>
@@ -2144,7 +2144,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>ip,iq,np</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -2159,7 +2159,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>фильтр файлов</string>
+                 <string>условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -2377,7 +2377,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\пример.rg2</string>
+                   <string>I:\rastr_add\test\импорт2.rg2</string>
                   </property>
                  </widget>
                 </item>
@@ -2410,7 +2410,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>vetv</string>
+                   <string>darea</string>
                   </property>
                  </widget>
                 </item>
@@ -2496,7 +2496,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>ip,iq,np</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -2511,7 +2511,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>фильтр файлов</string>
+                 <string>условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -2729,7 +2729,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\пример.rg2</string>
+                   <string>I:\rastr_add\test\импорт2.rg2</string>
                   </property>
                  </widget>
                 </item>
@@ -2762,7 +2762,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>vetv</string>
+                   <string>graphik2</string>
                   </property>
                  </widget>
                 </item>
@@ -2848,7 +2848,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>ip,iq,np</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -2863,7 +2863,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>фильтр файлов</string>
+                 <string>условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -3081,7 +3081,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\пример.rg2</string>
+                   <string>I:\rastr_add\test\импорт2.rg2</string>
                   </property>
                  </widget>
                 </item>
@@ -3114,7 +3114,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>vetv</string>
+                   <string>graphikIT</string>
                   </property>
                  </widget>
                 </item>
@@ -3215,7 +3215,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>фильтр файлов</string>
+                 <string>условие выполнения</string>
                 </property>
                </widget>
               </item>
