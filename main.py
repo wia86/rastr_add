@@ -1,3 +1,5 @@
+# pip freeze > requirements.txt
+# pip install -r requirements.txt
 import win32com.client
 from abc import ABC  # abstractmethod
 from Rastr_Method import RastrMethod
