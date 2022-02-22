@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>873</width>
-    <height>907</height>
+    <width>660</width>
+    <height>719</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -33,6 +33,16 @@
     <property name="spacing">
      <number>0</number>
     </property>
+    <item row="2" column="0">
+     <widget class="QPushButton" name="run_krg2">
+      <property name="styleSheet">
+       <string notr="true">background-color: rgb(82, 189, 255);</string>
+      </property>
+      <property name="text">
+       <string>Запуск</string>
+      </property>
+     </widget>
+    </item>
     <item row="1" column="0">
      <widget class="QScrollArea" name="scrollArea">
       <property name="minimumSize">
@@ -41,6 +51,15 @@
         <height>0</height>
        </size>
       </property>
+      <property name="frameShape">
+       <enum>QFrame::StyledPanel</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="sizeAdjustPolicy">
+       <enum>QAbstractScrollArea::AdjustToContents</enum>
+      </property>
       <property name="widgetResizable">
        <bool>true</bool>
       </property>
@@ -48,9 +67,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>0</y>
-         <width>854</width>
-         <height>1117</height>
+         <y>-537</y>
+         <width>641</width>
+         <height>1358</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -77,6 +96,9 @@
            </property>
            <item>
             <widget class="QPushButton" name="SetBut">
+             <property name="toolTip">
+              <string/>
+             </property>
              <property name="text">
               <string>Настройки</string>
              </property>
@@ -93,126 +115,140 @@
          </widget>
         </item>
         <item>
-         <layout class="QFormLayout" name="formLayout">
-          <property name="sizeConstraint">
-           <enum>QLayout::SetMinAndMaxSize</enum>
+         <widget class="QGroupBox" name="GB_import_val_XL_2">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
           </property>
-          <property name="fieldGrowthPolicy">
-           <enum>QFormLayout::ExpandingFieldsGrow</enum>
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>120</height>
+           </size>
           </property>
-          <property name="rowWrapPolicy">
-           <enum>QFormLayout::DontWrapRows</enum>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
+            <height>120</height>
+           </size>
           </property>
-          <property name="labelAlignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
+          <property name="title">
+           <string>Выбор моделей</string>
           </property>
-          <property name="formAlignment">
-           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
+          <property name="checkable">
+           <bool>false</bool>
           </property>
-          <property name="horizontalSpacing">
-           <number>1</number>
-          </property>
-          <property name="verticalSpacing">
-           <number>1</number>
-          </property>
-          <property name="leftMargin">
-           <number>1</number>
-          </property>
-          <property name="topMargin">
-           <number>1</number>
-          </property>
-          <property name="rightMargin">
-           <number>1</number>
-          </property>
-          <property name="bottomMargin">
-           <number>1</number>
-          </property>
-          <item row="0" column="0">
-           <widget class="QLabel" name="label">
-            <property name="font">
-             <font>
-              <weight>75</weight>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>Папка с файлами:</string>
-            </property>
-            <property name="buddy">
-             <cstring>T_IzFolder</cstring>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="1">
-           <widget class="QPlainTextEdit" name="T_IzFolder">
-            <property name="enabled">
-             <bool>true</bool>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="minimumSize">
-             <size>
-              <width>508</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>1000</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="baseSize">
-             <size>
-              <width>0</width>
-              <height>35</height>
-             </size>
-            </property>
-            <property name="plainText">
-             <string>I:\rastr_add\test</string>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="0">
-           <widget class="QLabel" name="label_2">
-            <property name="font">
-             <font>
-              <weight>75</weight>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>Сохранить в:</string>
-            </property>
-            <property name="buddy">
-             <cstring>T_InFolder</cstring>
-            </property>
-           </widget>
-          </item>
-          <item row="1" column="1">
-           <widget class="QPlainTextEdit" name="T_InFolder">
-            <property name="minimumSize">
-             <size>
-              <width>508</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>1000</width>
-              <height>30</height>
-             </size>
-            </property>
-            <property name="plainText">
-             <string>I:\rastr_add\test_result</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
+          <layout class="QVBoxLayout" name="verticalLayout_5">
+           <property name="spacing">
+            <number>1</number>
+           </property>
+           <property name="leftMargin">
+            <number>2</number>
+           </property>
+           <property name="topMargin">
+            <number>1</number>
+           </property>
+           <property name="rightMargin">
+            <number>1</number>
+           </property>
+           <property name="bottomMargin">
+            <number>1</number>
+           </property>
+           <item>
+            <widget class="QLabel" name="label_9">
+             <property name="minimumSize">
+              <size>
+               <width>80</width>
+               <height>22</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>300</width>
+               <height>22</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Имя файла или папки с исходными файлами:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPlainTextEdit" name="T_IzFolder">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="minimumSize">
+              <size>
+               <width>508</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>10000</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="baseSize">
+              <size>
+               <width>0</width>
+               <height>35</height>
+              </size>
+             </property>
+             <property name="plainText">
+              <string>I:\rastr_add\test</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_10">
+             <property name="minimumSize">
+              <size>
+               <width>0</width>
+               <height>22</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>300</width>
+               <height>20</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Имя папки для сохранения измененных файлов:</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPlainTextEdit" name="T_InFolder">
+             <property name="minimumSize">
+              <size>
+               <width>508</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="maximumSize">
+              <size>
+               <width>10000</width>
+               <height>30</height>
+              </size>
+             </property>
+             <property name="plainText">
+              <string>I:\rastr_add\test\test_result</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
         </item>
         <item>
          <layout class="QVBoxLayout" name="verticalLayout">
@@ -228,7 +264,7 @@
              </font>
             </property>
             <property name="text">
-             <string>выборка файлов</string>
+             <string>Выборка файлов</string>
             </property>
             <property name="checked">
              <bool>false</bool>
@@ -447,15 +483,19 @@
          </layout>
         </item>
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout">
+         <widget class="Line" name="line_2">
+          <property name="orientation">
+           <enum>Qt::Horizontal</enum>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <layout class="QVBoxLayout" name="verticalLayout_18">
+          <property name="spacing">
+           <number>0</number>
+          </property>
           <item>
-           <widget class="QCheckBox" name="CB_bloki">
-            <property name="minimumSize">
-             <size>
-              <width>179</width>
-              <height>22</height>
-             </size>
-            </property>
+           <widget class="QCheckBox" name="CB_cor_b">
             <property name="font">
              <font>
               <weight>75</weight>
@@ -463,17 +503,29 @@
              </font>
             </property>
             <property name="text">
-             <string>выполнить задание из файла:</string>
+             <string>Задание на корректировку до импорта</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLineEdit" name="bloki_file">
-            <property name="minimumSize">
-             <size>
-              <width>414</width>
-              <height>22</height>
-             </size>
+           <widget class="QPlainTextEdit" name="TE_cor_b">
+            <property name="plainText">
+             <string># Задание аналогично &quot;строковой форме&quot; excel: в квадратных скобках параметры в формате [Выборка | Значение]
+# В фигурных скобках указывается условие выполнения в формате {years = 2026| season=лет| max_min=min| add_name=0°C}
+# Примеры:
+удалить*[15145 ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
+удалить[15561,15129,0 15562,15130,0 Num=912 g=913]  # удалить ветви 15561,15129,0 15562,15130,0 и генераторы 912, 913
+изм[15148|name=Промплощадка:_изм_name]  # при изменении текстовых полей '  ' заменить на '_'
+изм[na=11(node) (vetv)|sel=1]{years = 2026}  # отметить узлы 11 района и все ветви
+изм[(vetv) (area) (area2) (darea)|Tc=0]{years = 2026|season=зим|max_min=макс|add_name=0°C}  # обнулить температуру
+снять отметку{years = 2026 |	season=зим}  # снять отметку зимой 2026
+добавить[node|ny=3 pn=1 uhom=120 na=11 name=Новый_узел]  # Добавить запись в таблицу
+добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]
+пробелы и буквы[node:name,dname vetv:dname Generator:Name]  # Исправить пробелы, заменить английские буквы на русские.
+СХН[na=11]  # добавить номера СХН в узлах:uhom&gt;100 nsx=1, uhom&lt;100 nsx=2. Выборка в таблице узлы  может быть пустой
+номинальные напряжения[na=11]  #  Проверка номинального напряжения [6, 10, 35, 110, 220, 330, 500, 750]. 
+расчет  # расчет режима
+</string>
             </property>
            </widget>
           </item>
@@ -502,7 +554,7 @@
              </font>
             </property>
             <property name="text">
-             <string>импорт из файлa (.rg2)</string>
+             <string>Импорт из файлa (.rg2)</string>
             </property>
            </widget>
           </item>
@@ -1812,7 +1864,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QFrame" name="FFA2">
+               <widget class="QFrame" name="FFA">
                 <property name="minimumSize">
                  <size>
                   <width>0</width>
@@ -2164,7 +2216,7 @@
                </widget>
               </item>
               <item>
-               <widget class="QFrame" name="FFnpa">
+               <widget class="QFrame" name="FFA2">
                 <property name="minimumSize">
                  <size>
                   <width>0</width>
@@ -3406,8 +3458,11 @@
             <strikeout>false</strikeout>
            </font>
           </property>
+          <property name="toolTip">
+           <string/>
+          </property>
           <property name="text">
-           <string>Импорт задания из XL на корректировку моделей</string>
+           <string>Импорт задания из EXCEL на корректировку моделей</string>
           </property>
          </widget>
         </item>
@@ -3416,6 +3471,12 @@
           <property name="minimumSize">
            <size>
             <width>0</width>
+            <height>90</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
             <height>90</height>
            </size>
           </property>
@@ -3458,7 +3519,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Имя файла XL:</string>
+                <string>Имя файла:</string>
                </property>
               </widget>
              </item>
@@ -3492,7 +3553,7 @@
                 </size>
                </property>
                <property name="plainText">
-                <string>I:\rastr_add\test\примеры.xlsx</string>
+                <string>I:\rastr_add\test\пример задания.xlsx</string>
                </property>
               </widget>
              </item>
@@ -3511,8 +3572,14 @@
                  <height>22</height>
                 </size>
                </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>22</height>
+                </size>
+               </property>
                <property name="text">
-                <string>Имя листов XL:</string>
+                <string>Имя листов:</string>
                </property>
               </widget>
              </item>
@@ -3524,8 +3591,11 @@
                  <height>22</height>
                 </size>
                </property>
+               <property name="toolTip">
+                <string/>
+               </property>
                <property name="text">
-                <string>[XL-&gt;RastrWin][pop]</string>
+                <string>[XL-&gt;RastrWin][pop][cor]</string>
                </property>
               </widget>
              </item>
@@ -3535,17 +3605,38 @@
          </widget>
         </item>
         <item>
-         <spacer name="verticalSpacer">
+         <layout class="QVBoxLayout" name="verticalLayout_17">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QCheckBox" name="CB_cor_e">
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Задание на корректировку после импорта</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPlainTextEdit" name="TE_cor_e">
+            <property name="plainText">
+             <string/>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <widget class="Line" name="line_3">
           <property name="orientation">
-           <enum>Qt::Vertical</enum>
+           <enum>Qt::Horizontal</enum>
           </property>
-          <property name="sizeHint" stdset="0">
-           <size>
-            <width>20</width>
-            <height>40</height>
-           </size>
-          </property>
-         </spacer>
+         </widget>
         </item>
         <item>
          <widget class="QCheckBox" name="CB_kontrol_rg2">
@@ -3556,7 +3647,7 @@
            </font>
           </property>
           <property name="text">
-           <string>расчет режима и контроль параметров режима</string>
+           <string>Расчет режима и контроль параметров режима</string>
           </property>
          </widget>
         </item>
@@ -3635,7 +3726,7 @@
            <item row="2" column="0">
             <widget class="QCheckBox" name="CB_I">
              <property name="text">
-              <string>ветви: ДДТН, n_it (наличие)</string>
+              <string>ветви: ДТН, n_it (наличие)</string>
              </property>
              <property name="checked">
               <bool>true</bool>
@@ -3684,15 +3775,27 @@
            </font>
           </property>
           <property name="text">
-           <string>Вывод данных из моделей в XL</string>
+           <string>Вывод данных из моделей в EXCEL</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QGroupBox" name="GB_prinr_XL">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Minimum">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="minimumSize">
            <size>
             <width>0</width>
+            <height>350</height>
+           </size>
+          </property>
+          <property name="maximumSize">
+           <size>
+            <width>16777215</width>
             <height>350</height>
            </size>
           </property>
@@ -3702,6 +3805,9 @@
           <layout class="QVBoxLayout" name="verticalLayout_6">
            <property name="spacing">
             <number>0</number>
+           </property>
+           <property name="sizeConstraint">
+            <enum>QLayout::SetMinimumSize</enum>
            </property>
            <property name="leftMargin">
             <number>12</number>
@@ -3930,6 +4036,12 @@
            </item>
            <item>
             <widget class="QCheckBox" name="CB_print_parametr">
+             <property name="maximumSize">
+              <size>
+               <width>16777215</width>
+               <height>22</height>
+              </size>
+             </property>
              <property name="text">
               <string>вывод заданных параметров</string>
              </property>
@@ -3965,7 +4077,7 @@
               </size>
              </property>
              <property name="plainText">
-              <string>vetv=1,160,3|160,5,3/r|x|b;ny=111|16/pg|qg|pn|qn|name</string>
+              <string>v=15105,15113,0|15038,15037,4/r|x|b; n=15198/pg|qg</string>
              </property>
             </widget>
            </item>
@@ -3975,32 +4087,35 @@
               <number>0</number>
              </property>
              <item>
-              <widget class="QCheckBox" name="CB_print_balans_Q">
+              <widget class="QCheckBox" name="CB_print_balance_Q">
                <property name="text">
                 <string>сформировать таблицу баланс реактивной мощности</string>
                </property>
               </widget>
              </item>
              <item>
-              <widget class="QLineEdit" name="balans_Q_vibor"/>
+              <widget class="QLineEdit" name="balance_Q_vibor"/>
              </item>
             </layout>
            </item>
           </layout>
          </widget>
         </item>
+        <item>
+         <spacer name="verticalSpacer_2">
+          <property name="orientation">
+           <enum>Qt::Vertical</enum>
+          </property>
+          <property name="sizeHint" stdset="0">
+           <size>
+            <width>20</width>
+            <height>40</height>
+           </size>
+          </property>
+         </spacer>
+        </item>
        </layout>
       </widget>
-     </widget>
-    </item>
-    <item row="2" column="0">
-     <widget class="QPushButton" name="run_krg2">
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(82, 189, 255);</string>
-      </property>
-      <property name="text">
-       <string>Запуск</string>
-      </property>
      </widget>
     </item>
    </layout>

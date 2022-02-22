@@ -6333,22 +6333,7 @@ def fVetv_add_ndx(dname, ip, iq, np, r, x, b):  # добавить ветвь и
 
 # End def return
 # +++++++++++++++++++++++КОРРРРРРРРРРРРРРРРРРР +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def fTAB_str_add(tab, param):  # добавить запись в таблицу и вернуть ndx ( "vetv" , "ip=1 iq=2 np=10 i_dop=100" )
-    tTabl = rastr.tables(tab)
-    tTabl.AddRow
-    fTAB_str_add = tTabl.size - 1
-    zadanie = split(param, " ")
-    for each element in zadanie
-        if element != "":
-            zadanie_m = split(element, "=")
-            tTabl.cols.item(zadanie_m(0)).Z(fTAB_str_add) = zadanie_m(1)
 
-    if GS.calc_set    = 1: logging.info("\t" + "fTAB_str_add " + tab + " | " + param)  # 1 -korr   2-rashot
-    if GS.calc_set    = 2: logging.info("\t" + "fTAB_str_add " + tab + " | " + param)  # 1 -korr   2-rashot
-
-
-# End def return
-# +++++++++++++++++++++++КОРРРРРРРРРРРРРРРРРРР +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 def fNode_add(name, na, npa, uhom,
               ny_zad):  # добавить узел и вернуть номер (name , na , npa , uhom , ny_zad или 0 - max 1)
     tN_fNode_add = rastr.tables("node")
@@ -6367,10 +6352,7 @@ def fNode_add(name, na, npa, uhom,
 
 
 # +++++++++++++++++++++++КОРРРРРРРРРРРРРРРРРРР +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def SHN_ADD():
-    logging.info("\t" + "добавить зависимость СХН")
-    grup_cor("node", "nsx", "uhom>100", "1")
-    grup_cor("node", "nsx", "uhom<100", "2")
+
 
 
 # +++++++++++++++++++++++КОРРРРРРРРРРРРРРРРРРР +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -6547,112 +6529,8 @@ Del_sel()
 logging.info("эквивалентировано узлов: " + str(count))
 
 
-# +++++++++++++++++++++++КОРРРРРРРРРРРРРРРРРРР +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def name_txt_korr():  # удалить пробелы в начале и конце, заменить два пробела на один, английские менять на русские буквы
-    logging.info(
-        "\t" + " удалить пробелы в начале и конце, заменить два пробела на один, английские менять на русские буквы")
-    name_probel("node", "name")
-    name_probel("node", "dname")
-    name_probel("vetv", "dname")
-    name_probel("Generator", "Name")
-
-    izm_bukvi("node", "name")
-    izm_bukvi("node", "dname")
-    izm_bukvi("vetv", "dname")
-    izm_bukvi("Generator", "Name")
 
 
-# +++++++++++++++++++++++КОРРРРРРРРРРРРРРРРРРР +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def name_probel(r_tabl, r_tabl_pole):  # удалить пробелы в начале и конце, заменить два пробела на один
-    # dim tTabl , tTabl_pole , indx
-    tTabl = rastr.tables(r_tabl)
-    tTabl_pole = tTabl.cols.item(r_tabl_pole)
-
-
-tTabl.setsel("")
-indx = tTabl.FindNextSel(-1)
-while indx >= 0
-    Do
-    While
-    instr(tTabl_pole.ZS(indx), "  ")  # выполняется пока True
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "  ", " ")  # Exit Do
-Loop  # выполняется пока True
-tTabl_pole.Z(indx) = trim(tTabl_pole.Z(indx))
-
-if instr(tTabl_pole.Z(indx), "- ") > 0 and instr(tTabl_pole.Z(indx), " - ") = 0: tTabl_pole.Z(indx) = Replace(
-    tTabl_pole.ZS(indx), "- ", " - ")
-if instr(tTabl_pole.Z(indx), " -") > 0 and instr(tTabl_pole.Z(indx), " - ") = 0: tTabl_pole.Z(indx) = Replace(
-    tTabl_pole.ZS(indx), " -", " - ")
-
-indx = tTabl.FindNextSel(indx)
-wend
-
-# +++++++++++++++++++++++КОРРРРРРРРРРРРРРРРРРР +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def izm_bukvi(r_tabl, r_tabl_pole):  # английские менять на русские буквы
-    # dim tTabl , tTabl_pole , indx
-    tTabl = rastr.tables(r_tabl)
-    tTabl_pole = tTabl.cols.item(r_tabl_pole)
-
-
-tTabl.setsel("")
-indx = tTabl.FindNextSel(-1)
-while indx >= 0
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "E", "Е")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "T", "Т")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "O", "О")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "P", "Р")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "A", "А")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "H", "Н")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "K", "К")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "X", "Х")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "C", "С")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "B", "В")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "M", "М")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "e", "е")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "o", "о")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "p", "р")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "a", "а")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "x", "х")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "c", "с")
-    tTabl_pole.Z(indx) = Replace(tTabl_pole.ZS(indx), "b", "в")
-    indx = tTabl.FindNextSel(indx)
-wend
-
-# +++++++++++++++++++++++КОРРРРРРРРРРРРРРРРРРР +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-def uhom_korr_sub(set_sel):  # исправить номинальные напряжения в узлах (выборка в таблице узлы)
-
-    # dim uh,umin,umax,umaxZ, tN35 ,  cuhom,  k , kk
-
-    logging.info("\t" + " исправить номинальные напряжения в узлах")
-    tN35 = rastr.Tables("node")
-    cuhom = tN35.cols.item("uhom")
-    #  uh = array (3,6,10,15,20,25,35,110,150,220,330,400,500,750) #  номинальные напряжения
-    #  umin = array (2,5,9 ,13,18,23,32,96 ,140,190,299,380,480,730) #  минимальные напряжения
-    #  umax = array (4,7,12,16,22,26,40,130,166,252,364,410,530,775) #  максимальные напряжения
-    uh = array(6, 10, 35, 110, 150, 220, 330, 500, 750)  # номинальные напряжения
-    umin = array(5, 9, 32, 96, 140, 190, 299, 480, 740)  # минимальные напряжения для определения номинального
-    umax = array(7.2, 12, 40.5, 126, 172, 252, 363, 525, 787)  # максимальные напряжения для определения номинального
-    umaxZ = array(7.2, 12, 40.5, 126, 172, 252, 363, 525, 787)  # Наибольшее рабочее напряжение
-
-    tN35.setsel(set_sel)
-    j = tN35.FindNextSel(-1)
-    while j != -1  # цикл по узлам
-        kk = False
-        for k = Lbound(uh) to Ubound(uh)  # цикл по массиву ном напряжений
-        if cuhom.Z(j) > umin(k) and cuhom.Z(j) < umax(k):  # если внутри диапозона
-            cuhom.Z(j) = uh(k)
-            tN35.cols.item("umax").Z(j) = umaxZ(k)
-            kk = True
-            exit
-            for
-
-    if kk = False: logging.info(
-        "\t" + "\t" + " Ошибка в узле " + tN35.cols.item("ny").ZS(j) + "(" + tN35.cols.item("name").ZS(
-            j) + ") U= " + cuhom.ZS(j) + " - не распознан клас напряжения")
-
-
-j = tN35.FindNextSel(j)
-wend
 
 
 # +++++++++++++++++++++++КОРРРРРРРРРРРРРРРРРРР +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
