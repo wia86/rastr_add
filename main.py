@@ -1,7 +1,9 @@
 # pip freeze > requirements.txt
 # pip install -r requirements.txt
+# I:\rastr_add> pyinstaller --onefile --noconsole main.py
+# I:\rastr_add> pyinstaller -F --noconsole main.py
 import win32com.client
-from abc import ABC  # abstractmethod
+from abc import ABC, abstractmethod
 from Rastr_Method import RastrMethod
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
@@ -21,31 +23,43 @@ import logging
 import webbrowser
 from tkinter import messagebox as mb
 import numpy as np
+import yaml
 from qt_cor import Ui_MainCor  # импорт ui: pyuic5 qt_cor.ui -o qt_cor.py
 from qt_set import Ui_Settings  # импорт ui: pyuic5 qt_set.ui -o qt_set.py
 
 
 class Window:
     @staticmethod
-    def elements_hide(*args):
+    def check_status(set_checkbox_element):
         """
-        Скрыть элементы формы.
-        :param args: элементы формы.
+        По состоянию CheckBox изменить состояние видимости соответствующего элемента.
+        :param set_checkbox_element: картеж картежей (checkbox, element)
         """
-        for _ in args:
-            _.hide()
+        for CB, element in set_checkbox_element:
+            if CB.isChecked():
+                element.show()
+            else:
+                element.hide()
 
-    @staticmethod
-    def show_hide(source, receiver):
+    def choose_file(self, directory: str, filter_: str = ''):
         """
-        Если включен чекбокс, то показать receiver, иначе скрыть
-        :param source: чекбокс
-        :param receiver: показать/скрыть
+        Выбор файла
         """
-        if source.isChecked():
-            receiver.show()
-        else:
-            receiver.hide()
+        fileName_choose, _ = QtWidgets.QFileDialog.getOpenFileName(self, caption="Выбрать файл", directory=directory,
+                                                                   filter=filter_, )  # "All Files(*);Text Files(*.txt)"
+        if fileName_choose:
+            logging.info(f"Выбран файл: {fileName_choose}, {_}")
+            return fileName_choose
+
+    def save_file(self, directory: str, filter_: str = ''):
+        """
+        Сохранение файла
+        """
+        fileName_choose, _ = QtWidgets.QFileDialog.getSaveFileName(self, caption="Сохранение файла",
+                                                                   directory=directory, filter=filter_)
+        if fileName_choose:
+            logging.info(f"Для сохранения выбран файл: {fileName_choose}, {_}")
+            return fileName_choose
 
 
 class SetWindow(QtWidgets.QMainWindow, Ui_Settings):
@@ -92,228 +106,418 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
         super(EditWindow, self).__init__()  # *args, **kwargs
         self.task_ui = {}
         self.setupUi(self)
-        # скрыть параметры при старте
-        self.elements_hide(
-            self.GB_sel_file,
-            self.cor_name_task,
-            self.sel_import,
-            self.FFN,
-            self.FFV,
-            self.FFG,
-            self.FFA,
-            self.FFA2,
-            self.FFD,
-            self.FFPQ,
-            self.FFIT,
-            self.GB_import_val_XL,
-            self.GB_control,
-            self.GB_prinr_XL,
-            self.GB_sel_tabl,
-            self.TA_parametr_vibor,
-            self.balance_Q_vibor,
-            self.TE_cor_b,
-            self.TE_cor_e, )
-        # CB показать / скрыть параметры
-        self.CB_KFilter_file.clicked.connect(lambda: self.show_hide(self.CB_KFilter_file, self.GB_sel_file))
-        self.CB_cor_name.clicked.connect(lambda: self.show_hide(self.CB_cor_name, self.cor_name_task))
-        self.CB_ImpRg2.clicked.connect(lambda: self.show_hide(self.CB_ImpRg2, self.sel_import))
-        self.CB_import_val_XL.clicked.connect(lambda: self.show_hide(self.CB_import_val_XL, self.GB_import_val_XL))
-        self.CB_Filtr_N.clicked.connect(lambda: self.show_hide(self.CB_Filtr_N, self.FFN))
-        self.CB_Filtr_V.clicked.connect(lambda: self.show_hide(self.CB_Filtr_V, self.FFV))
-        self.CB_Filtr_G.clicked.connect(lambda: self.show_hide(self.CB_Filtr_G, self.FFG))
-        self.CB_Filtr_A.clicked.connect(lambda: self.show_hide(self.CB_Filtr_A, self.FFA))
-        self.CB_Filtr_A2.clicked.connect(lambda: self.show_hide(self.CB_Filtr_A2, self.FFA2))
-        self.CB_Filtr_D.clicked.connect(lambda: self.show_hide(self.CB_Filtr_D, self.FFD))
-        self.CB_Filtr_PQ.clicked.connect(lambda: self.show_hide(self.CB_Filtr_PQ, self.FFPQ))
-        self.CB_Filtr_IT.clicked.connect(lambda: self.show_hide(self.CB_Filtr_IT, self.FFIT))
-        self.CB_kontrol_rg2.clicked.connect(lambda: self.show_hide(self.CB_kontrol_rg2, self.GB_control))
-        self.CB_printXL.clicked.connect(lambda: self.show_hide(self.CB_printXL, self.GB_prinr_XL))
-        self.CB_print_tab_log.clicked.connect(lambda: self.show_hide(self.CB_print_tab_log, self.GB_sel_tabl))
-        self.CB_print_parametr.clicked.connect(lambda: self.show_hide(self.CB_print_parametr, self.TA_parametr_vibor))
-        self.CB_print_balance_Q.clicked.connect(lambda: self.show_hide(self.CB_print_balance_Q, self.balance_Q_vibor))
-        self.CB_cor_b.clicked.connect(lambda: self.show_hide(self.CB_cor_b, self.TE_cor_b))
-        self.CB_cor_e.clicked.connect(lambda: self.show_hide(self.CB_cor_e, self.TE_cor_e))
+        self.check_import = (
+            (self.CB_N, 'узлы'),
+            (self.CB_V, 'ветви'),
+            (self.CB_G, 'генераторы'),
+            (self.CB_A, 'районы'),
+            (self.CB_A2, 'территории'),
+            (self.CB_D, 'объединения'),
+            (self.CB_PQ, 'PQ'),
+            (self.CB_IT, 'I(T)'),
+        )
+
+        self.check_status_visibility = (
+            (self.CB_KFilter_file, self.GB_sel_file),
+            (self.CB_cor_b, self.TE_cor_b),
+            (self.CB_ImpRg2, self.sel_import),
+            (self.CB_import_val_XL, self.GB_import_val_XL),
+            (self.CB_cor_e, self.TE_cor_e),
+            (self.CB_kontrol_rg2, self.GB_control),
+            (self.CB_Filtr_N, self.FFN),
+            (self.CB_Filtr_V, self.FFV),
+            (self.CB_Filtr_G, self.FFG),
+            (self.CB_Filtr_A, self.FFA),
+            (self.CB_Filtr_A2, self.FFA2),
+            (self.CB_Filtr_D, self.FFD),
+            (self.CB_Filtr_PQ, self.FFPQ),
+            (self.CB_Filtr_IT, self.FFIT),
+            (self.CB_printXL, self.GB_prinr_XL),
+            (self.CB_print_tab_log, self.GB_sel_tabl),
+            (self.CB_print_parametr, self.TA_parametr_vibor),
+            (self.CB_print_balance_Q, self.balance_Q_vibor),
+        )
+        # Скрыть параметры при старте.
+        self.check_status(self.check_status_visibility)
+        # CB показать / скрыть параметры.
+        for CB, element in self.check_status_visibility:
+            CB.clicked.connect(lambda: self.check_status(self.check_status_visibility))
+        # CB показать список импортируемых моделей.
+        for CB, _ in self.check_import:
+            CB.clicked.connect(lambda: self.import_name_table())
         # Функциональные кнопки
-        self.run_krg2.clicked.connect(lambda: self.task_add())
+        self.task_save.clicked.connect(lambda: self.task_save_yaml())
+        self.task_load.clicked.connect(lambda: self.task_load_yaml())
+        self.run_krg2.clicked.connect(lambda: self.gui_start())
         self.SetBut.clicked.connect(lambda: ui_set.show())
         # Подсказки
-        self.CB_KFilter_file.setToolTip("Всплывающее окно")
+        # self.CB_KFilter_file.setToolTip("Всплывающее окно")
 
-    def task_add(self):
+    def import_name_table(self):
         """
-        Сформировать dict задание (task_ui), добавить ImportFromModel и запуск start_cor
+        Сформировать строку имени CB_ImpRg2 для наглядности выбранных вкладок.
+        """
+        add_str = 'Импорт из файлa (.rg2)'
+        for CB, name in self.check_import:
+            if CB.isChecked():
+                add_str += f', {name}'
+        self.CB_ImpRg2.setText(add_str)
+
+    def task_save_yaml(self):
+        name_file_save = self.save_file(directory=self.path_beginnings(), filter_="YAML Files (*.yaml)")
+        if name_file_save:
+            self.fill_task_ui()
+            with open(name_file_save, 'w') as f:
+                yaml.dump(data=self.task_ui, stream=f, default_flow_style=False, sort_keys=False)
+
+    def path_beginnings(self):
+        if self.T_InFolder.toPlainText():
+            return self.T_InFolder.toPlainText()
+        else:
+            return self.T_IzFolder.toPlainText()
+
+    def task_load_yaml(self):
+        name_file_load = self.choose_file(directory=self.path_beginnings(), filter_="YAML Files (*.yaml)")
+        if not name_file_load:
+            return
+        with open(name_file_load) as f:
+            task_yaml = yaml.safe_load(f)
+        if not task_yaml:
+            return
+
+        self.T_IzFolder.setPlainText(task_yaml["KIzFolder"])
+        self.T_InFolder.setPlainText(task_yaml["KInFolder"])
+
+        self.CB_KFilter_file.setChecked(task_yaml["KFilter_file"])  # QCheckBox
+        self.D_count_file.setValue(task_yaml["max_file_count"])  # QSpainBox
+        self.condition_file_years.setText(task_yaml["cor_criterion_start"]["years"])  # QLineEdit text()
+        self.condition_file_season.setCurrentText(task_yaml["cor_criterion_start"]["season"])  # QComboBox
+        self.condition_file_max_min.setCurrentText(task_yaml["cor_criterion_start"]["max_min"])
+        self.condition_file_add_name.setText(task_yaml["cor_criterion_start"]["add_name"])
+
+        self.CB_cor_b.setChecked(task_yaml["cor_beginning_qt"]['add'])
+        self.TE_cor_b.setPlainText(task_yaml["cor_beginning_qt"]['txt'])
+
+        self.CB_import_val_XL.setChecked(task_yaml["import_val_XL"])
+        self.T_PQN_XL_File.setPlainText(task_yaml["excel_cor_file"])
+        self.T_PQN_Sheets.setText(task_yaml["excel_cor_sheet"])
+
+        self.CB_cor_e.setChecked(task_yaml["cor_end_qt"]['add'])
+        self.TE_cor_e.setPlainText(task_yaml["cor_end_qt"]['txt'])
+
+        self.CB_kontrol_rg2.setChecked(task_yaml["control_rg2"])
+        self.CB_U.setChecked(task_yaml["control_rg2_task"]['node'])
+        self.CB_I.setChecked(task_yaml["control_rg2_task"]['vetv'])
+        self.CB_gen.setChecked(task_yaml["control_rg2_task"]['Gen'])
+        self.CB_s.setChecked(task_yaml["control_rg2_task"]['section'])
+        self.CB_na.setChecked(task_yaml["control_rg2_task"]['area'])
+        self.CB_npa.setChecked(task_yaml["control_rg2_task"]['area2'])
+        self.CB_no.setChecked(task_yaml["control_rg2_task"]['darea'])
+        self.kontrol_rg2_Sel.setText(task_yaml["control_rg2_task"]['sel_node'])
+
+        self.CB_printXL.setChecked(task_yaml["printXL"])
+        self.CB_print_sech.setChecked(task_yaml['set_printXL']["sechen"]['add'])
+        self.setsel_sech.setText(task_yaml['set_printXL']["sechen"]["sel"])
+        self.CB_print_area.setChecked(task_yaml['set_printXL']["area"]['add'])
+        self.setsel_area.setText(task_yaml['set_printXL']["area"]["sel"])
+        self.CB_print_area2.setChecked(task_yaml['set_printXL']["area2"]['add'])
+        self.setsel_area2.setText(task_yaml['set_printXL']["area2"]["sel"])
+        self.CB_print_darea.setChecked(task_yaml['set_printXL']["darea"]['add'])
+        self.setsel_darea.setText(task_yaml['set_printXL']["darea"]["sel"])
+
+        self.CB_print_tab_log.setChecked(task_yaml['set_printXL']["tab"]['add'])
+        self.print_tab_log_ar_set.setText(task_yaml['set_printXL']["tab"]["sel"])
+        self.print_tab_log_ar_tab.setText(task_yaml['set_printXL']["tab"]['tabl'])
+        self.print_tab_log_ar_cols.setText(task_yaml['set_printXL']["tab"]['par'])
+        self.print_tab_log_rows.setText(task_yaml['set_printXL']["tab"]['rows'])
+        self.print_tab_log_cols.setText(task_yaml['set_printXL']["tab"]['columns'])
+        self.print_tab_log_vals.setText(task_yaml['set_printXL']["tab"]['values'])
+
+        self.CB_print_parametr.setChecked(task_yaml['print_parameters']['add'])
+        self.TA_parametr_vibor.setPlainText(task_yaml['print_parameters']['sel'])
+
+        self.CB_print_balance_Q.setChecked(task_yaml['print_balance_q']['add'])
+        self.balance_Q_vibor.setText(task_yaml['print_balance_q']['sel'])
+
+        self.CB_ImpRg2.setChecked(task_yaml['CB_ImpRg2'])
+        self.CB_ImpRg2.setText(task_yaml['CB_ImpRg2_name'])
+
+        dict_ = task_yaml['Imp_add']['node']
+        self.CB_N.setChecked(dict_['add'])
+        self.file_N.setText(dict_['import_file_name'])
+        self.Filtr_god_N.setText(dict_["years"])
+        self.Filtr_sez_N.setEditText(dict_["season"])
+        self.Filtr_max_min_N.setEditText(dict_["max_min"])
+        self.Filtr_dop_name_N.setText(dict_["add_name"])
+        self.tab_N.setText(dict_['tables'])
+        self.param_N.setText(dict_['param'])
+        self.sel_N.setText(dict_['sel'])
+        self.tip_N.setEditText(dict_['calc'])
+
+        dict_ = task_yaml['Imp_add']['vetv']
+        self.CB_V.setChecked(dict_['add'])
+        self.file_V.setText(dict_['import_file_name'])
+        self.Filtr_god_V.setText(dict_["years"])
+        self.Filtr_sez_V.setEditText(dict_["season"])
+        self.Filtr_max_min_V.setEditText(dict_["max_min"])
+        self.Filtr_dop_name_V.setText(dict_["add_name"])
+        self.tab_V.setText(dict_['tables'])
+        self.param_V.setText(dict_['param'])
+        self.sel_V.setText(dict_['sel'])
+        self.tip_V.setEditText(dict_['calc'])
+
+        dict_ = task_yaml['Imp_add']['gen']
+        self.CB_G.setChecked(dict_['add'])
+        self.file_G.setText(dict_['import_file_name'])
+        self.Filtr_god_G.setText(dict_["years"])
+        self.Filtr_sez_G.setEditText(dict_["season"])
+        self.Filtr_max_min_G.setEditText(dict_["max_min"])
+        self.Filtr_dop_name_G.setText(dict_["add_name"])
+        self.tab_G.setText(dict_['tables'])
+        self.param_G.setText(dict_['param'])
+        self.sel_G.setText(dict_['sel'])
+        self.tip_G.setEditText(dict_['calc'])
+
+        dict_ = task_yaml['Imp_add']['area']
+        self.CB_A.setChecked(dict_['add'])
+        self.file_A.setText(dict_['import_file_name'])
+        self.Filtr_god_A.setText(dict_["years"])
+        self.Filtr_sez_A.setEditText(dict_["season"])
+        self.Filtr_max_min_A.setEditText(dict_["max_min"])
+        self.Filtr_dop_name_A.setText(dict_["add_name"])
+        self.tab_A.setText(dict_['tables'])
+        self.param_A.setText(dict_['param'])
+        self.sel_A.setText(dict_['sel'])
+        self.tip_A.setEditText(dict_['calc'])
+
+        dict_ = task_yaml['Imp_add']['area2']
+        self.CB_A2.setChecked(dict_['add'])
+        self.file_A2.setText(dict_['import_file_name'])
+        self.Filtr_god_A2.setText(dict_["years"])
+        self.Filtr_sez_A2.setEditText(dict_["season"])
+        self.Filtr_max_min_A2.setEditText(dict_["max_min"])
+        self.Filtr_dop_name_A2.setText(dict_["add_name"])
+        self.tab_A2.setText(dict_['tables'])
+        self.param_A2.setText(dict_['param'])
+        self.sel_A2.setText(dict_['sel'])
+        self.tip_A2.setEditText(dict_['calc'])
+
+        dict_ = task_yaml['Imp_add']['darea']
+        self.CB_D.setChecked(dict_['add'])
+        self.file_D.setText(dict_['import_file_name'])
+        self.Filtr_god_D.setText(dict_["years"])
+        self.Filtr_sez_D.setEditText(dict_["season"])
+        self.Filtr_max_min_D.setEditText(dict_["max_min"])
+        self.Filtr_dop_name_D.setText(dict_["add_name"])
+        self.tab_D.setText(dict_['tables'])
+        self.param_D.setText(dict_['param'])
+        self.sel_D.setText(dict_['sel'])
+        self.tip_D.setEditText(dict_['calc'])
+
+        dict_ = task_yaml['Imp_add']['PQ']
+        self.CB_PQ.setChecked(dict_['add'])
+        self.file_PQ.setText(dict_['import_file_name'])
+        self.Filtr_god_PQ.setText(dict_["years"])
+        self.Filtr_sez_PQ.setEditText(dict_["season"])
+        self.Filtr_max_min_PQ.setEditText(dict_["max_min"])
+        self.Filtr_dop_name_PQ.setText(dict_["add_name"])
+        self.tab_PQ.setText(dict_['tables'])
+        self.param_PQ.setText(dict_['param'])
+        self.sel_PQ.setText(dict_['sel'])
+        self.tip_PQ.setEditText(dict_['calc'])
+
+        dict_ = task_yaml['Imp_add']['IT']
+        self.CB_IT.setChecked(dict_['add'])
+        self.file_IT.setText(dict_['import_file_name'])
+        self.Filtr_god_IT.setText(dict_["years"])
+        self.Filtr_sez_IT.setEditText(dict_["season"])
+        self.Filtr_max_min_IT.setEditText(dict_["max_min"])
+        self.Filtr_dop_name_IT.setText(dict_["add_name"])
+        self.tab_IT.setText(dict_['tables'])
+        self.param_IT.setText(dict_['param'])
+        self.sel_IT.setText(dict_['sel'])
+        self.tip_IT.setEditText(dict_['calc'])
+
+        self.check_status(self.check_status_visibility)
+
+    def gui_start(self):
+        """
+        Добавить ImportFromModel и запуск start_cor
+        """
+        self.record_task_ui()
+        # Импорт параметров режима
+        if self.CB_ImpRg2.isChecked():
+            if self.task_ui['CB_ImpRg2']:
+                for tables in self.task_ui['Imp_add']:
+                    if self.task_ui['Imp_add'][tables]['add']:
+                        ifm = ImportFromModel(import_file_name=self.task_ui['Imp_add'][tables]['import_file_name'],
+                                              criterion_start={"years": self.task_ui['Imp_add'][tables]['years'],
+                                                               "season": self.task_ui['Imp_add'][tables]['season'],
+                                                               "max_min": self.task_ui['Imp_add'][tables]['max_min'],
+                                                               "add_name": self.task_ui['Imp_add'][tables]['add_name']},
+                                              tables=self.task_ui['Imp_add'][tables]['tables'],
+                                              param=self.task_ui['Imp_add'][tables]['param'],
+                                              sel=self.task_ui['Imp_add'][tables]['sel'],
+                                              calc=self.task_ui['Imp_add'][tables]['calc'])
+                        ImportFromModel.ui_import_model.append(ifm)
+        # Убрать 'file:///'
+        for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
+            self.task_ui[str_name].lstrip('file:///')
+        start_cor(self.task_ui)
+
+    def fill_task_ui(self):
+        """
+        Заполнить task_ui задание (task_ui).
         """
         self.task_ui = {
-            "KIzFolder": ui_edit.T_IzFolder.toPlainText(),  # QPlainTextEdit
-            "KInFolder": ui_edit.T_InFolder.toPlainText(),
-            "KFilter_file": ui_edit.CB_KFilter_file.isChecked(),  # QCheckBox
-            "max_file_count": ui_edit.D_count_file.value(),  # QSpainBox
-            "cor_criterion_start": {"years": ui_edit.condition_file_years.text(),  # QLineEdit text()
-                                    "season": ui_edit.condition_file_season.currentText(),  # QComboBox
-                                    "max_min": ui_edit.condition_file_max_min.currentText(),
-                                    "add_name": ui_edit.condition_file_add_name.text()},
-            # Исправить пробелы, заменить английские буквы на русские
-            "cor_name": ui_edit.CB_cor_name.isChecked(),
-            "cor_name_task": ui_edit.cor_name_task.text(),
+            "KIzFolder": self.T_IzFolder.toPlainText(),  # QPlainTextEdit
+            "KInFolder": self.T_InFolder.toPlainText(),
+            "KFilter_file": self.CB_KFilter_file.isChecked(),  # QCheckBox
+            "max_file_count": self.D_count_file.value(),  # QSpainBox
+            "cor_criterion_start": {"years": self.condition_file_years.text(),  # QLineEdit text()
+                                    "season": self.condition_file_season.currentText(),  # QComboBox
+                                    "max_min": self.condition_file_max_min.currentText(),
+                                    "add_name": self.condition_file_add_name.text()},
             # Корректировка в начале
-            "cor_beginning_qt": {'add': ui_edit.CB_cor_b.isChecked(),
-                                 'txt': ui_edit.TE_cor_b.toPlainText()},
+            "cor_beginning_qt": {'add': self.CB_cor_b.isChecked(),
+                                 'txt': self.TE_cor_b.toPlainText()},
             # Задание из 'EXCEL'
-            "import_val_XL": ui_edit.CB_import_val_XL.isChecked(),
-            "excel_cor_file": ui_edit.T_PQN_XL_File.toPlainText(),
-            "excel_cor_sheet": ui_edit.T_PQN_Sheets.text(),
+            "import_val_XL": self.CB_import_val_XL.isChecked(),
+            "excel_cor_file": self.T_PQN_XL_File.toPlainText(),
+            "excel_cor_sheet": self.T_PQN_Sheets.text(),
             # Корректировка в конце
-            "cor_end_qt": {'add': ui_edit.CB_cor_e.isChecked(),
-                           'txt': ui_edit.TE_cor_e.toPlainText()},
+            "cor_end_qt": {'add': self.CB_cor_e.isChecked(),
+                           'txt': self.TE_cor_e.toPlainText()},
             # Расчет режима и контроль параметров режима
-            "control_rg2": ui_edit.CB_kontrol_rg2.isChecked(),
-            "control_rg2_task": {'node': ui_edit.CB_U.isChecked(),
-                                 'vetv': ui_edit.CB_I.isChecked(),
-                                 'Gen': ui_edit.CB_gen.isChecked(),
-                                 'section': ui_edit.CB_s.isChecked(),
-                                 'area': ui_edit.CB_na.isChecked(),
-                                 'area2': ui_edit.CB_npa.isChecked(),
-                                 'darea': ui_edit.CB_no.isChecked(),
-                                 'sel_node': ui_edit.kontrol_rg2_Sel.text()},
+            "control_rg2": self.CB_kontrol_rg2.isChecked(),
+            "control_rg2_task": {'node': self.CB_U.isChecked(),
+                                 'vetv': self.CB_I.isChecked(),
+                                 'Gen': self.CB_gen.isChecked(),
+                                 'section': self.CB_s.isChecked(),
+                                 'area': self.CB_na.isChecked(),
+                                 'area2': self.CB_npa.isChecked(),
+                                 'darea': self.CB_no.isChecked(),
+                                 'sel_node': self.kontrol_rg2_Sel.text()},
             # Выводить данные из моделей в XL
-            "printXL": ui_edit.CB_printXL.isChecked(),
+            "printXL": self.CB_printXL.isChecked(),
             "set_printXL": {
-                "sechen": {'add': ui_edit.CB_print_sech.isChecked(), "sel": ui_edit.setsel_sech.text(),
+                "sechen": {'add': self.CB_print_sech.isChecked(), "sel": self.setsel_sech.text(),
                            'tabl': "sechen", 'par': "ns,name,pmin,pmax,psech",
                            "rows": "ns,name",  # поля строк в сводной
                            "columns": "год,лет/зим,макс/мин,доп_имя1,доп_имя2",  # поля столбцов в сводной
                            "values": "psech,pmax"},
-                "area": {'add': ui_edit.CB_print_area.isChecked(), "sel": ui_edit.setsel_area.text(), 'tabl': "area",
+                "area": {'add': self.CB_print_area.isChecked(), "sel": self.setsel_area.text(), 'tabl': "area",
                          'par': 'na,name,no,pg,pn,pn_sum,dp,pop,pop_zad,qn_sum,pg_max,pg_min,pn_max,pn_min,poq,qn,qg',
                          "rows": "na,name,лет/зим,макс/мин,доп_имя1,доп_имя2",  # поля строк в сводной
                          "columns": "год",  # поля столбцов в сводной
                          "values": "pop,pg"},
-                "area2": {'add': ui_edit.CB_print_area2.isChecked(),
-                          "sel": ui_edit.setsel_area2.text(), 'tabl': "area2",
+                "area2": {'add': self.CB_print_area2.isChecked(),
+                          "sel": self.setsel_area2.text(), 'tabl': "area2",
                           'par': 'npa,name,pg,pn,dp,pop,vnp,qg,qn,dq,poq,vnq,pn_sum,qn_sum,pop_zad',
                           "rows": "npa,name,лет/зим,макс/мин,доп_имя1,доп_имя2",  # поля строк в сводной
                           "columns": "год",  # поля столбцов в сводной
                           "values": "pop,pg"},
-                "darea": {'add': ui_edit.CB_print_darea.isChecked(),
-                          "sel": ui_edit.setsel_darea.text(), 'tabl': "darea",
+                "darea": {'add': self.CB_print_darea.isChecked(),
+                          "sel": self.setsel_darea.text(), 'tabl': "darea",
                           'par': 'no,name,pg,pp,pvn,qn_sum,pnr_sum,pn_sum,pop_zad,qvn,qp,qg',
                           "rows": "no,name,лет/зим,макс/мин,доп_имя1,доп_имя2",  # поля строк в сводной
                           "columns": "год",  # поля столбцов в сводной
                           "values": "pp,pg"},
-                "tab": {'add': ui_edit.CB_print_tab_log.isChecked(), "sel": ui_edit.print_tab_log_ar_set.text(),
-                        'tabl': ui_edit.print_tab_log_ar_tab.text(),
-                        'par': ui_edit.print_tab_log_ar_cols.text(),
-                        "rows": ui_edit.print_tab_log_rows.text(),  # поля строк в сводной
-                        "columns": ui_edit.print_tab_log_cols.text(),  # поля столбцов в сводной
-                        "values": ui_edit.print_tab_log_vals.text()}},  # поля значений в сводной
-            "print_parameters": {'add': ui_edit.CB_print_parametr.isChecked(),
-                                 "sel": ui_edit.TA_parametr_vibor.toPlainText()},
-            "print_balance_q": {'add': ui_edit.CB_print_balance_Q.isChecked(), "sel": ui_edit.balance_Q_vibor.text()}
+                "tab": {'add': self.CB_print_tab_log.isChecked(), "sel": self.print_tab_log_ar_set.text(),
+                        'tabl': self.print_tab_log_ar_tab.text(),
+                        'par': self.print_tab_log_ar_cols.text(),
+                        "rows": self.print_tab_log_rows.text(),  # поля строк в сводной
+                        "columns": self.print_tab_log_cols.text(),  # поля столбцов в сводной
+                        "values": self.print_tab_log_vals.text()}},  # поля значений в сводной
+            "print_parameters": {'add': self.CB_print_parametr.isChecked(),
+                                 "sel": self.TA_parametr_vibor.toPlainText()},
+            "print_balance_q": {'add': self.CB_print_balance_Q.isChecked(), "sel": self.balance_Q_vibor.text()},
+            # только для UI
+            'CB_ImpRg2_name': self.CB_ImpRg2.text(),
+            'CB_ImpRg2': self.CB_ImpRg2.isChecked(),
+            'Imp_add': {
+                'node': {'add': self.CB_N.isChecked(),
+                         'import_file_name': self.file_N.text(),
+                         "years": self.Filtr_god_N.text(),
+                         "season": self.Filtr_sez_N.currentText(),
+                         "max_min": self.Filtr_max_min_N.currentText(),
+                         "add_name": self.Filtr_dop_name_N.text(),
+                         'tables': self.tab_N.text(),
+                         'param': self.param_N.text(),
+                         'sel': self.sel_N.text(),
+                         'calc': self.tip_N.currentText(), },
+                'vetv': {'add': self.CB_V.isChecked(),
+                         'import_file_name': self.file_V.text(),
+                         "years": self.Filtr_god_V.text(),
+                         "season": self.Filtr_sez_V.currentText(),
+                         "max_min": self.Filtr_max_min_V.currentText(),
+                         "add_name": self.Filtr_dop_name_V.text(),
+                         'tables': self.tab_V.text(),
+                         'param': self.param_V.text(),
+                         'sel': self.sel_V.text(),
+                         'calc': self.tip_V.currentText(), },
+                'gen': {'add': self.CB_G.isChecked(),
+                        'import_file_name': self.file_G.text(),
+                        "years": self.Filtr_god_G.text(),
+                        "season": self.Filtr_sez_G.currentText(),
+                        "max_min": self.Filtr_max_min_G.currentText(),
+                        "add_name": self.Filtr_dop_name_G.text(),
+                        'tables': self.tab_G.text(),
+                        'param': self.param_G.text(),
+                        'sel': self.sel_G.text(),
+                        'calc': self.tip_G.currentText(), },
+                'area': {'add': self.CB_A.isChecked(),
+                         'import_file_name': self.file_A.text(),
+                         "years": self.Filtr_god_A.text(),
+                         "season": self.Filtr_sez_A.currentText(),
+                         "max_min": self.Filtr_max_min_A.currentText(),
+                         "add_name": self.Filtr_dop_name_A.text(),
+                         'tables': self.tab_A.text(),
+                         'param': self.param_A.text(),
+                         'sel': self.sel_A.text(),
+                         'calc': self.tip_A.currentText(), },
+                'area2': {'add': self.CB_A2.isChecked(),
+                          'import_file_name': self.file_A2.text(),
+                          "years": self.Filtr_god_A2.text(),
+                          "season": self.Filtr_sez_A2.currentText(),
+                          "max_min": self.Filtr_max_min_A2.currentText(),
+                          "add_name": self.Filtr_dop_name_A2.text(),
+                          'tables': self.tab_A2.text(),
+                          'param': self.param_A2.text(),
+                          'sel': self.sel_A2.text(),
+                          'calc': self.tip_A2.currentText(), },
+                'darea': {'add': self.CB_D.isChecked(),
+                          'import_file_name': self.file_D.text(),
+                          "years": self.Filtr_god_D.text(),
+                          "season": self.Filtr_sez_D.currentText(),
+                          "max_min": self.Filtr_max_min_D.currentText(),
+                          "add_name": self.Filtr_dop_name_D.text(),
+                          'tables': self.tab_D.text(),
+                          'param': self.param_D.text(),
+                          'sel': self.sel_D.text(),
+                          'calc': self.tip_D.currentText(), },
+                'PQ': {'add': self.CB_PQ.isChecked(),
+                       'import_file_name': self.file_PQ.text(),
+                       "years": self.Filtr_god_PQ.text(),
+                       "season": self.Filtr_sez_PQ.currentText(),
+                       "max_min": self.Filtr_max_min_PQ.currentText(),
+                       "add_name": self.Filtr_dop_name_PQ.text(),
+                       'tables': self.tab_PQ.text(),
+                       'param': self.param_PQ.text(),
+                       'sel': self.sel_PQ.text(),
+                       'calc': self.tip_PQ.currentText(), },
+                'IT': {'add': self.CB_IT.isChecked(),
+                       'import_file_name': self.file_IT.text(),
+                       "years": self.Filtr_god_IT.text(),
+                       "season": self.Filtr_sez_IT.currentText(),
+                       "max_min": self.Filtr_max_min_IT.currentText(),
+                       "add_name": self.Filtr_dop_name_IT.text(),
+                       'tables': self.tab_IT.text(),
+                       'param': self.param_IT.text(),
+                       'sel': self.sel_IT.text(),
+                       'calc': self.tip_IT.currentText(), },
+            }
         }
-        # Импорт параметров режима
-        if ui_edit.CB_ImpRg2.isChecked():
-            # Узлы
-            if ui_edit.CB_N.isChecked():
-                ifm = ImportFromModel(import_file_name=ui_edit.file_N.text(),
-                                      criterion_start={"years": ui_edit.Filtr_god_N.text(),
-                                                       "season": ui_edit.Filtr_sez_N.currentText(),
-                                                       "max_min": ui_edit.Filtr_max_min_N.currentText(),
-                                                       "add_name": ui_edit.Filtr_dop_name_N.text()},
-                                      tables=ui_edit.tab_N.text(),
-                                      param=ui_edit.param_N.text(),
-                                      sel=ui_edit.sel_N.text(),
-                                      calc=ui_edit.tip_N.currentText())
-                ImportFromModel.ui_import_model.append(ifm)
-            # Ветви
-            if ui_edit.CB_V.isChecked():
-                ifm = ImportFromModel(import_file_name=ui_edit.file_V.text(),
-                                      criterion_start={"years": ui_edit.Filtr_god_V.text(),
-                                                       "season": ui_edit.Filtr_sez_V.currentText(),
-                                                       "max_min": ui_edit.Filtr_max_min_V.currentText(),
-                                                       "add_name": ui_edit.Filtr_dop_name_V.text()},
-                                      tables=ui_edit.tab_V.text(),
-                                      param=ui_edit.param_V.text(),
-                                      sel=ui_edit.sel_V.text(),
-                                      calc=ui_edit.tip_V.currentText())
-                ImportFromModel.ui_import_model.append(ifm)
-            # Генераторы
-            if ui_edit.CB_G.isChecked():
-                ifm = ImportFromModel(import_file_name=ui_edit.file_G.text(),
-                                      criterion_start={"years": ui_edit.Filtr_god_G.text(),
-                                                       "season": ui_edit.Filtr_sez_G.currentText(),
-                                                       "max_min": ui_edit.Filtr_max_min_G.currentText(),
-                                                       "add_name": ui_edit.Filtr_dop_name_G.text()},
-                                      tables=ui_edit.tab_G.text(),
-                                      param=ui_edit.param_G.text(),
-                                      sel=ui_edit.sel_G.text(),
-                                      calc=ui_edit.tip_G.currentText())
-                ImportFromModel.ui_import_model.append(ifm)
-            # Районы
-            if ui_edit.CB_A.isChecked():
-                ifm = ImportFromModel(import_file_name=ui_edit.file_A.text(),
-                                      criterion_start={"years": ui_edit.Filtr_god_A.text(),
-                                                       "season": ui_edit.Filtr_sez_A.currentText(),
-                                                       "max_min": ui_edit.Filtr_max_min_A.currentText(),
-                                                       "add_name": ui_edit.Filtr_dop_name_A.text()},
-                                      tables=ui_edit.tab_A.text(),
-                                      param=ui_edit.param_A.text(),
-                                      sel=ui_edit.sel_A.text(),
-                                      calc=ui_edit.tip_A.currentText())
-                ImportFromModel.ui_import_model.append(ifm)
-            # Территории
-            if ui_edit.CB_A2.isChecked():
-                ifm = ImportFromModel(import_file_name=ui_edit.file_A2.text(),
-                                      criterion_start={"years": ui_edit.Filtr_god_A2.text(),
-                                                       "season": ui_edit.Filtr_sez_A2.currentText(),
-                                                       "max_min": ui_edit.Filtr_max_min_A2.currentText(),
-                                                       "add_name": ui_edit.Filtr_dop_name_A2.text()},
-                                      tables=ui_edit.tab_A2.text(),
-                                      param=ui_edit.param_A2.text(),
-                                      sel=ui_edit.sel_A2.text(),
-                                      calc=ui_edit.tip_A2.currentText())
-                ImportFromModel.ui_import_model.append(ifm)
-            # Объединения
-            if ui_edit.CB_D.isChecked():
-                ifm = ImportFromModel(import_file_name=ui_edit.file_D.text(),
-                                      criterion_start={"years": ui_edit.Filtr_god_D.text(),
-                                                       "season": ui_edit.Filtr_sez_D.currentText(),
-                                                       "max_min": ui_edit.Filtr_max_min_D.currentText(),
-                                                       "add_name": ui_edit.Filtr_dop_name_D.text()},
-                                      tables=ui_edit.tab_D.text(),
-                                      param=ui_edit.param_D.text(),
-                                      sel=ui_edit.sel_D.text(),
-                                      calc=ui_edit.tip_D.currentText())
-                ImportFromModel.ui_import_model.append(ifm)
-            # PQ
-            if ui_edit.CB_PQ.isChecked():
-                ifm = ImportFromModel(import_file_name=ui_edit.file_PQ.text(),
-                                      criterion_start={"years": ui_edit.Filtr_god_PQ.text(),
-                                                       "season": ui_edit.Filtr_sez_PQ.currentText(),
-                                                       "max_min": ui_edit.Filtr_max_min_PQ.currentText(),
-                                                       "add_name": ui_edit.Filtr_dop_name_PQ.text()},
-                                      tables=ui_edit.tab_PQ.text(),
-                                      param=ui_edit.param_PQ.text(),
-                                      sel=ui_edit.sel_PQ.text(),
-                                      calc=ui_edit.tip_PQ.currentText())
-                ImportFromModel.ui_import_model.append(ifm)
-            # IT
-            if ui_edit.CB_IT.isChecked():
-                ifm = ImportFromModel(import_file_name=ui_edit.file_IT.text(),
-                                      criterion_start={"years": ui_edit.Filtr_god_IT.text(),
-                                                       "season": ui_edit.Filtr_sez_IT.currentText(),
-                                                       "max_min": ui_edit.Filtr_max_min_IT.currentText(),
-                                                       "add_name": ui_edit.Filtr_dop_name_IT.text()},
-                                      tables=ui_edit.tab_IT.text(),
-                                      param=ui_edit.param_IT.text(),
-                                      sel=ui_edit.sel_IT.text(),
-                                      calc=ui_edit.tip_IT.currentText())
-                ImportFromModel.ui_import_model.append(ifm)
-        # Убрать 'file:///'
-        for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
-            if 'file:///' in self.task_ui[str_name]:
-                self.task_ui[str_name] = self.task_ui[str_name][8:]
-
-        start_cor(self.task_ui)
 
 
 class GeneralSettings(ABC):
@@ -395,7 +599,7 @@ class CorModel(GeneralSettings):
 
         self.task['folder_result'] = folder_save + r"\result"  # папка для сохранения результатов
         now = datetime.now()
-        self.task['name_time'] = self.task['folder_result'] + f"\\коррекция файлов ({now.strftime('%d-%m-%Y %H-%M')})"
+        self.task['name_time'] = f"{self.task['folder_result']}\\{now.strftime('%d-%m-%Y %H-%M')}"
         if not os.path.exists(self.task['folder_result']):
             os.mkdir(self.task['folder_result'])  # создать папку result
         self.task['folder_temp'] = self.task['folder_result'] + r"\temp"  # папка для сохранения рабочих файлов
@@ -458,8 +662,11 @@ class CorModel(GeneralSettings):
                 self.set_info['end_info'] += f"\nВНИМАНИЕ! развалились модели:\n[{self.set_info['collapse']}]. "
 
         self.the_end()
-        shutil.copyfile('log_file.log', self.task['name_time'] + '.log')
-        webbrowser.open(self.task['name_time'] + '.log')
+        notepad_path = self.task['name_time'] + ' протокол коррекции файлов.log'
+        shutil.copyfile('log_file.log', notepad_path)
+        with open(self.task['name_time'] + ' задание на корректировку.yaml', 'w') as f:
+            yaml.dump(data=self.task, stream=f, default_flow_style=False, sort_keys=False)
+        webbrowser.open(notepad_path)
         mb.showinfo("Инфо", self.set_info['end_info'])
 
     def cor_file(self, rm):
@@ -1207,6 +1414,7 @@ class PrintXL:
     list_name_z = []
     short_name_tables = {'n': 'node', 'v': 'vetv', 'g': 'Generator', 'na': 'area', 'npa': 'area2', 'no': 'darea',
                          'nga': 'ngroup', 'ns': 'sechen'}
+
     #  ...._log  лист протокол для сводной
 
     def __init__(self, task):  # добавить листы и первая строка с названиями
@@ -1309,7 +1517,7 @@ class PrintXL:
                         fields = t_print.Key.split(",")
                         values = key_i.split(",")
                         for n, field in enumerate(fields, 1):
-                            choice += field + '=' + values[n-1] + '&'
+                            choice += field + '=' + values[n - 1] + '&'
                         choice = choice.rstrip('&')
                 else:
                     choice = t_print.Key + '=' + key_i
@@ -1366,7 +1574,7 @@ class PrintXL:
                 if 'log' in sheet_name:
                     self.book.create_sheet(sheet_name.replace('log', 'сводная'))
                     self.sheet_couple[sheet_name] = sheet_name.replace('log', 'сводная')
-        self.name_xl_file = self.task['name_time'] + '.xlsx'
+        self.name_xl_file = self.task['name_time'] + ' вывод данных.xlsx'
         self.book.save(self.name_xl_file)
         self.book = None
         for key in self.task['set_printXL']:
