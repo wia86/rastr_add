@@ -3,7 +3,7 @@
 # I:\rastr_add> pyinstaller --onefile --noconsole main.py
 # I:\rastr_add> pyinstaller -F --noconsole main.py
 import win32com.client
-from abc import ABC, abstractmethod
+from abc import ABC
 from Rastr_Method import RastrMethod
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
@@ -43,20 +43,27 @@ class Window:
 
     def choose_file(self, directory: str, filter_: str = ''):
         """
-        Выбор файла
+        Выбор файла.
         """
-        fileName_choose, _ = QtWidgets.QFileDialog.getOpenFileName(self, caption="Выбрать файл", directory=directory,
-                                                                   filter=filter_, )  # "All Files(*);Text Files(*.txt)"
+        fileName_choose, _ = QtWidgets.QFileDialog.getOpenFileName(self, directory=directory,
+                                                                   filter=filter_)  # "All Files(*);Text Files(*.txt)"
         if fileName_choose:
             logging.info(f"Выбран файл: {fileName_choose}, {_}")
             return fileName_choose
 
+    def choice_folder(self, directory: str):
+        """
+        Выбор папки.
+        """
+        folder_Name_choose = QtWidgets.QFileDialog.getExistingDirectory(self, directory=directory)
+        if folder_Name_choose:
+            return folder_Name_choose
+
     def save_file(self, directory: str, filter_: str = ''):
         """
-        Сохранение файла
+        Сохранение файла.
         """
-        fileName_choose, _ = QtWidgets.QFileDialog.getSaveFileName(self, caption="Сохранение файла",
-                                                                   directory=directory, filter=filter_)
+        fileName_choose, _ = QtWidgets.QFileDialog.getSaveFileName(self, directory=directory, filter=filter_)
         if fileName_choose:
             logging.info(f"Для сохранения выбран файл: {fileName_choose}, {_}")
             return fileName_choose
@@ -104,8 +111,8 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings):
 class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
     def __init__(self):
         super(EditWindow, self).__init__()  # *args, **kwargs
-        self.task_ui = {}
         self.setupUi(self)
+        self.task_ui = {}
         self.check_import = (
             (self.CB_N, 'узлы'),
             (self.CB_V, 'ветви'),
@@ -116,7 +123,6 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
             (self.CB_PQ, 'PQ'),
             (self.CB_IT, 'I(T)'),
         )
-
         self.check_status_visibility = (
             (self.CB_KFilter_file, self.GB_sel_file),
             (self.CB_cor_b, self.TE_cor_b),
@@ -145,13 +151,64 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
         # CB показать список импортируемых моделей.
         for CB, _ in self.check_import:
             CB.clicked.connect(lambda: self.import_name_table())
+
         # Функциональные кнопки
-        self.task_save.clicked.connect(lambda: self.task_save_yaml())
-        self.task_load.clicked.connect(lambda: self.task_load_yaml())
+        self.task_save.clicked.connect(self.task_save_yaml)
+        self.task_load.clicked.connect(self.task_load_yaml)
+        self.choice_from_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_IzFolder))
+        self.choice_in_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_InFolder))
+        self.choice_XL.clicked.connect(lambda: self.choice(type_choice='file', insert=self.T_PQN_XL_File))
+        self.choice_N.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_N))
+        self.choice_V.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_V))
+        self.choice_G.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_G))
+        self.choice_A.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_A))
+        self.choice_A2.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_A2))
+        self.choice_D.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_D))
+        self.choice_PQ.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_PQ))
+        self.choice_IT.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_IT))
+
         self.run_krg2.clicked.connect(lambda: self.gui_start())
         self.SetBut.clicked.connect(lambda: ui_set.show())
         # Подсказки
         # self.CB_KFilter_file.setToolTip("Всплывающее окно")
+        # Загрузить из .ini начальный путь для T_IzFolder
+        if os.path.exists('settings.ini'):
+            config = configparser.ConfigParser()
+            config.read('settings.ini')
+            try:
+                self.T_IzFolder.setPlainText(config['save_form_folder']["path"])
+            except LookupError:
+                logging.error('файл settings.ini не читается')
+
+
+
+    def save_ini_form_folder(self):
+        """
+        Сохранить в ini папку корректировки.
+        """
+        if os.path.exists('settings.ini'):
+            config = configparser.ConfigParser()
+            config.read('settings.ini')
+            config['save_form_folder'] = {"path": self.T_IzFolder.toPlainText()}
+            with open('settings.ini', 'w') as configfile:
+                config.write(configfile)
+
+    def choice(self, type_choice: str, insert):
+        """
+        Функция выбора папки или файла.
+        :param type_choice: 'file', 'folder'
+        :param insert: объект QT  для вставки пути выбранного файла.
+        """
+        name = ''
+        if type_choice == 'file':
+            name = self.choose_file(directory=self.T_IzFolder.toPlainText())
+        elif type_choice == 'folder':
+            name = self.choice_folder(directory=self.T_IzFolder.toPlainText())
+        if name:
+            if insert.__class__.__name__ == 'QPlainTextEdit':
+                insert.setPlainText(name)
+            elif insert.__class__.__name__ == 'QLineEdit':
+                insert.setText(name)
 
     def import_name_table(self):
         """
@@ -164,20 +221,14 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
         self.CB_ImpRg2.setText(add_str)
 
     def task_save_yaml(self):
-        name_file_save = self.save_file(directory=self.path_beginnings(), filter_="YAML Files (*.yaml)")
+        name_file_save = self.save_file(directory=self.T_IzFolder.toPlainText(), filter_="YAML Files (*.yaml)")
         if name_file_save:
             self.fill_task_ui()
             with open(name_file_save, 'w') as f:
                 yaml.dump(data=self.task_ui, stream=f, default_flow_style=False, sort_keys=False)
 
-    def path_beginnings(self):
-        if self.T_InFolder.toPlainText():
-            return self.T_InFolder.toPlainText()
-        else:
-            return self.T_IzFolder.toPlainText()
-
     def task_load_yaml(self):
-        name_file_load = self.choose_file(directory=self.path_beginnings(), filter_="YAML Files (*.yaml)")
+        name_file_load = self.choose_file(directory=self.T_IzFolder.toPlainText(), filter_="YAML Files (*.yaml)")
         if not name_file_load:
             return
         with open(name_file_load) as f:
@@ -344,7 +395,8 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
         """
         Добавить ImportFromModel и запуск start_cor
         """
-        self.record_task_ui()
+        self.save_ini_form_folder()
+        self.fill_task_ui()
         # Импорт параметров режима
         if self.CB_ImpRg2.isChecked():
             if self.task_ui['CB_ImpRg2']:
@@ -722,33 +774,6 @@ class CorModel(GeneralSettings):
                     self.pxl = PrintXL(self.task)
                 self.pxl.add_val(rm)
 
-
-"""<<<<<<<<<<<<<<<<<<<<СПРАВКА>>>>>>>>>>>>>>>>>>>>>>>>>
-# <<<УДАЛИТЬ>>>
-#  Del_sel ()  #  удалить отмеченные узлы (c ветвями) ветви и генераторы
-#  Del(tabl,viborka)  # viborka = "net" - удалить узлы или ветви без связей или без узла начала конца
-# <<<ИЗМЕНИТЬ СЕТЬ>>>
-#  uhom_korr_sub (set_sel) #  исправить номинальные напряжения в узлах
-# sta_node ("str_ny", on_off)#  узлы с ветвями (СТРОКА номера узлов через пробел) включить False; отключить True
-
-# rastr.RenumWP=True     # включить ссылки, отключить
-# vzd0 ()           #  поиск узлов где напряжение vzd задано а диапазона реактивки нет и удаляет vzd
-# name0 ()           #  поиск узлов и генераторов без имени
-# nyNum0 ()           #  поиск узлов и генераторов с номером 0
-# <<<прочее>>>
-# = otklonenie_seshen (nomer_sesh)   #   возвращает величину отклонения psech от  pmax   + превышение; - недобор
-# = rastr.Calc("sum,max,min,val","area","qn","vibor") - функция (vibor не может быть "")
-#  ГЕНЕРАТОРЫ  PGen_cor ("sel")  # если мощность P больше Pmax то изменить мощность генератора  на Pmax, если P меньше
-#  Pmin но больше 0 - то на Pmin #  если P ген = 0 то отключить генератор, чтоб реактивка не выдавалась
-СЕЧЕНИЕ # KorSech  (ns,newp,vibor , tip, net_Pmin_zad) #  номер сеч, новая мощность в сеч (значение или "max" "min"),
-#  выбор корр узлов  (нр "sel"или "" - авто) ,  tip - "pn" или "pg", net_Pmin_zad #  1 не учитывать Pmin
-#  Qgen_node_in_gen_sub ()  #  посчитать Q ГЕН по  Q в узле
-# <<<настройки rastr>>>
-#  rastr.tables("com_regim").cols.item("gen_p").Z(0) = 0
-#  #0- "да"; 1- "да"; 2- только Р; 3- только Q ///it_max  количество расчетов///neb_p точность расчектов////
-"""
-
-
 class RastrModel(RastrMethod):
     """
     Для хранения параметров текущего расчетного файла.
@@ -955,9 +980,9 @@ class RastrModel(RastrMethod):
         # Напряжения
         if dict_task["node"]:
             logging.info("\tКонтроль напряжений.")
-            self.rastr.voltage_nominal(choice=dict_task["sel_node"])
-            self.rastr.voltage_normal(choice=dict_task["sel_node"])
-            self.rastr.voltage_deviation(choice=dict_task["sel_node"])
+            self.voltage_nominal(choice=dict_task["sel_node"])
+            self.voltage_normal(choice=dict_task["sel_node"])
+            self.voltage_deviation(choice=dict_task["sel_node"])
 
         # Токи
         if dict_task['vetv']:
@@ -1177,9 +1202,9 @@ class CorSheet:
         logging.info(f'\tВыполнение задания листа {self.name!r}')
         if self.type == 'import_model':
             self.import_model(rm)
-        if self.type == 'list_cor':
+        elif self.type == 'list_cor':
             self.list_cor(rm)
-        if self.type == 'tab_cor':
+        elif self.type == 'tab_cor':
             self.tab_cor(rm)
         logging.info(f'\tКонец выполнения задания листа {self.name!r}')
 
@@ -1205,7 +1230,10 @@ class CorSheet:
             for im in self.import_model_all:
                 im.import_csv(rm)
 
-    def list_cor(self, rm: RastrModel) -> None:  # cor таблица корректировок по списку, нр изм, удалить, снять отметку
+    def list_cor(self, rm: RastrModel) -> None:
+        """
+        Таблица корректировок по списку, нр изм, удалить, снять отметку.
+        """
         # номера столбцов
         C_VALUE = 3
         C_SELECTION = 2
@@ -1214,7 +1242,6 @@ class CorSheet:
             name_fun = self.xls.cell(row, 1).value
             if name_fun:
                 if '#' not in name_fun:
-                    test_condition = True
                     year = self.xls.cell(row, 4).value
                     season = self.xls.cell(row, 5).value
                     max_min = self.xls.cell(row, 6).value

@@ -50,7 +50,7 @@
       </property>
      </widget>
     </item>
-    <item row="1" column="0">
+    <item row="0" column="0">
      <widget class="QScrollArea" name="scrollArea">
       <property name="minimumSize">
        <size>
@@ -75,7 +75,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>641</width>
+         <width>667</width>
          <height>1360</height>
         </rect>
        </property>
@@ -238,38 +238,55 @@
             </widget>
            </item>
            <item>
-            <widget class="QPlainTextEdit" name="T_IzFolder">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>508</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>10000</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="baseSize">
-              <size>
-               <width>0</width>
-               <height>35</height>
-              </size>
-             </property>
-             <property name="plainText">
-              <string>I:\rastr_add\test</string>
-             </property>
-            </widget>
+            <layout class="QHBoxLayout" name="horizontalLayout_11">
+             <item>
+              <widget class="QPlainTextEdit" name="T_IzFolder">
+               <property name="enabled">
+                <bool>true</bool>
+               </property>
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="minimumSize">
+                <size>
+                 <width>508</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>10000</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="baseSize">
+                <size>
+                 <width>0</width>
+                 <height>35</height>
+                </size>
+               </property>
+               <property name="plainText">
+                <string>I:\rastr_add\test</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="choice_from_folder">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Выбор</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
            <item>
             <widget class="QLabel" name="label_10">
@@ -291,23 +308,40 @@
             </widget>
            </item>
            <item>
-            <widget class="QPlainTextEdit" name="T_InFolder">
-             <property name="minimumSize">
-              <size>
-               <width>508</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>10000</width>
-               <height>30</height>
-              </size>
-             </property>
-             <property name="plainText">
-              <string>I:\rastr_add\test\test_result</string>
-             </property>
-            </widget>
+            <layout class="QHBoxLayout" name="horizontalLayout_12">
+             <item>
+              <widget class="QPlainTextEdit" name="T_InFolder">
+               <property name="minimumSize">
+                <size>
+                 <width>508</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>10000</width>
+                 <height>30</height>
+                </size>
+               </property>
+               <property name="plainText">
+                <string/>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="choice_in_folder">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Выбор</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
            </item>
           </layout>
          </widget>
@@ -708,6 +742,19 @@
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QPushButton" name="choice_N">
+                 <property name="maximumSize">
+                  <size>
+                   <width>40</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Выбор</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </widget>
              <widget class="QWidget" name="layoutWidget_8">
@@ -1087,6 +1134,19 @@
                   </property>
                  </widget>
                 </item>
+                <item>
+                 <widget class="QPushButton" name="choice_V">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Выбор</string>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </item>
               <item>
@@ -1436,6 +1496,19 @@
                   </property>
                   <property name="text">
                    <string>I:\rastr_add\test\импорт2.rg2</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="choice_G">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Выбор</string>
                   </property>
                  </widget>
                 </item>
@@ -1791,6 +1864,19 @@
                   </property>
                  </widget>
                 </item>
+                <item>
+                 <widget class="QPushButton" name="choice_A">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Выбор</string>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </item>
               <item>
@@ -2140,6 +2226,19 @@
                   </property>
                   <property name="text">
                    <string>I:\rastr_add\test\импорт2.rg2</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="choice_A2">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Выбор</string>
                   </property>
                  </widget>
                 </item>
@@ -2495,6 +2594,19 @@
                   </property>
                  </widget>
                 </item>
+                <item>
+                 <widget class="QPushButton" name="choice_D">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Выбор</string>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </item>
               <item>
@@ -2847,6 +2959,19 @@
                   </property>
                  </widget>
                 </item>
+                <item>
+                 <widget class="QPushButton" name="choice_PQ">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Выбор</string>
+                  </property>
+                 </widget>
+                </item>
                </layout>
               </item>
               <item>
@@ -3196,6 +3321,19 @@
                   </property>
                   <property name="text">
                    <string>I:\rastr_add\test\импорт2.rg2</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="choice_IT">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Выбор</string>
                   </property>
                  </widget>
                 </item>
@@ -3616,6 +3754,19 @@
                </property>
                <property name="plainText">
                 <string>I:\rastr_add\test\пример задания.xlsx</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="choice_XL">
+               <property name="maximumSize">
+                <size>
+                 <width>40</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Выбор</string>
                </property>
               </widget>
              </item>
