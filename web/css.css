@@ -1,7 +1,0 @@
-            /*общее */
-            html { overflow:  auto;
-                  Height:auto;}
-            body { margin: 1%;
-                font-size: 16px;
-                }
-            div.cubik {outline: 2px solid rgb(129, 127, 127);padding: 2px;margin: 4px;width: 500px;}

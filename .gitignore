@@ -1,1 +1,9 @@
 /venv/
+/build/
+/web/
+/dist/settings.ini
+/dist/log_file.log
+/test/temp/
+/test/test2/
+/test/файлы импорта/temp/
+/help/
