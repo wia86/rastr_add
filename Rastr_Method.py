@@ -86,15 +86,15 @@ class RastrMethod:
                     formula = 'del'
                     param = ''
                 elif '=' in task:
-                    try:
-                        param, formula = task.split("=")
-                    except ValueError:
-                        raise ValueError(f'Ошибка в задании {task}, должно содержать =')
+                    param, formula = task.split("=")
+
+                    if not (formula and param):
+                        raise ValueError(f"Задание не распознано, {key=}, {task=}")
+                else:
+                    raise ValueError(f"Задание не распознано, {key=}, {task=}")
 
                 self.group_cor(tabl=rastr_table, param=param, selection=selection_in_table,
                                formula=formula, del_all=del_all)
-                if not formula:
-                    raise ValueError(f"Задание не распознано, {key=}, {task=}")
 
     def group_cor(self, tabl: str, param: str, selection: str, formula: str, del_all: bool = False):
         """
@@ -160,7 +160,7 @@ class RastrMethod:
                             node.cols.item("uhom").SetZ(j, self.U_NOM[x])
                             logging.info(f"\tВнесены изменения! {ny=}, {name=}, uhom={self.U_NOM[x]}")
                             break
-                # если напряжение не исправилось то
+                # Если напряжение не исправилось
                 if node.cols.item('uhom').Z(j) not in self.U_NOM:
                     logging.error(f"\tНоминальное напряжение не исправлено! {ny=}, {name=}, {uhom=}")
 
@@ -168,7 +168,7 @@ class RastrMethod:
 
     def voltage_normal(self, choice: str = ''):
         """
-        Проверка напряжения: меньше наибольшего рабочего, больше минимального рабочего напряжения.
+        Проверка расчетного напряжения: меньше наибольшего рабочего, больше минимального рабочего напряжения.
         :param choice: выборка в таблице узлы
         """
         node = self.rastr.tables("node")
@@ -192,7 +192,7 @@ class RastrMethod:
 
     def voltage_deviation(self, choice: str = ''):
         """
-        Проверка напряжения: больше минимально-допустимого.
+        Проверка расчетного напряжения: больше минимально-допустимого.
         :param choice: выборка в таблице узлы
         """
         node = self.rastr.tables("node")
@@ -426,3 +426,14 @@ class RastrMethod:
             self.voltage_nominal(choice=sel, edit=True)
         else:
             raise ValueError(f'Задание {name=} не распознано ({sel=}, {value=})')
+
+    def change_loading_section(self,ns: int, new_loading: float, way: str = 'pg'):
+        """
+        Изменить переток мощности в сечении номер ns до величины new_loading путем (way) изменения нагрузки ('pn') или
+        генерации ('qn')
+        :param ns:
+        :param new_loading:
+        :param way:
+        """
+        table = self.rastr.tables('sechen')
+

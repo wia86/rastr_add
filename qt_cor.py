@@ -15,7 +15,7 @@ class Ui_MainCor(object):
     def setupUi(self, MainCor):
         MainCor.setObjectName("MainCor")
         MainCor.setEnabled(True)
-        MainCor.resize(660, 737)
+        MainCor.resize(867, 737)
         self.centralwidget = QtWidgets.QWidget(MainCor)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -39,7 +39,7 @@ class Ui_MainCor(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 667, 1360))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, -667, 848, 1360))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
@@ -227,6 +227,13 @@ class Ui_MainCor(object):
         self.CB_cor_b.setObjectName("CB_cor_b")
         self.verticalLayout_18.addWidget(self.CB_cor_b)
         self.TE_cor_b = QtWidgets.QPlainTextEdit(self.scrollAreaWidgetContents)
+        font = QtGui.QFont()
+        font.setPointSize(9)
+        font.setUnderline(False)
+        font.setStrikeOut(False)
+        font.setKerning(True)
+        self.TE_cor_b.setFont(font)
+        self.TE_cor_b.viewport().setProperty("cursor", QtGui.QCursor(QtCore.Qt.IBeamCursor))
         self.TE_cor_b.setObjectName("TE_cor_b")
         self.verticalLayout_18.addWidget(self.TE_cor_b)
         self.verticalLayout_2.addLayout(self.verticalLayout_18)
@@ -1324,6 +1331,9 @@ class Ui_MainCor(object):
         self.CB_cor_e.setObjectName("CB_cor_e")
         self.verticalLayout_17.addWidget(self.CB_cor_e)
         self.TE_cor_e = QtWidgets.QPlainTextEdit(self.scrollAreaWidgetContents)
+        font = QtGui.QFont()
+        font.setPointSize(9)
+        self.TE_cor_e.setFont(font)
         self.TE_cor_e.setPlainText("")
         self.TE_cor_e.setObjectName("TE_cor_e")
         self.verticalLayout_17.addWidget(self.TE_cor_e)
@@ -1356,31 +1366,32 @@ class Ui_MainCor(object):
         self.horizontalLayout_22.addWidget(self.kontrol_rg2_Sel)
         self.formLayout_2.setLayout(0, QtWidgets.QFormLayout.LabelRole, self.horizontalLayout_22)
         self.CB_s = QtWidgets.QCheckBox(self.GB_control)
-        self.CB_s.setChecked(True)
+        self.CB_s.setChecked(False)
         self.CB_s.setObjectName("CB_s")
         self.formLayout_2.setWidget(0, QtWidgets.QFormLayout.FieldRole, self.CB_s)
         self.CB_U = QtWidgets.QCheckBox(self.GB_control)
-        self.CB_U.setChecked(True)
+        self.CB_U.setEnabled(True)
+        self.CB_U.setChecked(False)
         self.CB_U.setObjectName("CB_U")
         self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.LabelRole, self.CB_U)
         self.CB_na = QtWidgets.QCheckBox(self.GB_control)
-        self.CB_na.setChecked(True)
+        self.CB_na.setChecked(False)
         self.CB_na.setObjectName("CB_na")
         self.formLayout_2.setWidget(1, QtWidgets.QFormLayout.FieldRole, self.CB_na)
         self.CB_I = QtWidgets.QCheckBox(self.GB_control)
-        self.CB_I.setChecked(True)
+        self.CB_I.setChecked(False)
         self.CB_I.setObjectName("CB_I")
         self.formLayout_2.setWidget(2, QtWidgets.QFormLayout.LabelRole, self.CB_I)
         self.CB_npa = QtWidgets.QCheckBox(self.GB_control)
-        self.CB_npa.setChecked(True)
+        self.CB_npa.setChecked(False)
         self.CB_npa.setObjectName("CB_npa")
         self.formLayout_2.setWidget(2, QtWidgets.QFormLayout.FieldRole, self.CB_npa)
         self.CB_gen = QtWidgets.QCheckBox(self.GB_control)
-        self.CB_gen.setChecked(True)
+        self.CB_gen.setChecked(False)
         self.CB_gen.setObjectName("CB_gen")
         self.formLayout_2.setWidget(3, QtWidgets.QFormLayout.LabelRole, self.CB_gen)
         self.CB_no = QtWidgets.QCheckBox(self.GB_control)
-        self.CB_no.setChecked(True)
+        self.CB_no.setChecked(False)
         self.CB_no.setObjectName("CB_no")
         self.formLayout_2.setWidget(3, QtWidgets.QFormLayout.FieldRole, self.CB_no)
         self.verticalLayout_2.addWidget(self.GB_control)
@@ -1579,7 +1590,7 @@ class Ui_MainCor(object):
         self.label_3.setText(_translate("MainCor", "Год:"))
         self.label_4.setText(_translate("MainCor", ", зим/лет:"))
         self.condition_file_season.setItemText(1, _translate("MainCor", "зим"))
-        self.condition_file_season.setItemText(2, _translate("MainCor", "макс"))
+        self.condition_file_season.setItemText(2, _translate("MainCor", "лет"))
         self.condition_file_season.setItemText(3, _translate("MainCor", "паводок"))
         self.label_5.setText(_translate("MainCor", ", макс/мин:"))
         self.condition_file_max_min.setItemText(1, _translate("MainCor", "макс"))
@@ -1589,18 +1600,18 @@ class Ui_MainCor(object):
         self.TE_cor_b.setPlainText(_translate("MainCor", "# Задание аналогично \"строковой форме\" excel: в квадратных скобках параметры в формате [Выборка | Значение]\n"
 "# В фигурных скобках указывается условие выполнения в формате {years = 2026| season=лет| max_min=min| add_name=0°C}\n"
 "# Примеры:\n"
-"удалить*[15145 ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)\n"
-"удалить[15561,15129,0 15562,15130,0 Num=912 g=913]  # удалить ветви 15561,15129,0 15562,15130,0 и генераторы 912, 913\n"
-"изм[15148|name=Промплощадка:_изм_name]  # при изменении текстовых полей \'  \' заменить на \'_\'\n"
-"изм[na=11(node) (vetv)|sel=1]{years = 2026}  # отметить узлы 11 района и все ветви\n"
-"изм[(vetv) (area) (area2) (darea)|Tc=0]{years = 2026|season=зим|max_min=макс|add_name=0°C}  # обнулить температуру\n"
-"снять отметку{years = 2026 |    season=зим}  # снять отметку зимой 2026\n"
-"добавить[node|ny=3 pn=1 uhom=120 na=11 name=Новый_узел]  # Добавить запись в таблицу\n"
-"добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]\n"
-"пробелы и буквы[node:name,dname vetv:dname Generator:Name]  # Исправить пробелы, заменить английские буквы на русские.\n"
-"СХН[na=11]  # добавить номера СХН в узлах:uhom>100 nsx=1, uhom<100 nsx=2. Выборка в таблице узлы  может быть пустой\n"
-"номинальные напряжения[na=11]  #  Проверка номинального напряжения [6, 10, 35, 110, 220, 330, 500, 750]. \n"
-"расчет  # расчет режима\n"
+"#удалить*[15145 ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)\n"
+"#удалить[15561,15129,0 15562,15130,0 Num=912 g=913]  # удалить ветви 15561,15129,0 15562,15130,0 и генераторы 912, 913#\n"
+"#изм[15148|name=Промплощадка:_изм_name]  # при изменении текстовых полей \'  \' заменить на \'_\'\n"
+"#изм[na=11(node) (vetv)|sel=1]{years = 2026}  # отметить узлы 11 района и все ветви\n"
+"#изм[(vetv) (area) (area2) (darea)|Tc=0]{years = 2026|season=зим|max_min=макс|add_name=0°C}  # обнулить температуру\n"
+"#снять отметку{years = 2026 |    season=зим}  # снять отметку зимой 2026\n"
+"#добавить[node|ny=3 pn=1 uhom=120 na=11 name=Новый_узел]  # Добавить запись в таблицу\n"
+"#добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]\n"
+"#пробелы и буквы[node:name,dname vetv:dname Generator:Name]  # Исправить пробелы, заменить английские буквы на русские.\n"
+"#СХН[na=11]  # добавить номера СХН в узлах:uhom>100 nsx=1, uhom<100 nsx=2. Выборка в таблице узлы  может быть пустой\n"
+"#номинальные напряжения[na=11]  #  Проверка номинального напряжения [6, 10, 35, 110, 220, 330, 500, 750]. \n"
+"#расчет  # расчет режима\n"
 ""))
         self.CB_ImpRg2.setText(_translate("MainCor", "Импорт из файлa (.rg2)"))
         self.CB_N.setText(_translate("MainCor", "выполнить"))
@@ -1829,4 +1840,4 @@ class Ui_MainCor(object):
         self.print_tab_log_vals.setText(_translate("MainCor", "P,Pmax"))
         self.CB_print_parametr.setText(_translate("MainCor", "вывод заданных параметров"))
         self.TA_parametr_vibor.setPlainText(_translate("MainCor", "v=15105,15113,0|15038,15037,4/r|x|b; n=15198/pg|qg"))
-        self.CB_print_balance_Q.setText(_translate("MainCor", "сформировать таблицу баланс реактивной мощности"))
+        self.CB_print_balance_Q.setText(_translate("MainCor", "таблица баланс реактивной мощности, выборка:"))

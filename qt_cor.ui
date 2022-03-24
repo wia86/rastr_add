@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>660</width>
+    <width>867</width>
     <height>737</height>
    </rect>
   </property>
@@ -74,8 +74,8 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>0</y>
-         <width>667</width>
+         <y>-667</y>
+         <width>848</width>
          <height>1360</height>
         </rect>
        </property>
@@ -605,6 +605,17 @@
           </item>
           <item>
            <widget class="QPlainTextEdit" name="TE_cor_b">
+            <property name="font">
+             <font>
+              <pointsize>9</pointsize>
+              <underline>false</underline>
+              <strikeout>false</strikeout>
+              <kerning>true</kerning>
+             </font>
+            </property>
+            <property name="cursor" stdset="0">
+             <cursorShape>IBeamCursor</cursorShape>
+            </property>
             <property name="plainText">
              <string># Задание аналогично &quot;строковой форме&quot; excel: в квадратных скобках параметры в формате [Выборка | Значение]
 # В фигурных скобках указывается условие выполнения в формате {years = 2026| season=лет| max_min=min| add_name=0°C}
@@ -3837,6 +3848,11 @@
           </item>
           <item>
            <widget class="QPlainTextEdit" name="TE_cor_e">
+            <property name="font">
+             <font>
+              <pointsize>9</pointsize>
+             </font>
+            </property>
             <property name="plainText">
              <string/>
             </property>
@@ -3912,17 +3928,20 @@
               <string>сечения: pmax &gt; psech</string>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>
            <item row="1" column="0">
             <widget class="QCheckBox" name="CB_U">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
              <property name="text">
               <string>узлы: Uном, Umin, Uнорм </string>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -3932,17 +3951,17 @@
               <string>район: pop_zad~pop</string>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>
            <item row="2" column="0">
             <widget class="QCheckBox" name="CB_I">
              <property name="text">
-              <string>ветви: ДТН, n_it (наличие)</string>
+              <string>ветви: ДТН, n_it, n_it_av (наличие)</string>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -3952,7 +3971,7 @@
               <string>территории: pop_zad~pop</string>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -3962,7 +3981,7 @@
               <string>генераторы: Pmin &lt; P &lt; Pmax, NumPQ (наличие)</string>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -3972,7 +3991,7 @@
               <string>объединения: pop_zad~pp</string>
              </property>
              <property name="checked">
-              <bool>true</bool>
+              <bool>false</bool>
              </property>
             </widget>
            </item>
@@ -4302,7 +4321,7 @@
              <item>
               <widget class="QCheckBox" name="CB_print_balance_Q">
                <property name="text">
-                <string>сформировать таблицу баланс реактивной мощности</string>
+                <string>таблица баланс реактивной мощности, выборка:</string>
                </property>
               </widget>
              </item>

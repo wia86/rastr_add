@@ -8,6 +8,8 @@ from Rastr_Method import RastrMethod
 from openpyxl import Workbook, load_workbook
 from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils import get_column_letter
+from openpyxl.comments import Comment
+from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
 # import pandas as pd
 from typing import Union  # Any
 import sys
@@ -180,8 +182,6 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
             except LookupError:
                 logging.error('файл settings.ini не читается')
 
-
-
     def save_ini_form_folder(self):
         """
         Сохранить в ini папку корректировки.
@@ -205,6 +205,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
         elif type_choice == 'folder':
             name = self.choice_folder(directory=self.T_IzFolder.toPlainText())
         if name:
+            name = name.replace('/', '\\')
             if insert.__class__.__name__ == 'QPlainTextEdit':
                 insert.setPlainText(name)
             elif insert.__class__.__name__ == 'QLineEdit':
@@ -393,11 +394,23 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
 
     def gui_start(self):
         """
-        Добавить ImportFromModel и запуск start_cor
+        Добавить ImportFromModel и запуск
         """
         self.save_ini_form_folder()
         self.fill_task_ui()
-        # Импорт параметров режима
+        # Убрать 'file:///'
+        for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
+            self.task_ui[str_name].lstrip('file:///')
+        """Запуск корректировки моделей"""
+        global cm
+        cm = CorModel(self.task_ui)
+        self.gui_import()
+        cm.run_cor()
+
+    def gui_import(self):
+        """
+        Импорт параметров режима.
+        """
         if self.CB_ImpRg2.isChecked():
             if self.task_ui['CB_ImpRg2']:
                 for tables in self.task_ui['Imp_add']:
@@ -412,10 +425,6 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
                                               sel=self.task_ui['Imp_add'][tables]['sel'],
                                               calc=self.task_ui['Imp_add'][tables]['calc'])
                         ImportFromModel.ui_import_model.append(ifm)
-        # Убрать 'file:///'
-        for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
-            self.task_ui[str_name].lstrip('file:///')
-        start_cor(self.task_ui)
 
     def fill_task_ui(self):
         """
@@ -628,8 +637,7 @@ class CorModel(GeneralSettings):
         """Запуск корректировки моделей"""
         # определяем корректировать файл или файлы в папке по анализу "KIzFolder"
         if 'KIzFolder' not in self.task:
-            logging.error('В задании отсутствует папка для корректировки')
-            return False
+            raise ValueError('В задании отсутствует папка для корректировки: KIzFolder')
 
         if os.path.isdir(self.task["KIzFolder"]):
             self.task["folder_file"] = 'folder'  # если корр папка
@@ -773,6 +781,7 @@ class CorModel(GeneralSettings):
                 if not type(self.pxl) == PrintXL:
                     self.pxl = PrintXL(self.task)
                 self.pxl.add_val(rm)
+
 
 class RastrModel(RastrMethod):
     """
@@ -965,14 +974,13 @@ class RastrModel(RastrMethod):
         self.rastr.Save(full_name_new, self.pattern)
         logging.info("Файл сохранен: " + full_name_new)
 
-    def control_rg2(self, dict_task):
+    def control_rg2(self, dict_task: dict):
         """  контроль  dict_task = {'node': True, 'vetv': True, 'Gen': True, 'section': True,
              'area': True, 'area2': True, 'darea': True, 'sel_node': "na>0"}  """
         if not self.rgm("control_rg2"):
             return False
 
         node = self.rastr.tables("node")
-        branch = self.rastr.tables("vetv")
         generator = self.rastr.tables("Generator")
         chart_pq = self.rastr.tables("graphik2")
         graph_it = self.rastr.tables("graphikIT")
@@ -980,55 +988,51 @@ class RastrModel(RastrMethod):
         # Напряжения
         if dict_task["node"]:
             logging.info("\tКонтроль напряжений.")
-            self.voltage_nominal(choice=dict_task["sel_node"])
+            self.voltage_nominal(choice=(dict_task["sel_node"] + '&uhom>30'))
             self.voltage_normal(choice=dict_task["sel_node"])
             self.voltage_deviation(choice=dict_task["sel_node"])
 
         # Токи
         if dict_task['vetv']:
-            self.rastr.CalcIdop(self.degree_int, 0.0, "")
+            # Контроль токовой загрузки
             logging.info("\tКонтроль токовой загрузки, расчетная температура: " + self.degree_str)
+            branch = self.rastr.tables("vetv")
+            self.rastr.CalcIdop(self.degree_int, 0.0, "")
             if dict_task["sel_node"] != "":
                 if node.cols.Find("sel1") < 0:
-                    node.Cols.Add("sel1", 3)  # добавить столбцы
+                    node.Cols.Add("sel1", 3)  # добавить столбцы sel1
                 node.cols.item("sel1").calc(0)
                 node.setsel(dict_task["sel_node"])
                 node.cols.item("sel1").calc(1)
                 sel_vetv = "i_zag>=0.1&(ip.sel1|iq.sel1)"
-                sel_vetv2 = "(ip.sel1|iq.sel1)&(n_it_av>0|n_it>0)"
+                presence_n_it = {'n_it': "(ip.sel1|iq.sel1)&n_it>0",
+                                 'n_it_av': "(ip.sel1|iq.sel1)&n_it_av>0"}
             else:
                 sel_vetv = "i_zag>=0.1"
-                sel_vetv2 = "(n_it_av>0|n_it>0)"
+                presence_n_it = {'n_it': "n_it>0",
+                                 'n_it_av': "n_it_av>0"}
 
             branch.setsel(sel_vetv)
-            if branch.count > 0:  # есть превышений
+            if branch.count:  # есть превышений
                 j = branch.FindNextSel(-1)
                 while j > -1:
-                    name = branch.cols.item('name').ZS(j)
-                    i_zag = branch.cols.item('i_zag').ZS(j)
-                    logging.info(f"\t\tВНИМАНИЕ ТОКИ! vetv:{branch.SelString(j)}, {name} - {i_zag}%")
+                    logging.info(f"\t\tВНИМАНИЕ ТОКИ! vetv:{branch.SelString(j)}, "
+                                 f"{branch.cols.item('name').ZS(j)} - {branch.cols.item('i_zag').ZS(j)} %")
                     j = branch.FindNextSel(j)
 
-            branch.setsel(sel_vetv2)  # проверка наличия n_it,n_it_av в таблице График_Iдоп_от_Т(graphikIT)
-            if branch.count > 0:
-                j = branch.FindNextSel(-1)
-                while j > -1:
-                    if branch.cols.item("n_it").Z(j) > 0:
-                        graph_it.setsel("Num=" + branch.cols.item("n_it").ZS(j))
-                        if graph_it.count == 0:
-                            name = branch.cols.item('name').ZS(j)
-                            n_it = branch.cols.item('n_it').ZS(j)
-                            logging.info(f"\t\tВНИМАНИЕ graphikIT! vetv: {branch.SelString(j)}, {name}, "
-                                         + f"n_it={n_it} не найден в таблице График_Iдоп_от_Т")
-
-                    if branch.cols.item("n_it_av").Z(j) > 0:
-                        graph_it.setsel("Num=" + branch.cols.item("n_it_av").ZS(j))
-                        if graph_it.count == 0:
-                            name = branch.cols.item('name').ZS(j)
-                            n_it_av = branch.cols.item('n_it_av').ZS(j)
-                            logging.info(f"\t\tВНИМАНИЕ graphikIT! vetv: {branch.SelString(j)}, {name},"
-                                         + f" n_it_av={n_it_av} не найден в таблице График_Iдоп_от_Т")
-                    j = branch.FindNextSel(j)
+            # проверка наличия n_it,n_it_av в таблице График_Iдоп_от_Т(graphikIT)
+            all_graph_it = set(graph_it.writesafearray("Num", "000"))
+            for field, sel_vetv_n_it in presence_n_it.items():
+                branch.setsel(sel_vetv_n_it)
+                if branch.count:
+                    j = branch.FindNextSel(-1)
+                    while j > -1:
+                        n_it = branch.cols.item("n_it").Z(j)
+                        if (n_it,) not in all_graph_it:
+                            logging.error(f"\t\tВНИМАНИЕ graphikIT! vetv: {branch.SelString(j)!r}, "
+                                          f"{branch.cols.item('name').ZS(j)!r}, "
+                                          f"{field}={n_it} не найден в таблице График_Iдоп_от_Т")
+                        j = branch.FindNextSel(j)
         #  ГЕНЕРАТОРЫ
         if dict_task['Gen']:
             logging.info("\tКонтроль генераторов")
@@ -1059,13 +1063,13 @@ class RastrModel(RastrMethod):
                 if NumPQ > 0:
                     chart_pq.setsel("Num=" + str(NumPQ))
                     if chart_pq.count == 0:
-                        logging.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, Num={Num},ny={Node}, "
-                                     + f"NumPQ={str(NumPQ)} не найден в таблице PQ-диаграммы (graphik2)")
+                        logging.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},ny={Node}, "
+                                     f"NumPQ={NumPQ} не найден в таблице PQ-диаграммы (graphik2)")
                 j = generator.FindNextSel(j)
         # сечения
-        if self.rastr.tables.Find("sechen") > 0:
-            section = self.rastr.tables("sechen")
-            if dict_task['section']:
+        if dict_task['section']:
+            if self.rastr.tables.Find("sechen") >= 0:
+                section = self.rastr.tables("sechen")
                 if section.size == 0:
                     logging.error("\tCечения отсутствуют")
                 else:
@@ -1078,11 +1082,11 @@ class RastrModel(RastrMethod):
                         pmax = section.cols.item("pmax").Z(j)
                         psech = section.cols.item("psech").Z(j)
                         if psech > pmax + 0.01:
-                            logging.info(f"\t\tВНИМАНИЕ! сечение: {name}({ns}), P: {str(round(psech))}, "
-                                         + f"pmax: {str(pmax)}, отклонение:{str(round(pmax - psech))}")
+                            logging.info(f"\t\tВНИМАНИЕ! сечение: {name} {ns!r}, P = {round(psech)}, "
+                                         f"pmax = {pmax}, отклонение: {round(pmax - psech)}")
                         j = section.FindNextSel(j)
-        else:
-            logging.error("\tФайл сечений не загружен")
+            else:
+                raise ValueError("Файл сечений не загружен")
 
         if dict_task['area']:
             self.control_pop('area')
@@ -1090,7 +1094,6 @@ class RastrModel(RastrMethod):
             self.control_pop('area2')
         if dict_task['darea']:
             self.control_pop('darea')
-
         return True
 
     def control_pop(self, zone: str):
@@ -1151,23 +1154,6 @@ class RastrModel(RastrMethod):
                 function_parameters = match[1].split('|')
             function_parameters += ['', '']
             self.txt_task_cor(name=name_fun, sel=function_parameters[0], value=function_parameters[1])
-
-
-def str_yeas_in_list(id_str: str):
-    """Функция из строки "2021,2023-2025" делает [2021,2023,2024,2025]"""
-    years_list = id_str.replace(" ", "").split(',')
-    if years_list != "":
-        years_list_new = np.array([], int)
-        for it in years_list:
-            if "-" in it:
-                i_years = it.split('-')
-                years_list_new = np.hstack(
-                    [years_list_new, np.array(np.arange(int(i_years[0]), int(i_years[1]) + 1), int)])
-            else:
-                years_list_new = np.hstack([years_list_new, int(it)])
-        return np.sort(years_list_new)
-    else:
-        return []
 
 
 class CorSheet:
@@ -1278,9 +1264,10 @@ class CorSheet:
                                             info=f"\tcor_xl, условие: {name_file}, ") or not rm.kod_name_rg2:
                                 duct_add = True
                 if duct_add:
-                    dict_param_column[column_name_file] = self.xls.cell(2, column_name_file).value
+                    _ = self.xls.cell(2, column_name_file).value
+                    dict_param_column[column_name_file] = _.replace(' ', '')
 
-        if len(dict_param_column) == 0:
+        if not dict_param_column:
             logging.info(f"\t {rm.name_base} НЕ НАЙДЕН на листе {self.name} книги excel")
         else:
             logging.info(f'\t\tРасчетной модели соответствуют столбцы: параметры {dict_param_column}')
@@ -1369,8 +1356,7 @@ class ImportFromModel:
         """
         self.import_rm = None
         if not os.path.exists(import_file_name):
-            logging.error("Ошибка в задании, не найден файл: " + import_file_name)
-            self.import_file_name = ''
+            raise ValueError("Ошибка в задании, не найден файл: " + import_file_name)
         else:
             self.folder_temp = os.path.dirname(import_file_name) + '\\temp'
             if not os.path.exists(self.folder_temp):
@@ -1394,8 +1380,7 @@ class ImportFromModel:
                 if calc in self.calc_str:
                     self.calc = self.calc_str[calc]
                 else:
-                    logging.error("Ошибка в задании, не распознано задание calc ImportFromModel: " + str(calc))
-                    self.import_file_name = ''
+                    raise ValueError("Ошибка в задании, не распознано задание calc ImportFromModel: " + str(calc))
             self.file_csv = []
             ImportFromModel.number += 1
             number = str(ImportFromModel.number)
@@ -1464,8 +1449,54 @@ class PrintXL:
             self.task['print_parameters']["sheet"] = self.book.create_sheet('parameters')
 
         if self.task['print_balance_q']['add']:
-            self.task['print_balance_q']["sheet"] = self.book.create_sheet("balance_Q")
-            self.balance_q_x0 = 5
+            self.sheet_q = self.book.create_sheet("balance_Q")
+            self.row_q = {}
+            # (имя ключа, название в ячейке XL, комментарий ячейки)
+            name_row = (
+                ('row_name',
+                 'Наименование', ''),
+                ('row_qn',
+                 'Реактивная мощность нагрузки', 'Calc(sum,area,qn,vibor)'),
+                ('row_dq_sum',
+                 'Нагрузочные потери', ''),
+                ('row_dq_line',
+                 'в т.ч. потери в ЛЭП', 'потери в ЛЭП: \nCalc(sum,area,dq_line,vibor)'),
+                ('row_dq_tran',
+                 'потери в трансформаторах', 'Calc(sum,area,dq_tran,vibor)'),
+                ('row_shq_tran',
+                 'потери Х.Х. в трансформаторах', 'Calc(sum,area,shq_tran,vibor)'),
+                ('row_skrm_potr',
+                 'Потребление реактивной мощности СКРМ (ШР, УШР, СК, СТК)',
+                 'Calc(sum,node,qsh,qsh>0 & vibor) - Calc(sum,node,qg,qg<0&pg<0.1&pg>-0.1 & vibor)'),
+                ('row_sum_port_Q',
+                 'Суммарное потребление реактивной мощности', ''),
+                ('row_qg',
+                 'Генерация реактивной мощности электростанциями', 'Calc(sum,node,qg,(pg>0.1|pg<-0.1) & vibor)'),
+                ('row_skrm_gen',
+                 'Генерация реактивной мощности СКРМ (БСК, СК, СТК)', ''),
+                ('row_qg_min',
+                 'Минимальная генерация реактивной мощности электростанциями', 'Calc(sum,node,qmin,pg>0.1& vibor)'),
+                ('row_qg_max',
+                 'Максимальная генерация реактивной мощности электростанциями', 'Calc(sum,node,qmax,pg>0.1& vibor)'),
+                ('row_shq_line',
+                 'Зарядная мощность ЛЭП', 'Calc(sum,area,shq_line, vibor)'),
+                ('row_sum_QG',
+                 'Суммарная генерация реактивной мощности', ''),
+                ('row_Q_itog',
+                 'Внешний переток реактивной мощности (избыток/дефицит +/-)', ''),
+                ('row_Q_itog_gmin',
+                 'Внешний переток реактивной мощности при минимальной генерации '
+                 'реактивной мощности электростанциями и КУ(избыток/дефицит +/-)', ''),
+                ('row_Q_itog_gmax',
+                 'Внешний переток реактивной мощности при максимальной генерации '
+                 'реактивной мощности электростанциями и КУ(избыток/дефицит +/-)',
+                 ''),
+            )
+            for n, row_info in enumerate(name_row, 2):
+                self.row_q[row_info[0]] = n
+                self.sheet_q.cell(n, 1, row_info[1])
+                if row_info[2]:
+                    self.sheet_q.cell(n, 1).comment = Comment(row_info[2], '')
 
     def add_val(self, rm: RastrModel):
 
@@ -1580,7 +1611,58 @@ class PrintXL:
         sheet.append(val_list)
 
     def add_val_balance_q(self, rm):
-        pass
+        column = self.sheet_q.max_column + 1
+        choice = self.task["print_balance_q"]["sel"]
+        self.sheet_q.cell(2, column, rm.name_base)
+        self.sheet_q.cell(2, column).alignment=Alignment(text_rotation=90)
+        area = rm.rastr.Tables("area")
+        area.SetSel(self.task["print_balance_q"]["sel"])
+        ndx = area.FindNextSel(-1)
+
+        # Нагрузка Q
+        address_qn = self.sheet_q.cell(self.row_q['row_qn'], column,
+                                       rm.rastr.Calc("sum", "area", "qn", choice)).coordinate
+        # Потери Q в ЛЭП
+        address_dq_line = self.sheet_q.cell(self.row_q['row_dq_line'], column,
+                                            rm.rastr.Calc("sum", "area", "dq_line", choice)).coordinate
+        # Потери Q в Трансформаторах
+        address_dq_tran = self.sheet_q.cell(self.row_q['row_dq_tran'], column,
+                                            rm.rastr.Calc("sum", "area", "dq_tran", choice)).coordinate
+        # Потери Q_ХХ в Трансформаторах
+        address_shq_tran = self.sheet_q.cell(self.row_q['row_shq_tran'], column,
+                                             rm.rastr.Calc("sum", "area", "shq_tran", choice)).coordinate
+        # ШР УШР без бСК
+        address_SHR = self.sheet_q.cell(self.row_q['row_skrm_potr'], column,
+                                        rm.rastr.Calc("sum", "node", "qsh", f"qsh>0&{choice}") - rm.rastr.Calc(
+                                            "sum", "node", "qg", f"qg<0&pg<0.1&pg>-0.1&{choice}")).coordinate
+        # Генерация Q генераторов
+        address_qg = self.sheet_q.cell(self.row_q['row_qg'], column,
+                                       rm.rastr.Calc("sum", "node", "qg", f"(pg>0.1|pg<-0.1)&{choice}")).coordinate
+        # Генерация БСК шунтом и СТК СК
+        address_skrm_gen = self.sheet_q.cell(self.row_q['row_skrm_gen'], column,
+                                             -rm.rastr.Calc("sum", "node", "qsh", f"qsh<0&{choice}") + rm.rastr.Calc(
+                                                 "sum", "node", "qg", f"qg>0&pg<0.1&pg>-0.1&{choice}")).coordinate
+        # Минимальная генерация реактивной мощности в узлах выборки
+        address_qg_min = self.sheet_q.cell(self.row_q['row_qg_min'], column,
+                                           rm.rastr.Calc("sum", "node", "qmin", f"pg>0.1&{choice}")).coordinate
+        # Максимальная генерация реактивной мощности в узлах выборки
+        address_qg_max = self.sheet_q.cell(self.row_q['row_qg_max'], column,
+                                           rm.rastr.Calc("sum", "node", "qmax", f"pg>0.1&{choice}")).coordinate
+        # Генерация Q в ЛЭП
+        address_shq_line = self.sheet_q.cell(self.row_q['row_shq_line'], column,
+                                             - rm.rastr.Calc("sum", "area", "shq_line", choice)).coordinate
+        address_losses = self.sheet_q.cell(self.row_q['row_dq_sum'],column,
+                                           f"={address_dq_line}+{address_dq_tran}+{address_shq_tran}").coordinate
+        address_nagruz = self.sheet_q.cell(self.row_q['row_sum_port_Q'], column,
+                                           f"={address_qn}+{address_losses}+{address_SHR}").coordinate
+        address_sum_gen = self.sheet_q.cell(self.row_q['row_sum_QG'], column,
+                                            f"={address_qg}+{address_shq_line}+{address_skrm_gen}").coordinate
+        self.sheet_q.cell(self.row_q['row_Q_itog'], column,
+                          f"=-{address_nagruz}+{address_sum_gen}")
+        self.sheet_q.cell(self.row_q['row_Q_itog_gmin'],column,
+                          f"=-{address_nagruz}+{address_qg_min}+{address_shq_line}")
+        self.sheet_q.cell(self.row_q['row_Q_itog_gmax'],column,
+                          f"=-{address_nagruz}+{address_qg_max}+{address_shq_line}")
 
     def finish(self):
         """
@@ -1590,7 +1672,7 @@ class PrintXL:
             sheet = self.book[sheet_name]
             if sheet.max_row == 1:
                 del self.book[sheet_name]  # удалить пустой лист
-            else:
+            elif 'log' in sheet_name:
                 # Создать объект таблица.
                 tab = Table(displayName=sheet_name,
                             ref='A1:' + get_column_letter(sheet.max_column) + str(sheet.max_row))
@@ -1611,6 +1693,7 @@ class PrintXL:
 
         if self.task['print_balance_q']['add']:
             self.configure_balance_q()
+
 
     def create_pivot(self):
         # Открыть win32com.client для создания сводных.
@@ -1724,11 +1807,21 @@ class PrintXL:
         pt.TableRange1.Borders(12).LineStyle = 1  #
 
 
-def start_cor(cor_task_current: dict):
-    """Запуск корректировки моделей"""
-    global cm
-    cm = CorModel(cor_task_current)
-    cm.run_cor()
+def str_yeas_in_list(id_str: str):
+    """Функция из строки "2021,2023-2025" делает [2021,2023,2024,2025]"""
+    years_list = id_str.replace(" ", "").split(',')
+    if years_list != "":
+        years_list_new = np.array([], int)
+        for it in years_list:
+            if "-" in it:
+                i_years = it.split('-')
+                years_list_new = np.hstack(
+                    [years_list_new, np.array(np.arange(int(i_years[0]), int(i_years[1]) + 1), int)])
+            else:
+                years_list_new = np.hstack([years_list_new, int(it)])
+        return np.sort(years_list_new)
+    else:
+        return []
 
 
 def start_calc():
@@ -1760,10 +1853,21 @@ def block_e(rm):
     rm.rgm("block_e")
 
 
+def my_except_hook(func):
+    def new_func(*args, **kwargs):
+        logging.error("Ошибка", f"Критическая ошибка: {args[0]}, {args[1]}")
+        mb.showerror("Ошибка", f"Критическая ошибка: {args[0]}, {args[1]}")
+        # https://python-scripts.com/python-traceback
+        func(*args, **kwargs)
+
+    return new_func
+
+
 if __name__ == '__main__':
     VISUAL_CHOICE = 1  # 1 задание через QT, 0 - в коде
     CALC_SET = 1  # 1 -корректировать модели CorModel, 2-рассчитать модели
     cm = None  # глобальный объект класса CorModel
+    sys.excepthook = my_except_hook(sys.excepthook)
     # https://docs.python.org/3/library/logging.html
     # 'w' - перезаписать лог, иначе будет добавляться
     logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
@@ -1779,7 +1883,7 @@ if __name__ == '__main__':
                 "KInFolder": r"I:\rastr_add\test\test_result",
                 # ФИЛЬТР ФАЙЛОВ: False все файлы, True в соответствии с фильтром---------------------------------------
                 "KFilter_file": False,
-                "max_file_count": 1,  # максимальное количество расчетных файлов
+                "max_file_count": 999,  # максимальное количество расчетных файлов
                 # нр("2019,2021-2027","зим","мин","1°C;МДП") (год, зим, макс, доп имя разделитель , или ;)
                 "cor_criterion_start": {"years": "",
                                         "season": "",
@@ -1789,7 +1893,7 @@ if __name__ == '__main__':
                 "cor_beginning_qt": {'add': False,
                                      'txt': ''},
                 # импорт по excel------------------------------------------------------
-                "import_val_XL": True,
+                "import_val_XL": False,
                 "excel_cor_file": r"I:\rastr_add\test\пример задания.xlsx",
                 "excel_cor_sheet": "*",  # листы [импорт из моделей][XL->RastrWin], если'*', то все листы по порядку
                 # Корректировка в конце
@@ -1799,13 +1903,13 @@ if __name__ == '__main__':
                 "cor_name": False,
                 "cor_name_task": 'node:name,dname vetv:dname Generator:Name',
                 # ----------------------------------------------------------------------------------------------------
-                # "import_export_xl": False,  # False нет, True  import или export из xl в растр
+                # TODO "import_export_xl": False,  # False нет, True  import или export из xl в растр
                 # "table": "Generator",  # нр "oborudovanie"
                 # "export_xl": True,  # False нет, True - export из xl в растр
                 # "XL_table": [r"C:\Users\User\Desktop\1.xlsx", "Generator"],  # полный адрес и имя листа
                 # "tip_export_xl": 1,  # 1 загрузить, 0 присоединить 2 обновить
                 # ----------------------------------------------------------------------------------------------------
-                # что бы узел с скрм  вкл и отк этот  сопротивление единственной ветви r+x<0.2 и pn:qn:0
+                # TODO что бы узел с скрм  вкл и отк этот  сопротивление единственной ветви r+x<0.2 и pn:qn:0
                 # "AutoShuntForm": False,  # False нет, True сущ bsh записать в автошунт
                 # "AutoShuntFormSel": "(na>0|na<13)",  # строка выборка узлов
                 # "AutoShuntIzm": False,  # False нет, True вкл откл шунтов  autobsh
@@ -1848,14 +1952,16 @@ if __name__ == '__main__':
 
                 # вывод заданных параметров в следующем формате "v=15105,15113,0|15038,15037,4/r|x|b; n=15198/pg|qg"
                 # таблица: n-node,v-vetv,g-Generator,na-area,npa-area2,no-darea,nga-ngroup,ns-sechen
-                "print_parameters": {'add': True,
+                "print_parameters": {'add': False,
                                      "sel": "v=15105,15113,0|15038,15037,4/r|x|b; n=151980/pg|qg"},
                 # TODO БАЛАНС PQ_kor !!! 0 тоже район, даже если в районах не задан "na>13&na<201"
-                "print_balance_q": {'add': False, "sel": "na=3012"},
+                "print_balance_q": {'add': True, "sel": "na=11"},
                 # ----------------------------------------------------------------------------------------------------
                 "block_import": False,  # начало
             }
-            start_cor(cor_task)  # cor
+            """Запуск корректировки моделей"""
+            cm = CorModel(cor_task)
+            cm.run_cor()
         if CALC_SET == 2:
             start_calc()  # calc
     else:
