@@ -10,12 +10,13 @@ from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils import get_column_letter
 from openpyxl.comments import Comment
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
+from openpyxl.styles.numbers import BUILTIN_FORMATS
 # import pandas as pd
 from typing import Union  # Any
 import sys
 import shutil
 from PyQt5 import QtWidgets
-from datetime import datetime
+from datetime import datetime, timedelta
 from time import time
 import os
 import re
@@ -26,13 +27,18 @@ import webbrowser
 from tkinter import messagebox as mb
 import numpy as np
 import yaml
-from qt_cor import Ui_MainCor  # импорт ui: pyuic5 qt_cor.ui -o qt_cor.py
-from qt_set import Ui_Settings  # импорт ui: pyuic5 qt_set.ui -o qt_set.py
+from qt_choice import Ui_choice  # pyuic5 qt_choice.ui -o qt_choice.py
+from qt_set import Ui_Settings  # pyuic5 qt_set.ui -o qt_set.py
+from qt_cor import Ui_cor  # pyuic5 qt_cor.ui -o qt_cor.py
+from qt_calc_ur import Ui_calc_ur  # pyuic5 qt_calc_ur.ui -o qt_calc_ur.py
+from qt_calc_ur_set import Ui_calc_ur_set  # pyuic5 qt_calc_ur_set.ui -o qt_calc_ur_set.py
 
 
 class Window:
+    """ Класс с общими методами для QT. """
+
     @staticmethod
-    def check_status(set_checkbox_element):
+    def check_status(set_checkbox_element: tuple):
         """
         По состоянию CheckBox изменить состояние видимости соответствующего элемента.
         :param set_checkbox_element: картеж картежей (checkbox, element)
@@ -43,14 +49,22 @@ class Window:
             else:
                 element.hide()
 
-    def choose_file(self, directory: str, filter_: str = ''):
+    @staticmethod
+    def hide_show(hide_window: tuple, show_window: tuple):
+        """ Изменить состояние видимости окон."""
+        for element in hide_window:
+            element.hide()
+        for element in show_window:
+            element.show()
+
+    def choice_file(self, directory: str, filter_: str = ''):
         """
         Выбор файла.
         """
         fileName_choose, _ = QtWidgets.QFileDialog.getOpenFileName(self, directory=directory,
                                                                    filter=filter_)  # "All Files(*);Text Files(*.txt)"
         if fileName_choose:
-            logging.info(f"Выбран файл: {fileName_choose}, {_}")
+            logging.info(f"Выбран файл: {fileName_choose}")
             return fileName_choose
 
     def choice_folder(self, directory: str):
@@ -71,7 +85,47 @@ class Window:
             return fileName_choose
 
 
-class SetWindow(QtWidgets.QMainWindow, Ui_Settings):
+class MainChoiceWindow(QtWidgets.QMainWindow, Ui_choice, Window):
+    def __init__(self):
+        super(MainChoiceWindow, self).__init__()
+        self.setupUi(self)
+        self.settings.clicked.connect(lambda: gui_set.show())
+        self.correction.clicked.connect(lambda: self.hide_show((gui_choice_window,), (gui_edit,)))
+        self.calc_ur.clicked.connect(lambda: self.hide_show((gui_choice_window,), (gui_calc_ur,)))
+
+
+class CalcURWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
+    def __init__(self):
+        super(CalcURWindow, self).__init__()
+        self.setupUi(self)
+        self.b_set.clicked.connect(lambda: gui_calc_ur_set.show())
+        self.b_main_choice.clicked.connect(lambda: self.hide_show((gui_calc_ur,), (gui_choice_window,)))
+
+        # Скрыть параметры при старте.
+        self.check_status_visibility = (
+            (self.cb_filter, self.gb_filter),
+            (self.cb_cor_txt, self.te_cor_txt),
+            (self.cb_import_model, self.gb_import_model),
+            (self.cb_combinations, self.gb_combinations),
+            (self.cb_excel, self.gb_excel),
+            (self.cb_results_tab, self.gb_results_tab),
+            (self.cb_tab_KO, self.gb_tab_KO),
+            (self.cb_results_pic, self.gb_results_pic),
+        )
+        self.check_status(self.check_status_visibility)
+
+        # CB показать / скрыть параметры.
+        for CB, _ in self.check_status_visibility:
+            CB.clicked.connect(lambda: self.check_status(self.check_status_visibility))
+
+
+class CalcURSetWindow(QtWidgets.QMainWindow, Ui_calc_ur_set, Window):
+    def __init__(self):
+        super(CalcURSetWindow, self).__init__()
+        self.setupUi(self)
+
+
+class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
     def __init__(self):
         super(SetWindow, self).__init__()
         self.setupUi(self)
@@ -110,7 +164,7 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings):
             config.write(configfile)
 
 
-class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
+class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
     def __init__(self):
         super(EditWindow, self).__init__()  # *args, **kwargs
         self.setupUi(self)
@@ -123,8 +177,9 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
             (self.CB_A2, 'территории'),
             (self.CB_D, 'объединения'),
             (self.CB_PQ, 'PQ'),
-            (self.CB_IT, 'I(T)'),
-        )
+            (self.CB_IT, 'I(T)'),)
+
+        # Скрыть параметры при старте.
         self.check_status_visibility = (
             (self.CB_KFilter_file, self.GB_sel_file),
             (self.CB_cor_b, self.TE_cor_b),
@@ -143,10 +198,9 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
             (self.CB_printXL, self.GB_prinr_XL),
             (self.CB_print_tab_log, self.GB_sel_tabl),
             (self.CB_print_parametr, self.TA_parametr_vibor),
-            (self.CB_print_balance_Q, self.balance_Q_vibor),
-        )
-        # Скрыть параметры при старте.
+            (self.CB_print_balance_Q, self.balance_Q_vibor),)
         self.check_status(self.check_status_visibility)
+
         # CB показать / скрыть параметры.
         for CB, element in self.check_status_visibility:
             CB.clicked.connect(lambda: self.check_status(self.check_status_visibility))
@@ -158,6 +212,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
         self.task_save.clicked.connect(self.task_save_yaml)
         self.task_load.clicked.connect(self.task_load_yaml)
         self.choice_from_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_IzFolder))
+        self.choice_from_file.clicked.connect(lambda: self.choice(type_choice='file', insert=self.T_IzFolder))
         self.choice_in_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_InFolder))
         self.choice_XL.clicked.connect(lambda: self.choice(type_choice='file', insert=self.T_PQN_XL_File))
         self.choice_N.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_N))
@@ -170,7 +225,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
         self.choice_IT.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_IT))
 
         self.run_krg2.clicked.connect(lambda: self.gui_start())
-        self.SetBut.clicked.connect(lambda: ui_set.show())
+        self.b_main_choice.clicked.connect(lambda: self.hide_show((gui_edit,), (gui_choice_window,)))
         # Подсказки
         # self.CB_KFilter_file.setToolTip("Всплывающее окно")
         # Загрузить из .ini начальный путь для T_IzFolder
@@ -184,7 +239,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
 
     def save_ini_form_folder(self):
         """
-        Сохранить в ini папку корректировки.
+        Сохранить в .ini путь к папке с исходными моделями.
         """
         if os.path.exists('settings.ini'):
             config = configparser.ConfigParser()
@@ -201,7 +256,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
         """
         name = ''
         if type_choice == 'file':
-            name = self.choose_file(directory=self.T_IzFolder.toPlainText())
+            name = self.choice_file(directory=self.T_IzFolder.toPlainText())
         elif type_choice == 'folder':
             name = self.choice_folder(directory=self.T_IzFolder.toPlainText())
         if name:
@@ -229,7 +284,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
                 yaml.dump(data=self.task_ui, stream=f, default_flow_style=False, sort_keys=False)
 
     def task_load_yaml(self):
-        name_file_load = self.choose_file(directory=self.T_IzFolder.toPlainText(), filter_="YAML Files (*.yaml)")
+        name_file_load = self.choice_file(directory=self.T_IzFolder.toPlainText(), filter_="YAML Files (*.yaml)")
         if not name_file_load:
             return
         with open(name_file_load) as f:
@@ -298,97 +353,97 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
         self.CB_N.setChecked(dict_['add'])
         self.file_N.setText(dict_['import_file_name'])
         self.Filtr_god_N.setText(dict_["years"])
-        self.Filtr_sez_N.setEditText(dict_["season"])
-        self.Filtr_max_min_N.setEditText(dict_["max_min"])
+        self.Filtr_sez_N.setCurrentText(dict_["season"])
+        self.Filtr_max_min_N.setCurrentText(dict_["max_min"])
         self.Filtr_dop_name_N.setText(dict_["add_name"])
         self.tab_N.setText(dict_['tables'])
         self.param_N.setText(dict_['param'])
         self.sel_N.setText(dict_['sel'])
-        self.tip_N.setEditText(dict_['calc'])
+        self.tip_N.setCurrentText(dict_['calc'])
 
         dict_ = task_yaml['Imp_add']['vetv']
         self.CB_V.setChecked(dict_['add'])
         self.file_V.setText(dict_['import_file_name'])
         self.Filtr_god_V.setText(dict_["years"])
-        self.Filtr_sez_V.setEditText(dict_["season"])
-        self.Filtr_max_min_V.setEditText(dict_["max_min"])
+        self.Filtr_sez_V.setCurrentText(dict_["season"])
+        self.Filtr_max_min_V.setCurrentText(dict_["max_min"])
         self.Filtr_dop_name_V.setText(dict_["add_name"])
         self.tab_V.setText(dict_['tables'])
         self.param_V.setText(dict_['param'])
         self.sel_V.setText(dict_['sel'])
-        self.tip_V.setEditText(dict_['calc'])
+        self.tip_V.setCurrentText(dict_['calc'])
 
         dict_ = task_yaml['Imp_add']['gen']
         self.CB_G.setChecked(dict_['add'])
         self.file_G.setText(dict_['import_file_name'])
         self.Filtr_god_G.setText(dict_["years"])
-        self.Filtr_sez_G.setEditText(dict_["season"])
-        self.Filtr_max_min_G.setEditText(dict_["max_min"])
+        self.Filtr_sez_G.setCurrentText(dict_["season"])
+        self.Filtr_max_min_G.setCurrentText(dict_["max_min"])
         self.Filtr_dop_name_G.setText(dict_["add_name"])
         self.tab_G.setText(dict_['tables'])
         self.param_G.setText(dict_['param'])
         self.sel_G.setText(dict_['sel'])
-        self.tip_G.setEditText(dict_['calc'])
+        self.tip_G.setCurrentText(dict_['calc'])
 
         dict_ = task_yaml['Imp_add']['area']
         self.CB_A.setChecked(dict_['add'])
         self.file_A.setText(dict_['import_file_name'])
         self.Filtr_god_A.setText(dict_["years"])
-        self.Filtr_sez_A.setEditText(dict_["season"])
-        self.Filtr_max_min_A.setEditText(dict_["max_min"])
+        self.Filtr_sez_A.setCurrentText(dict_["season"])
+        self.Filtr_max_min_A.setCurrentText(dict_["max_min"])
         self.Filtr_dop_name_A.setText(dict_["add_name"])
         self.tab_A.setText(dict_['tables'])
         self.param_A.setText(dict_['param'])
         self.sel_A.setText(dict_['sel'])
-        self.tip_A.setEditText(dict_['calc'])
+        self.tip_A.setCurrentText(dict_['calc'])
 
         dict_ = task_yaml['Imp_add']['area2']
         self.CB_A2.setChecked(dict_['add'])
         self.file_A2.setText(dict_['import_file_name'])
         self.Filtr_god_A2.setText(dict_["years"])
-        self.Filtr_sez_A2.setEditText(dict_["season"])
-        self.Filtr_max_min_A2.setEditText(dict_["max_min"])
+        self.Filtr_sez_A2.setCurrentText(dict_["season"])
+        self.Filtr_max_min_A2.setCurrentText(dict_["max_min"])
         self.Filtr_dop_name_A2.setText(dict_["add_name"])
         self.tab_A2.setText(dict_['tables'])
         self.param_A2.setText(dict_['param'])
         self.sel_A2.setText(dict_['sel'])
-        self.tip_A2.setEditText(dict_['calc'])
+        self.tip_A2.setCurrentText(dict_['calc'])
 
         dict_ = task_yaml['Imp_add']['darea']
         self.CB_D.setChecked(dict_['add'])
         self.file_D.setText(dict_['import_file_name'])
         self.Filtr_god_D.setText(dict_["years"])
-        self.Filtr_sez_D.setEditText(dict_["season"])
-        self.Filtr_max_min_D.setEditText(dict_["max_min"])
+        self.Filtr_sez_D.setCurrentText(dict_["season"])
+        self.Filtr_max_min_D.setCurrentText(dict_["max_min"])
         self.Filtr_dop_name_D.setText(dict_["add_name"])
         self.tab_D.setText(dict_['tables'])
         self.param_D.setText(dict_['param'])
         self.sel_D.setText(dict_['sel'])
-        self.tip_D.setEditText(dict_['calc'])
+        self.tip_D.setCurrentText(dict_['calc'])
 
         dict_ = task_yaml['Imp_add']['PQ']
         self.CB_PQ.setChecked(dict_['add'])
         self.file_PQ.setText(dict_['import_file_name'])
         self.Filtr_god_PQ.setText(dict_["years"])
-        self.Filtr_sez_PQ.setEditText(dict_["season"])
-        self.Filtr_max_min_PQ.setEditText(dict_["max_min"])
+        self.Filtr_sez_PQ.setCurrentText(dict_["season"])
+        self.Filtr_max_min_PQ.setCurrentText(dict_["max_min"])
         self.Filtr_dop_name_PQ.setText(dict_["add_name"])
         self.tab_PQ.setText(dict_['tables'])
         self.param_PQ.setText(dict_['param'])
         self.sel_PQ.setText(dict_['sel'])
-        self.tip_PQ.setEditText(dict_['calc'])
+        self.tip_PQ.setCurrentText(dict_['calc'])
 
         dict_ = task_yaml['Imp_add']['IT']
         self.CB_IT.setChecked(dict_['add'])
         self.file_IT.setText(dict_['import_file_name'])
         self.Filtr_god_IT.setText(dict_["years"])
-        self.Filtr_sez_IT.setEditText(dict_["season"])
-        self.Filtr_max_min_IT.setEditText(dict_["max_min"])
+        self.Filtr_sez_IT.setCurrentText(dict_["season"])
+        self.Filtr_max_min_IT.setCurrentText(dict_["max_min"])
         self.Filtr_dop_name_IT.setText(dict_["add_name"])
         self.tab_IT.setText(dict_['tables'])
         self.param_IT.setText(dict_['param'])
         self.sel_IT.setText(dict_['sel'])
-        self.tip_IT.setEditText(dict_['calc'])
+        self.tip_IT.setCurrentText(dict_['calc'])
 
         self.check_status(self.check_status_visibility)
 
@@ -409,7 +464,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
 
     def gui_import(self):
         """
-        Импорт параметров режима.
+        Добавление в ImportFromModel данных с формы.
         """
         if self.CB_ImpRg2.isChecked():
             if self.task_ui['CB_ImpRg2']:
@@ -583,17 +638,15 @@ class EditWindow(QtWidgets.QMainWindow, Ui_MainCor, Window):
 
 class GeneralSettings(ABC):
     """
-    Для хранения общих настроек
+    Для хранения общих настроек.
     """
     # коллекция настроек, которые хранятся в ini файле
     set_save = {}
-    # коллекция для хранения информации о расчете
-    set_info = {"calc_val": {1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"},
-                'collapse': '',
-                'end_info': ''}
-
     # @abstractmethod
     def __init__(self):
+        # коллекция для хранения информации о расчете
+        self.set_info = {"calc_val": {1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"},
+                         'collapse': '', 'end_info': ''}
         # прочитать ini файл
         if os.path.exists('settings.ini'):
             config = configparser.ConfigParser()
@@ -613,17 +666,15 @@ class GeneralSettings(ABC):
 
     # @abstractmethod
     def the_end(self):  # по завершению
-        time_spent = round(time() - self.time_start, 2)
-        time_spent_minutes = round(time_spent / 60, 1)
         self.set_info['end_info'] = (
-                f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {self.now.strftime('%d-%m-%Y %H-%M')}" +
-                f" \nЗатрачено: {str(time_spent)} секунд или {str(time_spent_minutes)} минут")
+            f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {self.now.strftime('%d-%m-%Y %H:%M')}"
+            f" \nЗатрачено: {timedelta(seconds=time() - self.time_start)} c.")
         logging.info(self.set_info['end_info'])
 
 
 class CorModel(GeneralSettings):
     """
-    Коррекция файлов
+    Коррекция файлов.
     """
 
     def __init__(self, task):
@@ -717,11 +768,12 @@ class CorModel(GeneralSettings):
         if self.pxl:
             self.pxl.finish()
 
+        self.the_end()
+
         if 'collapse' in self.set_info:
             if self.set_info['collapse']:
-                self.set_info['end_info'] += f"\nВНИМАНИЕ! развалились модели:\n[{self.set_info['collapse']}]. "
+                self.set_info['end_info'] += f"\nВНИМАНИЕ! развалились модели:\n[{self.set_info['collapse']}].\n"
 
-        self.the_end()
         notepad_path = self.task['name_time'] + ' протокол коррекции файлов.log'
         shutil.copyfile('log_file.log', notepad_path)
         with open(self.task['name_time'] + ' задание на корректировку.yaml', 'w') as f:
@@ -858,7 +910,7 @@ class RastrModel(RastrMethod):
                 self.degree_int = float(self.degree_str)  # число
                 self.txt_dop = "Расчетная температура " + self.degree_str + " °C. "
 
-        # if CALC_SET == 2:  # расчет режимов
+        # if calc_set == 2:  # расчет режимов
         #     if self.kod_name_rg2 > 0:
         # if GLR.zad_temperature == 1:
         #     if self.name_list[1] == "зим":
@@ -981,9 +1033,28 @@ class RastrModel(RastrMethod):
             return False
 
         node = self.rastr.tables("node")
+        branch = self.rastr.tables("vetv")
         generator = self.rastr.tables("Generator")
         chart_pq = self.rastr.tables("graphik2")
         graph_it = self.rastr.tables("graphikIT")
+        # Также проверяется наличие узлов без ветвей, ветвей без узлов начала или конца, генераторов без узлов.
+        all_ny = set([x[0] for x in node.writesafearray("ny", "000")])
+        all_ip = set([x[0] for x in branch.writesafearray("ip", "000")])
+        all_iq = set([x[0] for x in branch.writesafearray("iq", "000")])
+        all_iq_ip = all_ip.union(all_iq)
+        all_gen_ny = set([x[0] for x in generator.writesafearray("Node", "000")])
+        # Узлы без ветвей.
+        all_ny_not_branches = all_ny - all_iq_ip
+        if all_ny_not_branches:
+            logging.error(f'В таблице node узлы без ветвей: {all_ny_not_branches}')
+        # Ветви без узлов.
+        all_ipiq_not_node = all_iq_ip - all_ny
+        if all_ipiq_not_node:
+            logging.error(f'В таблице vetv есть ссылка на узлы которых нет в таблице node: {all_ipiq_not_node}')
+        # Генераторы без узлов.
+        all_gen_not_node = all_gen_ny - all_ny
+        if all_gen_not_node:
+            logging.error(f'В таблице Generator есть ссылка на узлы которых нет в таблице node: {all_gen_not_node}')
 
         # Напряжения
         if dict_task["node"]:
@@ -996,7 +1067,6 @@ class RastrModel(RastrMethod):
         if dict_task['vetv']:
             # Контроль токовой загрузки
             logging.info("\tКонтроль токовой загрузки, расчетная температура: " + self.degree_str)
-            branch = self.rastr.tables("vetv")
             self.rastr.CalcIdop(self.degree_int, 0.0, "")
             if dict_task["sel_node"] != "":
                 if node.cols.Find("sel1") < 0:
@@ -1256,7 +1326,7 @@ class CorSheet:
                     if name_file in [rm.name_base, "*"]:
                         duct_add = True
                     if "*" in name_file and len(name_file) > 7:
-                        pattern_name = re.compile("\[(.*)\]\[(.*)\]\[(.*)\]\[(.*)\]")
+                        pattern_name = re.compile("\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\]")
                         match = re.search(pattern_name, name_file)
                         if match.re.groups == 4:
                             if rm.test_name(condition={"years": match[1], "season": match[2],
@@ -1338,7 +1408,7 @@ class CorXL:
 class ImportFromModel:
     # __slots__ = 'ui_import_model', 'calc_str'
     ui_import_model = []  # хранение объектов класса ImportFromModel созданных в GUI и коде
-    calc_str = {"обновить": 2, "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}
+    calc_str = {"обновить": 2, "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3, "объединить": 3}
     number = 0  # для создания уникального имени csv файла
 
     def __init__(self, import_file_name: str = '', criterion_start: Union[dict, None] = None, tables: str = '',
@@ -1380,7 +1450,7 @@ class ImportFromModel:
                 if calc in self.calc_str:
                     self.calc = self.calc_str[calc]
                 else:
-                    raise ValueError("Ошибка в задании, не распознано задание calc ImportFromModel: " + str(calc))
+                    raise ValueError("Ошибка в задании, не распознано задание calc ImportFromModel: " + calc)
             self.file_csv = []
             ImportFromModel.number += 1
             number = str(ImportFromModel.number)
@@ -1413,7 +1483,7 @@ class ImportFromModel:
             logging.info(f"\tИмпорт из CSV <{self.import_file_name}> в модель:")
             if rm.test_name(condition=self.criterion_start, info='\tImportFromModel ') or not rm.kod_name_rg2:
                 for index in range(len(self.tables)):
-                    logging.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {str(self.calc)}" +
+                    logging.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {self.calc}" +
                                  f"\n\tФайл CSV: {self.file_csv[index]}" +
                                  f"\n\tПараметры: {self.param[index]}")
                     """{"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
@@ -1492,6 +1562,7 @@ class PrintXL:
                  'реактивной мощности электростанциями и КУ(избыток/дефицит +/-)',
                  ''),
             )
+            self.sheet_q.cell(1, 1, 'Таблица 1 - Баланс реактивной мощности, Мвар')
             for n, row_info in enumerate(name_row, 2):
                 self.row_q[row_info[0]] = n
                 self.sheet_q.cell(n, 1, row_info[1])
@@ -1501,7 +1572,7 @@ class PrintXL:
     def add_val(self, rm: RastrModel):
 
         logging.info("\tВывод данных из моделей в XL")
-        if rm.name_standard == "не стандарт":
+        if rm.name_standard == "не стандарт" or not rm.DopNameStr:
             dop_name_list = ['-'] * 3
         else:
             dop_name_list = rm.DopName[:3]
@@ -1614,7 +1685,6 @@ class PrintXL:
         column = self.sheet_q.max_column + 1
         choice = self.task["print_balance_q"]["sel"]
         self.sheet_q.cell(2, column, rm.name_base)
-        self.sheet_q.cell(2, column).alignment=Alignment(text_rotation=90)
         area = rm.rastr.Tables("area")
         area.SetSel(self.task["print_balance_q"]["sel"])
         ndx = area.FindNextSel(-1)
@@ -1651,7 +1721,7 @@ class PrintXL:
         # Генерация Q в ЛЭП
         address_shq_line = self.sheet_q.cell(self.row_q['row_shq_line'], column,
                                              - rm.rastr.Calc("sum", "area", "shq_line", choice)).coordinate
-        address_losses = self.sheet_q.cell(self.row_q['row_dq_sum'],column,
+        address_losses = self.sheet_q.cell(self.row_q['row_dq_sum'], column,
                                            f"={address_dq_line}+{address_dq_tran}+{address_shq_tran}").coordinate
         address_nagruz = self.sheet_q.cell(self.row_q['row_sum_port_Q'], column,
                                            f"={address_qn}+{address_losses}+{address_SHR}").coordinate
@@ -1659,9 +1729,9 @@ class PrintXL:
                                             f"={address_qg}+{address_shq_line}+{address_skrm_gen}").coordinate
         self.sheet_q.cell(self.row_q['row_Q_itog'], column,
                           f"=-{address_nagruz}+{address_sum_gen}")
-        self.sheet_q.cell(self.row_q['row_Q_itog_gmin'],column,
+        self.sheet_q.cell(self.row_q['row_Q_itog_gmin'], column,
                           f"=-{address_nagruz}+{address_qg_min}+{address_shq_line}")
-        self.sheet_q.cell(self.row_q['row_Q_itog_gmax'],column,
+        self.sheet_q.cell(self.row_q['row_Q_itog_gmax'], column,
                           f"=-{address_nagruz}+{address_qg_max}+{address_shq_line}")
 
     def finish(self):
@@ -1684,16 +1754,17 @@ class PrintXL:
                     self.book.create_sheet(sheet_name.replace('log', 'сводная'))
                     self.sheet_couple[sheet_name] = sheet_name.replace('log', 'сводная')
         self.name_xl_file = self.task['name_time'] + ' вывод данных.xlsx'
-        self.book.save(self.name_xl_file)
-        self.book = None
-        for key in self.task['set_printXL']:
-            if self.task['set_printXL'][key]['add']:
-                self.create_pivot()
-                break
 
         if self.task['print_balance_q']['add']:
             self.configure_balance_q()
 
+        self.book.save(self.name_xl_file)
+        self.book = None
+
+        for key in self.task['set_printXL']:
+            if self.task['set_printXL'][key]['add']:
+                self.create_pivot()
+                break
 
     def create_pivot(self):
         # Открыть win32com.client для создания сводных.
@@ -1719,25 +1790,24 @@ class PrintXL:
         self.excel.StatusBar = True  # отображение информации в строке статуса excel
 
     def configure_balance_q(self):
-        pass
-        # if self.print_balance_Q:
-        #     XL_print_balance_Q.Columns(4).ColumnWidth = 33
-        #     diapozon = XL_print_balance_Q.UsedRange.address
-        #     With
-        #     XL_print_balance_Q.Range(diapozon)
-        #     .HorizontalAlignment = -4108  # выравнивание по центру
-        #     .VerticalAlignment = -4108
-        #     .NumberFormat = "0"
-        # diapozon = XL_print_balance_Q.UsedRange.address
-        # XL_print_balance_Q.Range(diapozon)
-        # .Borders(7).LineStyle = 1  # лево
-        # .Borders(8).LineStyle = 1  # верх
-        # .Borders(9).LineStyle = 1  # низ
-        # .Borders(10).LineStyle = 1  # право
-        # .Borders(11).LineStyle = 1  # внутри вертикаль
-        # .Borders(12).LineStyle = 1  #
-        # .WrapText = True  # перенос текста в ячейке
-        # .Font.Name = "Times  Roman"
+        self.sheet_q.row_dimensions[2].height = 140
+        self.sheet_q.column_dimensions['A'].width = 40
+        thins = Side(border_style="thin", color="000000")
+        for row in range(2, self.sheet_q.max_row + 1):
+            for col in range(1, self.sheet_q.max_column + 1):
+                if row > 2 and col > 1:
+                    self.sheet_q.cell(row, col).number_format = BUILTIN_FORMATS[1]
+                self.sheet_q.cell(row, col).border = Border(thins, thins, thins, thins)
+                self.sheet_q.cell(row, col).font = Font(name='Times New Roman', size=11)
+                if row == 2:
+                    self.sheet_q.cell(row, col).alignment = Alignment(text_rotation=90,
+                                                                      wrap_text=True, horizontal="center")
+                if col == 1:
+                    self.sheet_q.cell(row, col).alignment = Alignment(wrap_text=True)
+                if row in [12, 13, 17, 18]:
+                    self.sheet_q.cell(row, col).fill = PatternFill('solid', fgColor="00FF0000")
+                if row in [9, 15, 16]:
+                    self.sheet_q.cell(row, col).font = Font(bold=True)
 
     def pivot_tables(self, s_log: str, s_pivot: str) -> None:
         """Создать сводную таблицу
@@ -1865,16 +1935,32 @@ def my_except_hook(func):
 
 if __name__ == '__main__':
     VISUAL_CHOICE = 1  # 1 задание через QT, 0 - в коде
-    CALC_SET = 1  # 1 -корректировать модели CorModel, 2-рассчитать модели
+    calc_set = 1  # 1 -Изменить модели, 2-Расчет установившихся режимов, 3-Расчет токов КЗ
     cm = None  # глобальный объект класса CorModel
     sys.excepthook = my_except_hook(sys.excepthook)
     # https://docs.python.org/3/library/logging.html
     # 'w' - перезаписать лог, иначе будет добавляться
+    # TODO сделать что бы при каждом запуске лог сбрасывался
     logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
                         format='%(asctime)s %(levelname)s:%(message)s')  # DEBUG, INFO, WARNING, ERROR и CRITICAL
+    if VISUAL_CHOICE:  # в коде
+        app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
+        # app.setApplicationName("Правка моделей RastrWin")
 
-    if not VISUAL_CHOICE:  # в коде
-        if CALC_SET == 1:
+        gui_choice_window = MainChoiceWindow()
+        gui_choice_window.show()
+        gui_calc_ur = CalcURWindow()
+        # gui_calc_ur.show()
+        gui_calc_ur_set = CalcURSetWindow()
+        # gui_calc_ur_set.show()
+        gui_edit = EditWindow()
+        # gui_edit.show()
+        gui_set = SetWindow()
+        # gui_set.show()
+        sys.exit(app.exec_())  # Запуск
+
+    else:
+        if calc_set == 1:
             cor_task = {
                 # в KIzFolder абсолютный путь к папке с файлами или файлу
                 "KIzFolder": r"I:\rastr_add\test",
@@ -1918,11 +2004,11 @@ if __name__ == '__main__':
                 # напряжений в узлах; дтн  в линиях(rastr.CalcIdop по degree_int);
                 # pmax pmin относительно P у генераторов и pop_zad у территорий, объединений и районов; СЕЧЕНИЯ
                 # выборка в таблице узлы "na=1|na=8)"
-                "control_rg2": False,
+                "control_rg2": True,
                 "control_rg2_task": {'node': False, 'vetv': True, 'Gen': False, 'section': False, 'area': False,
                                      'area2': False, 'darea': False, 'sel_node': "na>0"},
                 # выводить данные из моделей в XL---------------------------------------------------------------------
-                "printXL": True,
+                "printXL": False,
                 "set_printXL": {
                     "sechen": {'add': False, "sel": "", 'tabl': "sechen", 'par': "ns,name,pmin,pmax,psech",
                                "rows": "ns,name",  # поля строк в сводной
@@ -1954,7 +2040,7 @@ if __name__ == '__main__':
                 # таблица: n-node,v-vetv,g-Generator,na-area,npa-area2,no-darea,nga-ngroup,ns-sechen
                 "print_parameters": {'add': False,
                                      "sel": "v=15105,15113,0|15038,15037,4/r|x|b; n=151980/pg|qg"},
-                # TODO БАЛАНС PQ_kor !!! 0 тоже район, даже если в районах не задан "na>13&na<201"
+                # БАЛАНС Q ! 0 тоже район, даже если в районах не задан "na>13&na<201"
                 "print_balance_q": {'add': True, "sel": "na=11"},
                 # ----------------------------------------------------------------------------------------------------
                 "block_import": False,  # начало
@@ -1962,16 +2048,8 @@ if __name__ == '__main__':
             """Запуск корректировки моделей"""
             cm = CorModel(cor_task)
             cm.run_cor()
-        if CALC_SET == 2:
+        if calc_set == 2:
             start_calc()  # calc
-    else:
-        if CALC_SET == 1:
-            app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
-            app.setApplicationName("Правка моделей RastrWin")
-            ui_edit = EditWindow()
-            ui_edit.show()
-            ui_set = SetWindow()
-            sys.exit(app.exec_())  # Запуск
 
 # TODO дописать: перенос параметров из одноименных файлов
 # TODO дописать: сравнение файлов

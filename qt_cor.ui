@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainCor</class>
- <widget class="QMainWindow" name="MainCor">
+ <class>cor</class>
+ <widget class="QMainWindow" name="cor">
   <property name="enabled">
    <bool>true</bool>
   </property>
@@ -9,12 +9,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>867</width>
-    <height>737</height>
+    <width>1044</width>
+    <height>779</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Корректировать модели RastrWin3</string>
+   <string>Изменение модели</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -74,8 +74,8 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-667</y>
-         <width>848</width>
+         <y>-224</y>
+         <width>1025</width>
          <height>1360</height>
         </rect>
        </property>
@@ -104,7 +104,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout">
              <item>
-              <widget class="QPushButton" name="SetBut">
+              <widget class="QPushButton" name="b_main_choice">
                <property name="maximumSize">
                 <size>
                  <width>130</width>
@@ -115,7 +115,7 @@
                 <string/>
                </property>
                <property name="text">
-                <string>Настройки программы</string>
+                <string>Главное меню</string>
                </property>
               </widget>
              </item>
@@ -233,7 +233,7 @@
               </size>
              </property>
              <property name="text">
-              <string>Имя файла или папки с исходными файлами:</string>
+              <string>Исходными файлами:</string>
              </property>
             </widget>
            </item>
@@ -274,15 +274,28 @@
               </widget>
              </item>
              <item>
-              <widget class="QPushButton" name="choice_from_folder">
+              <widget class="QPushButton" name="choice_from_file">
                <property name="maximumSize">
                 <size>
-                 <width>40</width>
+                 <width>75</width>
                  <height>16777215</height>
                 </size>
                </property>
                <property name="text">
-                <string>Выбор</string>
+                <string>Выбор файла</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="choice_from_folder">
+               <property name="maximumSize">
+                <size>
+                 <width>75</width>
+                 <height>16777215</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Выбор папки</string>
                </property>
               </widget>
              </item>
@@ -303,7 +316,7 @@
               </size>
              </property>
              <property name="text">
-              <string>Имя папки для сохранения измененных файлов:</string>
+              <string>Сохранить измененные файлы в</string>
              </property>
             </widget>
            </item>
@@ -332,12 +345,12 @@
               <widget class="QPushButton" name="choice_in_folder">
                <property name="maximumSize">
                 <size>
-                 <width>40</width>
+                 <width>75</width>
                  <height>16777215</height>
                 </size>
                </property>
                <property name="text">
-                <string>Выбор</string>
+                <string>Выбор папки</string>
                </property>
               </widget>
              </item>
@@ -617,21 +630,17 @@
              <cursorShape>IBeamCursor</cursorShape>
             </property>
             <property name="plainText">
-             <string># Задание аналогично &quot;строковой форме&quot; excel: в квадратных скобках параметры в формате [Выборка | Значение]
-# В фигурных скобках указывается условие выполнения в формате {years = 2026| season=лет| max_min=min| add_name=0°C}
-# Примеры:
+             <string>
+# краткая справка:
 #удалить*[15145 ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
-#удалить[15561,15129,0 15562,15130,0 Num=912 g=913]  # удалить ветви 15561,15129,0 15562,15130,0 и генераторы 912, 913#
 #изм[15148|name=Промплощадка:_изм_name]  # при изменении текстовых полей '  ' заменить на '_'
-#изм[na=11(node) (vetv)|sel=1]{years = 2026}  # отметить узлы 11 района и все ветви
-#изм[(vetv) (area) (area2) (darea)|Tc=0]{years = 2026|season=зим|max_min=макс|add_name=0°C}  # обнулить температуру
-#снять отметку{years = 2026 |	season=зим}  # снять отметку зимой 2026
-#добавить[node|ny=3 pn=1 uhom=120 na=11 name=Новый_узел]  # Добавить запись в таблицу
+#изм[na=11(node) (vetv)|sel=1]  # отметить узлы 11 района и все ветви
+#изм[(vetv) (area) (area2) (darea)|Tc=0]
+#снять отметку{years = 2026| season=лет| max_min=min| add_name=0°C}
 #добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]
-#пробелы и буквы[node:name,dname vetv:dname Generator:Name]  # Исправить пробелы, заменить английские буквы на русские.
-#СХН[na=11]  # добавить номера СХН в узлах:uhom&gt;100 nsx=1, uhom&lt;100 nsx=2. Выборка в таблице узлы  может быть пустой
-#номинальные напряжения[na=11]  #  Проверка номинального напряжения [6, 10, 35, 110, 220, 330, 500, 750]. 
-#расчет  # расчет режима
+#пробелы и буквы[node:name,dname vetv:dname Generator:Name]  
+#СХН[na=11]
+#номинальные напряжения[na=11]  
 </string>
             </property>
            </widget>
@@ -692,412 +701,372 @@
              <set>Qt::ImhNone</set>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>1</number>
             </property>
             <widget class="QWidget" name="node">
              <attribute name="title">
               <string>узлы</string>
              </attribute>
-             <widget class="QCheckBox" name="CB_N">
-              <property name="geometry">
-               <rect>
-                <x>9</x>
-                <y>9</y>
-                <width>812</width>
-                <height>16</height>
-               </rect>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>16</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>выполнить</string>
-              </property>
-             </widget>
-             <widget class="QWidget" name="layoutWidget">
-              <property name="geometry">
-               <rect>
-                <x>9</x>
-                <y>31</y>
-                <width>812</width>
-                <height>24</height>
-               </rect>
-              </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_29">
-               <item>
-                <widget class="QLabel" name="label_43">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Файл импорта:</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="file_N">
-                 <property name="minimumSize">
-                  <size>
-                   <width>496</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>I:\rastr_add\test\импорт2.rg2</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QPushButton" name="choice_N">
-                 <property name="maximumSize">
-                  <size>
-                   <width>40</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Выбор</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="layoutWidget_8">
-              <property name="geometry">
-               <rect>
-                <x>9</x>
-                <y>56</y>
-                <width>812</width>
-                <height>24</height>
-               </rect>
-              </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_36">
-               <item>
-                <widget class="QLabel" name="label_50">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Таблица:</string>
-                 </property>
-                 <property name="buddy">
-                  <cstring>tab_V</cstring>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="tab_N">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>node</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLabel" name="label_51">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>Выборка:</string>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="sel_N">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string/>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QComboBox" name="tip_N">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>22</height>
-                  </size>
-                 </property>
-                 <item>
-                  <property name="text">
-                   <string>присоединить</string>
+             <layout class="QVBoxLayout" name="verticalLayout_16">
+              <item>
+               <widget class="QCheckBox" name="CB_N">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>16</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>выполнить</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_29">
+                <item>
+                 <widget class="QLabel" name="label_43">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
                   </property>
-                 </item>
-                 <item>
                   <property name="text">
-                   <string>загрузить</string>
+                   <string>Файл импорта:</string>
                   </property>
-                 </item>
-                 <item>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="file_N">
+                  <property name="minimumSize">
+                   <size>
+                    <width>496</width>
+                    <height>22</height>
+                   </size>
+                  </property>
                   <property name="text">
-                   <string>обновить</string>
+                   <string>I:\rastr_add\test\импорт2.rg2</string>
                   </property>
-                 </item>
-                 <item>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="choice_N">
+                  <property name="maximumSize">
+                   <size>
+                    <width>40</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="text">
-                   <string>объединить</string>
+                   <string>Выбор</string>
                   </property>
-                 </item>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QWidget" name="layoutWidget_15">
-              <property name="geometry">
-               <rect>
-                <x>9</x>
-                <y>81</y>
-                <width>812</width>
-                <height>24</height>
-               </rect>
-              </property>
-              <layout class="QHBoxLayout" name="horizontalLayout_43">
-               <item>
-                <widget class="QLabel" name="label_64">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>22</height>
-                  </size>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_36">
+                <item>
+                 <widget class="QLabel" name="label_50">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Таблица:</string>
+                  </property>
+                  <property name="buddy">
+                   <cstring>tab_V</cstring>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="tab_N">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>node</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="label_51">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Выборка:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="sel_N">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QComboBox" name="tip_N">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
+                  <item>
+                   <property name="text">
+                    <string>присоединить</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>загрузить</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>обновить</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>объединить</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <layout class="QHBoxLayout" name="horizontalLayout_43">
+                <item>
+                 <widget class="QLabel" name="label_64">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string>Параметры:</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLineEdit" name="param_N">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>22</height>
+                   </size>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="CB_Filtr_N">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>18</height>
+                 </size>
+                </property>
+                <property name="text">
+                 <string>условие выполнения</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QFrame" name="FFN">
+                <property name="minimumSize">
+                 <size>
+                  <width>0</width>
+                  <height>25</height>
+                 </size>
+                </property>
+                <property name="frameShape">
+                 <enum>QFrame::StyledPanel</enum>
+                </property>
+                <property name="frameShadow">
+                 <enum>QFrame::Raised</enum>
+                </property>
+                <layout class="QGridLayout" name="gridLayout_7">
+                 <property name="leftMargin">
+                  <number>0</number>
                  </property>
-                 <property name="text">
-                  <string>Параметры:</string>
+                 <property name="topMargin">
+                  <number>0</number>
                  </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="param_N">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>22</height>
-                  </size>
+                 <property name="rightMargin">
+                  <number>0</number>
                  </property>
-                 <property name="text">
-                  <string/>
+                 <property name="bottomMargin">
+                  <number>0</number>
                  </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-             <widget class="QCheckBox" name="CB_Filtr_N">
-              <property name="geometry">
-               <rect>
-                <x>9</x>
-                <y>105</y>
-                <width>812</width>
-                <height>18</height>
-               </rect>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>18</height>
-               </size>
-              </property>
-              <property name="text">
-               <string>условие выполнения</string>
-              </property>
-             </widget>
-             <widget class="QFrame" name="FFN">
-              <property name="geometry">
-               <rect>
-                <x>10</x>
-                <y>130</y>
-                <width>812</width>
-                <height>25</height>
-               </rect>
-              </property>
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>25</height>
-               </size>
-              </property>
-              <property name="frameShape">
-               <enum>QFrame::StyledPanel</enum>
-              </property>
-              <property name="frameShadow">
-               <enum>QFrame::Raised</enum>
-              </property>
-              <layout class="QGridLayout" name="gridLayout_7">
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
-                <number>0</number>
-               </property>
-               <property name="spacing">
-                <number>0</number>
-               </property>
-               <item row="0" column="0">
-                <layout class="QHBoxLayout" name="horizontalLayout_50">
-                 <item>
-                  <widget class="QLabel" name="label_71">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>22</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>Год:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="Filtr_god_N">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>22</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_72">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>22</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>, зим/лет:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QComboBox" name="Filtr_sez_N">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>22</height>
-                    </size>
-                   </property>
+                 <property name="spacing">
+                  <number>0</number>
+                 </property>
+                 <item row="0" column="0">
+                  <layout class="QHBoxLayout" name="horizontalLayout_50">
                    <item>
-                    <property name="text">
-                     <string/>
-                    </property>
+                    <widget class="QLabel" name="label_71">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>22</height>
+                      </size>
+                     </property>
+                     <property name="text">
+                      <string>Год:</string>
+                     </property>
+                    </widget>
                    </item>
                    <item>
-                    <property name="text">
-                     <string>зим</string>
-                    </property>
+                    <widget class="QLineEdit" name="Filtr_god_N">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>22</height>
+                      </size>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
                    </item>
                    <item>
-                    <property name="text">
-                     <string>макс</string>
-                    </property>
+                    <widget class="QLabel" name="label_72">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>22</height>
+                      </size>
+                     </property>
+                     <property name="text">
+                      <string>, зим/лет:</string>
+                     </property>
+                    </widget>
                    </item>
                    <item>
-                    <property name="text">
-                     <string>паводок</string>
-                    </property>
-                   </item>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_73">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>22</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>, макс/мин:</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QComboBox" name="Filtr_max_min_N">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>22</height>
-                    </size>
-                   </property>
-                   <item>
-                    <property name="text">
-                     <string/>
-                    </property>
+                    <widget class="QComboBox" name="Filtr_sez_N">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>22</height>
+                      </size>
+                     </property>
+                     <item>
+                      <property name="text">
+                       <string/>
+                      </property>
+                     </item>
+                     <item>
+                      <property name="text">
+                       <string>зим</string>
+                      </property>
+                     </item>
+                     <item>
+                      <property name="text">
+                       <string>макс</string>
+                      </property>
+                     </item>
+                     <item>
+                      <property name="text">
+                       <string>паводок</string>
+                      </property>
+                     </item>
+                    </widget>
                    </item>
                    <item>
-                    <property name="text">
-                     <string>макс</string>
-                    </property>
+                    <widget class="QLabel" name="label_73">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>22</height>
+                      </size>
+                     </property>
+                     <property name="text">
+                      <string>, макс/мин:</string>
+                     </property>
+                    </widget>
                    </item>
                    <item>
-                    <property name="text">
-                     <string>мин</string>
-                    </property>
+                    <widget class="QComboBox" name="Filtr_max_min_N">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>22</height>
+                      </size>
+                     </property>
+                     <item>
+                      <property name="text">
+                       <string/>
+                      </property>
+                     </item>
+                     <item>
+                      <property name="text">
+                       <string>макс</string>
+                      </property>
+                     </item>
+                     <item>
+                      <property name="text">
+                       <string>мин</string>
+                      </property>
+                     </item>
+                    </widget>
                    </item>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLabel" name="label_74">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>22</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string>, (доп имя):</string>
-                   </property>
-                  </widget>
-                 </item>
-                 <item>
-                  <widget class="QLineEdit" name="Filtr_dop_name_N">
-                   <property name="minimumSize">
-                    <size>
-                     <width>0</width>
-                     <height>22</height>
-                    </size>
-                   </property>
-                   <property name="text">
-                    <string/>
-                   </property>
-                  </widget>
+                   <item>
+                    <widget class="QLabel" name="label_74">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>22</height>
+                      </size>
+                     </property>
+                     <property name="text">
+                      <string>, (доп имя):</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="Filtr_dop_name_N">
+                     <property name="minimumSize">
+                      <size>
+                       <width>0</width>
+                       <height>22</height>
+                      </size>
+                     </property>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </widget>
+                   </item>
+                  </layout>
                  </item>
                 </layout>
-               </item>
-              </layout>
-             </widget>
+               </widget>
+              </item>
+             </layout>
             </widget>
             <widget class="QWidget" name="vetv">
              <attribute name="title">
@@ -3463,7 +3432,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>ip,iq,np</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -3673,7 +3642,7 @@
            <string/>
           </property>
           <property name="text">
-           <string>Импорт задания из EXCEL на корректировку моделей</string>
+           <string>Задание EXCEL</string>
           </property>
          </widget>
         </item>
@@ -3854,7 +3823,7 @@
              </font>
             </property>
             <property name="plainText">
-             <string/>
+             <string>#расчет  # расчет режима</string>
             </property>
            </widget>
           </item>
@@ -3876,7 +3845,7 @@
            </font>
           </property>
           <property name="text">
-           <string>Расчет режима и контроль параметров режима</string>
+           <string>Расчет режима и контроль параметров режима (.rg2)</string>
           </property>
          </widget>
         </item>

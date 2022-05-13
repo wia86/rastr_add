@@ -230,13 +230,14 @@ class RastrMethod:
             logging.info("\tСнять отметку узлов, ветвей и генераторов")
 
     def all_cols(self, tab: str):
-        """Возвращает все колонки таблицы: 'ny,pn....'"""
+        """Возвращает все поля таблицы: 'ny,pn....', кроме начинающихся с '_'. """
         cls = self.rastr.Tables(tab).Cols
         cols_list = []
         for col in range(cls.Count):
-            if cls(col).Name not in ["kkluch", "txt_zag", "txt_adtn_zag", "txt_ddtn", "txt_adtn", "txt_ddtn_zag"]:
-                # print(str(cls(col).Name))
-                cols_list.append(str(cls(col).Name))
+            if cls(col).Name[0] != '_':
+            # if cls(col).Name not in ["kkluch", "txt_zag", "txt_adtn_zag", "txt_ddtn", "txt_adtn", "txt_ddtn_zag"]:
+                # print(cls(col).Name)
+                cols_list.append(cls(col).Name)
         return ','.join(cols_list)
 
     def table_add_row(self, table: str = '', tasks: str = '') -> int:
