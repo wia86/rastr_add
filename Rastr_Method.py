@@ -103,7 +103,8 @@ class RastrMethod:
         :param param: параметры, нр 'pn';
         :param selection: выборка, нр 'sel';
         :param formula: 'del' удалить строки, формула для расчета параметра, нр 'pn*2' или значение, нр '10'.
-        Если поле param текстовое, то в значении formula <_> заменится на пробел;
+        Если поле param текстовое, то в значении formula <_> заменится на пробел.
+        Меняются все поля в выборке через 'Calc'. А значит formula может быть например 'pn*0.4'
         :param del_all: удалять узлы с генераторами и отходящими ветвями;
         """
         if self.rastr.tables.Find(tabl) < 0:
@@ -179,7 +180,8 @@ class RastrMethod:
             node.setsel(sel_node)
             j = node.FindNextSel(-1)
             while j > -1:
-                if self.U_MIN_NORM[i] > node.cols.item("vras").Z(j) > self.U_LARGEST_WORKING[i]:
+                ny = node.cols.item('ny').Z(j)
+                if not self.U_MIN_NORM[i] < node.cols.item("vras").Z(j) < self.U_LARGEST_WORKING[i]:
                     ny = node.cols.item('ny').ZS(j)
                     name = node.cols.item('name').ZS(j)
                     vras = node.cols.item('vras').ZS(j)
@@ -207,6 +209,55 @@ class RastrMethod:
             vras = node.cols.item('vras').ZS(j)
             umin = node.cols.item('umin').ZS(j)
             logging.warning(f"\tНапряжение ниже минимально-допустимого! ny={ny}, имя: {name}, vras={vras},umin={umin}")
+            j = node.FindNextSel(j)
+
+    def voltage_error(self, choice: str = ''):
+        """
+        - если umax<uhom, то umax удаляется;
+        - если umin>uhom, umin_av>uhom, то umin, umin_av удаляется.
+        :param choice: выборка в таблице узлы
+        """
+        node = self.rastr.tables("node")
+        sel_node = "umax<uhom&umax!=0"
+        if choice:
+            sel_node += "&" + choice
+        node.setsel(sel_node)
+        j = node.FindNextSel(-1)
+        while j > -1:
+            ny = node.cols.item('ny').ZS(j)
+            name = node.cols.item('name').ZS(j)
+            umax = node.cols.item('umax').ZS(j)
+            uhom = node.cols.item('uhom').ZS(j)
+            logging.warning(f"\tumax<uhom! {ny=},{name=}, {umax=},{uhom=}. umax удалено.")
+            node.cols.item('umax').SetZ(j, 0)
+            j = node.FindNextSel(j)
+
+        sel_node = "umin>uhom"
+        if choice:
+            sel_node += "&" + choice
+        node.setsel(sel_node)
+        j = node.FindNextSel(-1)
+        while j > -1:
+            ny = node.cols.item('ny').ZS(j)
+            name = node.cols.item('name').ZS(j)
+            umin = node.cols.item('umin').ZS(j)
+            uhom = node.cols.item('uhom').ZS(j)
+            logging.warning(f"\tumax<uhom! {ny=},{name=}, {umin=},{uhom=}. umin удалено.")
+            node.cols.item('umin').SetZ(j, 0)
+            j = node.FindNextSel(j)
+
+        sel_node = "umin_av>uhom"
+        if choice:
+            sel_node += "&" + choice
+        node.setsel(sel_node)
+        j = node.FindNextSel(-1)
+        while j > -1:
+            ny = node.cols.item('ny').ZS(j)
+            name = node.cols.item('name').ZS(j)
+            umin_av = node.cols.item('umin_av').ZS(j)
+            uhom = node.cols.item('uhom').ZS(j)
+            logging.warning(f"\tumax<uhom! {ny=},{name=}, {umin_av=},{uhom=}. umin_av удалено.")
+            node.cols.item('umin_av').SetZ(j, 0)
             j = node.FindNextSel(j)
 
     def rgm(self, txt: str = "") -> bool:
@@ -255,14 +306,20 @@ class RastrMethod:
         index = r_table.size - 1
         for task_i in tasks.split(" "):
             if task_i:
-                if "=" in task_i:
+                if task_i.count('=') == 1:
                     parameters, value = task_i.split("=")
                     if all([parameters, value]):
-                        r_table.cols.item(parameters).SetZ(index, value)
+                        if r_table.cols.Find(parameters) < 0:
+                            raise ValueError(f"В таблице {r_table!r} нет параметра {parameters!r}.")
+                        if r_table.cols(parameters).Prop(1) == 2:  # если поле типа строка
+                            r_table.cols.Item(parameters).SetZ(index, value.replace('_', ' '))
+                        else:
+                            r_table.cols.item(parameters).SetZ(index, value)
+
                     else:
                         raise ValueError(f'\tОшибка при добавлении в таблицу <{table=}> строки <{task_i=}>')
                 else:
-                    raise ValueError(f'\tОшибка при добавлении в таблицу <{table=}> строки <{task_i=}>(нет =)')
+                    raise ValueError(f'\tОшибка при добавлении в таблицу <{table=}> строки <{task_i=}>(проблемы с = )')
 
         logging.info(f'\tВ таблицу <{table}> добавлена строка <{tasks}>, индекс <{index}>')
         return index

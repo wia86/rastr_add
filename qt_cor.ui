@@ -14,7 +14,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Изменение модели</string>
+   <string>Изменение моделей</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout">
@@ -74,7 +74,7 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-224</y>
+         <y>-625</y>
          <width>1025</width>
          <height>1360</height>
         </rect>
@@ -3845,7 +3845,7 @@
            </font>
           </property>
           <property name="text">
-           <string>Расчет режима и контроль параметров режима (.rg2)</string>
+           <string>Расчет режима и проверка параметров режима (.rg2)</string>
           </property>
          </widget>
         </item>
@@ -3907,7 +3907,7 @@
               <bool>true</bool>
              </property>
              <property name="text">
-              <string>узлы: Uном, Umin, Uнорм </string>
+              <string>узлы: Uном, Umin, Uнорм ...</string>
              </property>
              <property name="checked">
               <bool>false</bool>

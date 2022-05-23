@@ -451,6 +451,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         """
         Добавить ImportFromModel и запуск
         """
+        log_conf()
         self.save_ini_form_folder()
         self.fill_task_ui()
         # Убрать 'file:///'
@@ -642,6 +643,7 @@ class GeneralSettings(ABC):
     """
     # коллекция настроек, которые хранятся в ini файле
     set_save = {}
+
     # @abstractmethod
     def __init__(self):
         # коллекция для хранения информации о расчете
@@ -743,7 +745,7 @@ class CorModel(GeneralSettings):
                 rm = RastrModel(full_name)
                 # если включен фильтр файлов и имя стандартизовано
                 if self.task["KFilter_file"] and rm.kod_name_rg2:
-                    if not rm.test_name(condition=self.task["cor_criterion_start"], info='Цикл по файлам KIzFolder'):
+                    if not rm.test_name(condition=self.task["cor_criterion_start"], info='Цикл по файлам KIzFolder: '):
                         continue  # пропускаем если не соответствует фильтру
 
                 self.file_count += 1
@@ -787,7 +789,7 @@ class CorModel(GeneralSettings):
             if self.task['cor_beginning_qt']['add']:
                 logging.info("\t*** Начало корректировку модели 'до импорта' ***")
                 rm.cor_rm_from_txt(self.task['cor_beginning_qt']['txt'])
-                logging.info("\t*** Конец выполнения корректировки моделей 'до импорта' ***")
+                logging.info("\t*** Конец выполнения корректировки моделей 'до импорта' ***\n")
         except KeyError:
             pass
 
@@ -809,7 +811,7 @@ class CorModel(GeneralSettings):
             if self.task['cor_end_qt']['add']:
                 logging.info("\t*** Начало корректировку модели 'после импорта' ***")
                 rm.cor_rm_from_txt(self.task['cor_end_qt']['txt'])
-                logging.info("\t*** Конец выполнения корректировки моделей 'после импорта' ***")
+                logging.info("\t*** Конец выполнения корректировки моделей 'после импорта' ***\n")
         except KeyError:
             pass
 
@@ -1062,6 +1064,7 @@ class RastrModel(RastrMethod):
             self.voltage_nominal(choice=(dict_task["sel_node"] + '&uhom>30'))
             self.voltage_normal(choice=dict_task["sel_node"])
             self.voltage_deviation(choice=dict_task["sel_node"])
+            self.voltage_error(choice=dict_task["sel_node"])
 
         # Токи
         if dict_task['vetv']:
@@ -1194,7 +1197,6 @@ class RastrModel(RastrMethod):
         """
         Корректировать модели по заданию в текстовом формате
         :param task_txt:
-        :return:
         """
         task_rows = task_txt.split('\n')
         for task_row in task_rows:
@@ -1262,7 +1264,7 @@ class CorSheet:
             self.list_cor(rm)
         elif self.type == 'tab_cor':
             self.tab_cor(rm)
-        logging.info(f'\tКонец выполнения задания листа {self.name!r}')
+        logging.info(f'\tКонец выполнения задания листа {self.name!r}\n')
 
     def export_model(self):
         """"Экспорт из моделей"""
@@ -1933,16 +1935,20 @@ def my_except_hook(func):
     return new_func
 
 
+def log_conf():
+    """Установить logging.basicConfig"""
+    # https://docs.python.org/3/library/logging.html
+    # 'w' - перезаписать лог, иначе будет добавляться
+    logging.basicConfig(filename="log_file.log", level=logging.INFO, filemode='w',
+                        format='%(asctime)s %(levelname)s:%(message)s')  # DEBUG, INFO, WARNING, ERROR и CRITICAL
+
+
 if __name__ == '__main__':
     VISUAL_CHOICE = 1  # 1 задание через QT, 0 - в коде
     calc_set = 1  # 1 -Изменить модели, 2-Расчет установившихся режимов, 3-Расчет токов КЗ
     cm = None  # глобальный объект класса CorModel
     sys.excepthook = my_except_hook(sys.excepthook)
-    # https://docs.python.org/3/library/logging.html
-    # 'w' - перезаписать лог, иначе будет добавляться
-    # TODO сделать что бы при каждом запуске лог сбрасывался
-    logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
-                        format='%(asctime)s %(levelname)s:%(message)s')  # DEBUG, INFO, WARNING, ERROR и CRITICAL
+    log_conf()
     if VISUAL_CHOICE:  # в коде
         app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
         # app.setApplicationName("Правка моделей RastrWin")
@@ -2053,3 +2059,4 @@ if __name__ == '__main__':
 
 # TODO дописать: перенос параметров из одноименных файлов
 # TODO дописать: сравнение файлов
+# TODO не загружается задание yaml при автосохранении
