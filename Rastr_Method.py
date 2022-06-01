@@ -11,9 +11,14 @@ class RastrMethod:
     U_NOM = [6, 10, 35, 110, 220, 330, 500, 750]  # номинальные напряжения
     U_MIN_NORM = [5.8, 9.7, 32, 100, 205, 315, 490, 730]  # минимальное нормальное напряжение
     U_LARGEST_WORKING = [7.2, 12, 42, 126, 252, 363, 525, 787]  # наибольшее рабочее напряжения
-
-    KEY_TABLES = {'ny': 'node', 'Num': 'Generator', 'na': 'area', 'npa': 'area2', 'no': 'darea',
-                  'nga': 'ngroup', 'ns': 'sechen'}
+    KEY_TABLES = {'ny': 'node',
+                  'Num': 'Generator',
+                  # 'g': 'Generator',
+                  'na': 'area',
+                  'npa': 'area2',
+                  'no': 'darea',
+                  'nga': 'ngroup',
+                  'ns': 'sechen'}
 
     def __init__(self):
         self.rastr = None
@@ -38,54 +43,19 @@ class RastrMethod:
         if print_log:
             logging.info(f"\t\tФункция cor: {keys=},  {tasks=}")
         keys = keys.strip().replace('  ', ' ')
+        tasks = tasks.strip().replace('  ', ' ')
         if not keys:
             raise ValueError(f'keys:{keys},tasks:{tasks}')
         for key in keys.strip().split(" "):  # например:['na=11(node)','125', 'g=125', '12,13,0']
-            rastr_table = ''  # таблица
-            rastr_table_main = ''  # имя таблицы из задания является преобладающим
-            selection_in_table = key  # выборка в таблице
-            # проверка наличия явного указания таблицы
-            match = re.search(re.compile(r"\((.+?)\)"), key)
-            if match:  # таблица указана
-                rastr_table_main = match[1]
-                key = key.split('(', 1)[0]
-                selection_in_table = key  # выборка в таблице
 
-            if key:
-                # разделение ключей для распознания
-                key_comma = key.split(",")  # нр для ветви [,,], прочее []
-                key_equally = key.split("=")  # есть = [,], нет равно []
-                if ',' in key:  # vetv
-                    if len(key_comma) != 3:
-                        raise ValueError(f'Ошибка в задании {key=}')
-                    rastr_table = 'vetv'
-                    selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np={key_comma[2]}"
-                else:
-                    if key.isdigit():
-                        rastr_table = 'node'
-                        selection_in_table = "ny=" + key
-                    elif 'g' == key_equally[0]:
-                        rastr_table = 'Generator'
-                        selection_in_table = "Num=" + key_equally[1]
-                    else:
-                        try:
-                            rastr_table = self.KEY_TABLES[key_equally[0]]  # вернет имя таблицы
-                        except KeyError:
-                            raise KeyError(f'таблица по ключу <{key_equally[0]}> не найдена в коллекции <KEY_TABLES>, '
-                                           f'key:{key}, tasks:{tasks}')
-            if rastr_table_main:
-                rastr_table = rastr_table_main
-            if not rastr_table:
-                raise ValueError(f"Таблица не определена: {key}")
+            rastr_table, selection_in_table = self.recognize_key(key)
 
-            tasks = tasks.strip().replace('  ', ' ')
             for task in tasks.strip().split(" "):  # разделение задания например:['pn=10.2', 'qn=5.4']
-                formula = None
-                param = None
+                formula = ''
+                param = ''
                 if task == 'del':
                     formula = 'del'
-                    param = ''
-                elif '=' in task:
+                elif task.count('=') == 1:
                     param, formula = task.split("=")
 
                     if not (formula and param):
@@ -95,6 +65,46 @@ class RastrMethod:
 
                 self.group_cor(tabl=rastr_table, param=param, selection=selection_in_table,
                                formula=formula, del_all=del_all)
+
+    def recognize_key(self, key: str) -> tuple:
+        """
+        Распознать по имя таблицы и выбору в таблице по короткой записи.
+        :param key: например:['na=11(node)','125', 'g=125', '12,13,0']
+        :return: (имя таблицы: str, выборка: str)
+        """
+        key = key.replace(' ', '')
+        selection_in_table = key  # выборка в таблице
+        rastr_table = ''  # имя таблицы
+        # проверка наличия явного указания таблицы
+        match = re.search(re.compile(r"\((.+?)\)"), key)
+
+        if match:  # таблица указана
+            rastr_table = match[1]
+            selection_in_table = selection_in_table.split('(', 1)[0]
+
+        if selection_in_table:
+            # разделение ключей для распознания
+            key_comma = selection_in_table.split(",")  # нр для ветви [,,], прочее []
+            key_equally = selection_in_table.split("=")  # есть = [,], нет равно []
+            if ',' in selection_in_table:  # vetv
+                if len(key_comma) != 3:
+                    raise ValueError(f'Ошибка в задании {key=}')
+                rastr_table = 'vetv'
+                selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np={key_comma[2]}"
+            else:
+                if selection_in_table.isdigit():
+                    rastr_table = 'node'
+                    selection_in_table = "ny=" + selection_in_table
+                elif 'g' == key_equally[0]:
+                    rastr_table = 'Generator'
+                    selection_in_table = "Num=" + key_equally[1]
+                else:
+                    if not rastr_table:
+                        if key_equally[0] in self.KEY_TABLES:
+                            rastr_table = self.KEY_TABLES[key_equally[0]]  # вернет имя таблицы
+        if not rastr_table:
+            raise ValueError(f"Таблица не определена: {key}")
+        return rastr_table, selection_in_table
 
     def group_cor(self, tabl: str, param: str, selection: str, formula: str, del_all: bool = False):
         """
@@ -286,7 +296,7 @@ class RastrMethod:
         cols_list = []
         for col in range(cls.Count):
             if cls(col).Name[0] != '_':
-            # if cls(col).Name not in ["kkluch", "txt_zag", "txt_adtn_zag", "txt_ddtn", "txt_adtn", "txt_ddtn_zag"]:
+                # if cls(col).Name not in ["kkluch", "txt_zag", "txt_adtn_zag", "txt_ddtn", "txt_adtn", "txt_ddtn_zag"]:
                 # print(cls(col).Name)
                 cols_list.append(cls(col).Name)
         return ','.join(cols_list)
@@ -485,9 +495,9 @@ class RastrMethod:
         else:
             raise ValueError(f'Задание {name=} не распознано ({sel=}, {value=})')
 
-    def change_loading_section(self,ns: int, new_loading: float, way: str = 'pg'):
+    def change_loading_section(self, ns: int, new_loading: float, way: str = 'pg'):
         """
-        Изменить переток мощности в сечении номер ns до величины new_loading путем (way) изменения нагрузки ('pn') или
+        # TODO Изменить переток мощности в сечении номер ns до величины new_loading путем (way) изменения нагрузки ('pn') или
         генерации ('qn')
         :param ns:
         :param new_loading:
@@ -495,3 +505,59 @@ class RastrMethod:
         """
         table = self.rastr.tables('sechen')
 
+    def test_parameter_rm_all(self, statement_all: str) -> bool:
+        """
+        Проверяет все утверждения и возвращает истина если все истина.
+        :param statement_all: Например, 'ny=15302: vras>510|ny=15302: vras<525.5'
+        :return:
+        """
+        statement_list = statement_all.split('|')
+        for statement_i in statement_list:
+            if statement_i:
+                if ':' not in statement_i:
+                    raise ValueError (f"Ошибка в  утверждении (нет ':'): {statement_i=}")
+                sel, statement = statement_i.replace(' ', '').split(':')
+                if not self.test_parameter_rm(sel, statement):
+                    logging.debug(f'Условие {statement_i!r} не выполняется')
+                    return False
+        return True
+
+    def test_parameter_rm(self, sel: str, statement: str) -> bool:
+        """
+        Проверяет верность утверждения.
+        :param sel: 'ny=1'
+        :param statement: 'vras>125'
+        :return: true или false
+        """
+
+        if not (statement and sel):
+            raise ValueError(f"Ошибка в  утверждении (нет условия или выборки): {sel=}, {statement=}")
+        tabl_name, tabl_choice = self.recognize_key(sel)
+        parameter = ''
+        value = ''
+        for operator in ['=<', '<=', '=>', '>=', '=', '<', '>', '']:
+            if operator in statement:
+                parameter, value = statement.split(operator)
+                break
+        if not (parameter and value):
+            raise ValueError("Ошибка в  утверждении (оператор сравнения не распознан): " + statement)
+
+        try:
+            value = float(value)
+        except ValueError:
+            raise ValueError("Ошибка в  утверждении (значение не число): " + statement)
+
+        rm_val = self.rastr.Calc("val", tabl_name, parameter, tabl_choice)
+        if operator in ['=<', '<=']:
+            if rm_val <= value:
+                return True
+        elif operator in ['=>', '>=']:
+            if rm_val >= value:
+                return True
+        elif operator == '>':
+            if rm_val > value:
+                return True
+        elif operator == '<':
+            if rm_val < value:
+                return True
+        return False

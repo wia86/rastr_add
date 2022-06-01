@@ -15,7 +15,7 @@ class Ui_cor(object):
     def setupUi(self, cor):
         cor.setObjectName("cor")
         cor.setEnabled(True)
-        cor.resize(799, 779)
+        cor.resize(1044, 779)
         self.centralwidget = QtWidgets.QWidget(cor)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -39,7 +39,7 @@ class Ui_cor(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 780, 1360))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 1025, 1360))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
@@ -1332,7 +1332,6 @@ class Ui_cor(object):
         font = QtGui.QFont()
         font.setPointSize(9)
         self.TE_cor_e.setFont(font)
-        self.TE_cor_e.setPlainText("")
         self.TE_cor_e.setObjectName("TE_cor_e")
         self.verticalLayout_17.addWidget(self.TE_cor_e)
         self.verticalLayout_2.addLayout(self.verticalLayout_17)
@@ -1564,18 +1563,18 @@ class Ui_cor(object):
         self.label_62.setBuddy(self.tab_V)
 
         self.retranslateUi(cor)
-        self.sel_import.setCurrentIndex(1)
+        self.sel_import.setCurrentIndex(0)
         QtCore.QMetaObject.connectSlotsByName(cor)
 
     def retranslateUi(self, cor):
         _translate = QtCore.QCoreApplication.translate
-        cor.setWindowTitle(_translate("cor", "Изменение модели"))
+        cor.setWindowTitle(_translate("cor", "Изменение моделей"))
         self.run_krg2.setText(_translate("cor", "Выполнить"))
         self.groupBox.setTitle(_translate("cor", "Меню"))
         self.b_main_choice.setText(_translate("cor", "Главное меню"))
         self.label.setText(_translate("cor", "   Задание (.yaml):"))
-        self.task_save.setText(_translate("cor", "сохранить"))
-        self.task_load.setText(_translate("cor", "загрузить"))
+        self.task_save.setText(_translate("cor", "Сохранить"))
+        self.task_load.setText(_translate("cor", "Загрузить"))
         self.GB_import_val_XL_2.setTitle(_translate("cor", "Выбор моделей"))
         self.label_9.setText(_translate("cor", "Исходными файлами:"))
         self.T_IzFolder.setPlainText(_translate("cor", "I:\\rastr_add\\test"))
@@ -1596,21 +1595,18 @@ class Ui_cor(object):
         self.condition_file_max_min.setItemText(2, _translate("cor", "мин"))
         self.label_6.setText(_translate("cor", ", (доп имя):"))
         self.CB_cor_b.setText(_translate("cor", "Задание на корректировку до импорта"))
-        self.TE_cor_b.setPlainText(_translate("cor", "# Задание аналогично \"строковой форме\" excel: в квадратных скобках параметры в формате [Выборка | Значение]\n"
-"# В фигурных скобках указывается условие выполнения в формате {years = 2026| season=лет| max_min=min| add_name=0°C}\n"
-"# Примеры:\n"
+        self.TE_cor_b.setPlainText(_translate("cor", "\n"
+"# краткая справка:\n"
 "#удалить*[15145 ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)\n"
-"#удалить[15561,15129,0 15562,15130,0 Num=912 g=913]  # удалить ветви 15561,15129,0 15562,15130,0 и генераторы 912, 913#\n"
 "#изм[15148|name=Промплощадка:_изм_name]  # при изменении текстовых полей \'  \' заменить на \'_\'\n"
-"#изм[na=11(node) (vetv)|sel=1]{years = 2026}  # отметить узлы 11 района и все ветви\n"
-"#изм[(vetv) (area) (area2) (darea)|Tc=0]{years = 2026|season=зим|max_min=макс|add_name=0°C}  # обнулить температуру\n"
-"#снять отметку{years = 2026 |    season=зим}  # снять отметку зимой 2026\n"
-"#добавить[node|ny=3 pn=1 uhom=120 na=11 name=Новый_узел]  # Добавить запись в таблицу\n"
+"#изм[15302|pg=qn*2+10] # задание может быть формулой\n"
+"#изм[na=11(node) (vetv)|sel=1]  # отметить узлы 11 района и все ветви\n"
+"#изм[(vetv) (area) (area2) (darea)|Tc=0]\n"
+"#снять отметку{years: 2026| season:лет| max_min:min| add_name:0°C| ny=2:vras>525.5}\n"
 "#добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]\n"
-"#пробелы и буквы[node:name,dname vetv:dname Generator:Name]  # Исправить пробелы, заменить английские буквы на русские.\n"
-"#СХН[na=11]  # добавить номера СХН в узлах:uhom>100 nsx=1, uhom<100 nsx=2. Выборка в таблице узлы  может быть пустой\n"
-"#номинальные напряжения[na=11]  #  Проверка номинального напряжения [6, 10, 35, 110, 220, 330, 500, 750]. \n"
-"#расчет  # расчет режима\n"
+"#пробелы и буквы[node:name,dname vetv:dname Generator:Name]  \n"
+"#СХН[na=11]\n"
+"#номинальные напряжения[na=11]  \n"
 ""))
         self.CB_ImpRg2.setText(_translate("cor", "Импорт из файлa (.rg2)"))
         self.CB_N.setText(_translate("cor", "выполнить"))
@@ -1629,7 +1625,7 @@ class Ui_cor(object):
         self.label_71.setText(_translate("cor", "Год:"))
         self.label_72.setText(_translate("cor", ", зим/лет:"))
         self.Filtr_sez_N.setItemText(1, _translate("cor", "зим"))
-        self.Filtr_sez_N.setItemText(2, _translate("cor", "макс"))
+        self.Filtr_sez_N.setItemText(2, _translate("cor", "лет"))
         self.Filtr_sez_N.setItemText(3, _translate("cor", "паводок"))
         self.label_73.setText(_translate("cor", ", макс/мин:"))
         self.Filtr_max_min_N.setItemText(1, _translate("cor", "макс"))
@@ -1652,7 +1648,7 @@ class Ui_cor(object):
         self.label_11.setText(_translate("cor", "Год:"))
         self.label_12.setText(_translate("cor", ", зим/лет:"))
         self.Filtr_sez_V.setItemText(1, _translate("cor", "зим"))
-        self.Filtr_sez_V.setItemText(2, _translate("cor", "макс"))
+        self.Filtr_sez_V.setItemText(2, _translate("cor", "лет"))
         self.Filtr_sez_V.setItemText(3, _translate("cor", "паводок"))
         self.label_13.setText(_translate("cor", ", макс/мин:"))
         self.Filtr_max_min_V.setItemText(1, _translate("cor", "макс"))
@@ -1675,7 +1671,7 @@ class Ui_cor(object):
         self.label_75.setText(_translate("cor", "Год:"))
         self.label_76.setText(_translate("cor", ", зим/лет:"))
         self.Filtr_sez_G.setItemText(1, _translate("cor", "зим"))
-        self.Filtr_sez_G.setItemText(2, _translate("cor", "макс"))
+        self.Filtr_sez_G.setItemText(2, _translate("cor", "лет"))
         self.Filtr_sez_G.setItemText(3, _translate("cor", "паводок"))
         self.label_77.setText(_translate("cor", ", макс/мин:"))
         self.Filtr_max_min_G.setItemText(1, _translate("cor", "макс"))
@@ -1698,7 +1694,7 @@ class Ui_cor(object):
         self.label_79.setText(_translate("cor", "Год:"))
         self.label_80.setText(_translate("cor", ", зим/лет:"))
         self.Filtr_sez_A.setItemText(1, _translate("cor", "зим"))
-        self.Filtr_sez_A.setItemText(2, _translate("cor", "макс"))
+        self.Filtr_sez_A.setItemText(2, _translate("cor", "лет"))
         self.Filtr_sez_A.setItemText(3, _translate("cor", "паводок"))
         self.label_81.setText(_translate("cor", ", макс/мин:"))
         self.Filtr_max_min_A.setItemText(1, _translate("cor", "макс"))
@@ -1721,7 +1717,7 @@ class Ui_cor(object):
         self.label_83.setText(_translate("cor", "Год:"))
         self.label_84.setText(_translate("cor", ", зим/лет:"))
         self.Filtr_sez_A2.setItemText(1, _translate("cor", "зим"))
-        self.Filtr_sez_A2.setItemText(2, _translate("cor", "макс"))
+        self.Filtr_sez_A2.setItemText(2, _translate("cor", "лет"))
         self.Filtr_sez_A2.setItemText(3, _translate("cor", "паводок"))
         self.label_85.setText(_translate("cor", ", макс/мин:"))
         self.Filtr_max_min_A2.setItemText(1, _translate("cor", "макс"))
@@ -1744,7 +1740,7 @@ class Ui_cor(object):
         self.label_87.setText(_translate("cor", "Год:"))
         self.label_88.setText(_translate("cor", ", зим/лет:"))
         self.Filtr_sez_D.setItemText(1, _translate("cor", "зим"))
-        self.Filtr_sez_D.setItemText(2, _translate("cor", "макс"))
+        self.Filtr_sez_D.setItemText(2, _translate("cor", "лет"))
         self.Filtr_sez_D.setItemText(3, _translate("cor", "паводок"))
         self.label_89.setText(_translate("cor", ", макс/мин:"))
         self.Filtr_max_min_D.setItemText(1, _translate("cor", "макс"))
@@ -1767,7 +1763,7 @@ class Ui_cor(object):
         self.label_91.setText(_translate("cor", "Год:"))
         self.label_92.setText(_translate("cor", ", зим/лет:"))
         self.Filtr_sez_PQ.setItemText(1, _translate("cor", "зим"))
-        self.Filtr_sez_PQ.setItemText(2, _translate("cor", "макс"))
+        self.Filtr_sez_PQ.setItemText(2, _translate("cor", "лет"))
         self.Filtr_sez_PQ.setItemText(3, _translate("cor", "паводок"))
         self.label_93.setText(_translate("cor", ", макс/мин:"))
         self.Filtr_max_min_PQ.setItemText(1, _translate("cor", "макс"))
@@ -1790,7 +1786,7 @@ class Ui_cor(object):
         self.label_95.setText(_translate("cor", "Год:"))
         self.label_96.setText(_translate("cor", ", зим/лет:"))
         self.Filtr_sez_IT.setItemText(1, _translate("cor", "зим"))
-        self.Filtr_sez_IT.setItemText(2, _translate("cor", "макс"))
+        self.Filtr_sez_IT.setItemText(2, _translate("cor", "лет"))
         self.Filtr_sez_IT.setItemText(3, _translate("cor", "паводок"))
         self.label_97.setText(_translate("cor", ", макс/мин:"))
         self.Filtr_max_min_IT.setItemText(1, _translate("cor", "макс"))
@@ -1805,12 +1801,13 @@ class Ui_cor(object):
         self.label_8.setText(_translate("cor", "Имя листов:"))
         self.T_PQN_Sheets.setText(_translate("cor", "[XL->RastrWin][pop][cor]"))
         self.CB_cor_e.setText(_translate("cor", "Задание на корректировку после импорта"))
-        self.CB_kontrol_rg2.setText(_translate("cor", "Расчет режима и контроль параметров режима"))
+        self.TE_cor_e.setPlainText(_translate("cor", "#расчет  # расчет режима"))
+        self.CB_kontrol_rg2.setText(_translate("cor", "Расчет режима и проверка параметров режима (.rg2)"))
         self.GB_control.setTitle(_translate("cor", "Параметры"))
         self.label_26.setText(_translate("cor", "выборка в таблице узлы: "))
         self.kontrol_rg2_Sel.setText(_translate("cor", "na>0"))
         self.CB_s.setText(_translate("cor", "сечения: pmax > psech"))
-        self.CB_U.setText(_translate("cor", "узлы: Uном, Umin, Uнорм "))
+        self.CB_U.setText(_translate("cor", "узлы: Uном, Umin, Uнорм ..."))
         self.CB_na.setText(_translate("cor", "район: pop_zad~pop"))
         self.CB_I.setText(_translate("cor", "ветви: ДТН, n_it, n_it_av (наличие)"))
         self.CB_npa.setText(_translate("cor", "территории: pop_zad~pop"))
@@ -1836,6 +1833,6 @@ class Ui_cor(object):
         self.print_tab_log_cols.setText(_translate("cor", "год,лет/зим,макс/мин,доп_имя1,доп_имя2"))
         self.label_24.setText(_translate("cor", "значения в сводной:"))
         self.print_tab_log_vals.setText(_translate("cor", "P,Pmax"))
-        self.CB_print_parametr.setText(_translate("cor", "вывод заданных параметров"))
+        self.CB_print_parametr.setText(_translate("cor", "вывод значений следующих параметров из моделей:"))
         self.TA_parametr_vibor.setPlainText(_translate("cor", "v=15105,15113,0|15038,15037,4/r|x|b; n=15198/pg|qg"))
         self.CB_print_balance_Q.setText(_translate("cor", "таблица баланс реактивной мощности, выборка:"))

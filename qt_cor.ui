@@ -74,7 +74,7 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-625</y>
+         <y>0</y>
          <width>1025</width>
          <height>1360</height>
         </rect>
@@ -154,7 +154,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>сохранить</string>
+                <string>Сохранить</string>
                </property>
               </widget>
              </item>
@@ -167,7 +167,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>загрузить</string>
+                <string>Загрузить</string>
                </property>
               </widget>
              </item>
@@ -634,9 +634,10 @@
 # краткая справка:
 #удалить*[15145 ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
 #изм[15148|name=Промплощадка:_изм_name]  # при изменении текстовых полей '  ' заменить на '_'
+#изм[15302|pg=qn*2+10] # задание может быть формулой
 #изм[na=11(node) (vetv)|sel=1]  # отметить узлы 11 района и все ветви
 #изм[(vetv) (area) (area2) (darea)|Tc=0]
-#снять отметку{years = 2026| season=лет| max_min=min| add_name=0°C}
+#снять отметку{years: 2026| season:лет| max_min:min| add_name:0°C| ny=2:vras&gt;525.5}
 #добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]
 #пробелы и буквы[node:name,dname vetv:dname Generator:Name]  
 #СХН[na=11]
@@ -701,7 +702,7 @@
              <set>Qt::ImhNone</set>
             </property>
             <property name="currentIndex">
-             <number>1</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="node">
              <attribute name="title">
@@ -987,7 +988,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>макс</string>
+                       <string>лет</string>
                       </property>
                      </item>
                      <item>
@@ -1352,7 +1353,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>макс</string>
+                       <string>лет</string>
                       </property>
                      </item>
                      <item>
@@ -1717,7 +1718,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>макс</string>
+                       <string>лет</string>
                       </property>
                      </item>
                      <item>
@@ -2082,7 +2083,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>макс</string>
+                       <string>лет</string>
                       </property>
                      </item>
                      <item>
@@ -2447,7 +2448,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>макс</string>
+                       <string>лет</string>
                       </property>
                      </item>
                      <item>
@@ -2812,7 +2813,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>макс</string>
+                       <string>лет</string>
                       </property>
                      </item>
                      <item>
@@ -3177,7 +3178,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>макс</string>
+                       <string>лет</string>
                       </property>
                      </item>
                      <item>
@@ -3542,7 +3543,7 @@
                      </item>
                      <item>
                       <property name="text">
-                       <string>макс</string>
+                       <string>лет</string>
                       </property>
                      </item>
                      <item>
@@ -4244,7 +4245,7 @@
               </size>
              </property>
              <property name="text">
-              <string>вывод заданных параметров</string>
+              <string>вывод значений следующих параметров из моделей:</string>
              </property>
             </widget>
            </item>

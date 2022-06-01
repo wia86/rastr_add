@@ -1,7 +1,9 @@
+# установка модулей:
 # pip freeze > requirements.txt
 # pip install -r requirements.txt
-# I:\rastr_add> pyinstaller --onefile --noconsole main.py
-# I:\rastr_add> pyinstaller -F --noconsole main.py
+# exe приложение:
+# pyinstaller --onefile --noconsole main.py
+# pyinstaller -F --noconsole main.py
 import win32com.client
 from abc import ABC
 from Rastr_Method import RastrMethod
@@ -352,6 +354,8 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         dict_ = task_yaml['Imp_add']['node']
         self.CB_N.setChecked(dict_['add'])
         self.file_N.setText(dict_['import_file_name'])
+        if 'selection' in dict_:
+            self.CB_Filtr_N.setChecked(dict_['selection'])
         self.Filtr_god_N.setText(dict_["years"])
         self.Filtr_sez_N.setCurrentText(dict_["season"])
         self.Filtr_max_min_N.setCurrentText(dict_["max_min"])
@@ -364,6 +368,8 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         dict_ = task_yaml['Imp_add']['vetv']
         self.CB_V.setChecked(dict_['add'])
         self.file_V.setText(dict_['import_file_name'])
+        if 'selection' in dict_:
+            self.CB_Filtr_V.setChecked(dict_['selection'])
         self.Filtr_god_V.setText(dict_["years"])
         self.Filtr_sez_V.setCurrentText(dict_["season"])
         self.Filtr_max_min_V.setCurrentText(dict_["max_min"])
@@ -376,6 +382,8 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         dict_ = task_yaml['Imp_add']['gen']
         self.CB_G.setChecked(dict_['add'])
         self.file_G.setText(dict_['import_file_name'])
+        if 'selection' in dict_:
+            self.CB_Filtr_G.setChecked(dict_['selection'])
         self.Filtr_god_G.setText(dict_["years"])
         self.Filtr_sez_G.setCurrentText(dict_["season"])
         self.Filtr_max_min_G.setCurrentText(dict_["max_min"])
@@ -388,6 +396,8 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         dict_ = task_yaml['Imp_add']['area']
         self.CB_A.setChecked(dict_['add'])
         self.file_A.setText(dict_['import_file_name'])
+        if 'selection' in dict_:
+            self.CB_Filtr_A.setChecked(dict_['selection'])
         self.Filtr_god_A.setText(dict_["years"])
         self.Filtr_sez_A.setCurrentText(dict_["season"])
         self.Filtr_max_min_A.setCurrentText(dict_["max_min"])
@@ -400,6 +410,8 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         dict_ = task_yaml['Imp_add']['area2']
         self.CB_A2.setChecked(dict_['add'])
         self.file_A2.setText(dict_['import_file_name'])
+        if 'selection' in dict_:
+            self.CB_Filtr_A2.setChecked(dict_['selection'])
         self.Filtr_god_A2.setText(dict_["years"])
         self.Filtr_sez_A2.setCurrentText(dict_["season"])
         self.Filtr_max_min_A2.setCurrentText(dict_["max_min"])
@@ -411,6 +423,8 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
 
         dict_ = task_yaml['Imp_add']['darea']
         self.CB_D.setChecked(dict_['add'])
+        if 'selection' in dict_:
+            self.CB_Filtr_D.setChecked(dict_['selection'])
         self.file_D.setText(dict_['import_file_name'])
         self.Filtr_god_D.setText(dict_["years"])
         self.Filtr_sez_D.setCurrentText(dict_["season"])
@@ -424,6 +438,8 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         dict_ = task_yaml['Imp_add']['PQ']
         self.CB_PQ.setChecked(dict_['add'])
         self.file_PQ.setText(dict_['import_file_name'])
+        if 'selection' in dict_:
+            self.CB_Filtr_PQ.setChecked(dict_['selection'])
         self.Filtr_god_PQ.setText(dict_["years"])
         self.Filtr_sez_PQ.setCurrentText(dict_["season"])
         self.Filtr_max_min_PQ.setCurrentText(dict_["max_min"])
@@ -436,6 +452,8 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         dict_ = task_yaml['Imp_add']['IT']
         self.CB_IT.setChecked(dict_['add'])
         self.file_IT.setText(dict_['import_file_name'])
+        if 'selection' in dict_:
+            self.CB_Filtr_IT.setChecked(dict_['selection'])
         self.Filtr_god_IT.setText(dict_["years"])
         self.Filtr_sez_IT.setCurrentText(dict_["season"])
         self.Filtr_max_min_IT.setCurrentText(dict_["max_min"])
@@ -451,7 +469,6 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         """
         Добавить ImportFromModel и запуск
         """
-        log_conf()
         self.save_ini_form_folder()
         self.fill_task_ui()
         # Убрать 'file:///'
@@ -468,23 +485,26 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         Добавление в ImportFromModel данных с формы.
         """
         if self.CB_ImpRg2.isChecked():
-            if self.task_ui['CB_ImpRg2']:
-                for tables in self.task_ui['Imp_add']:
-                    if self.task_ui['Imp_add'][tables]['add']:
-                        ifm = ImportFromModel(import_file_name=self.task_ui['Imp_add'][tables]['import_file_name'],
-                                              criterion_start={"years": self.task_ui['Imp_add'][tables]['years'],
-                                                               "season": self.task_ui['Imp_add'][tables]['season'],
-                                                               "max_min": self.task_ui['Imp_add'][tables]['max_min'],
-                                                               "add_name": self.task_ui['Imp_add'][tables]['add_name']},
-                                              tables=self.task_ui['Imp_add'][tables]['tables'],
-                                              param=self.task_ui['Imp_add'][tables]['param'],
-                                              sel=self.task_ui['Imp_add'][tables]['sel'],
-                                              calc=self.task_ui['Imp_add'][tables]['calc'])
-                        ImportFromModel.ui_import_model.append(ifm)
+            for tables in self.task_ui['Imp_add']:
+                if self.task_ui['Imp_add'][tables]['add']:
+                    criterion_start = {}
+                    if self.task_ui['Imp_add'][tables]['selection']:
+                        criterion_start = {"years": self.task_ui['Imp_add'][tables]['years'],
+                                           "season": self.task_ui['Imp_add'][tables]['season'],
+                                           "max_min": self.task_ui['Imp_add'][tables]['max_min'],
+                                           "add_name": self.task_ui['Imp_add'][tables]['add_name']}
+
+                    ifm = ImportFromModel(import_file_name=self.task_ui['Imp_add'][tables]['import_file_name'],
+                                          criterion_start=criterion_start,
+                                          tables=self.task_ui['Imp_add'][tables]['tables'],
+                                          param=self.task_ui['Imp_add'][tables]['param'],
+                                          sel=self.task_ui['Imp_add'][tables]['sel'],
+                                          calc=self.task_ui['Imp_add'][tables]['calc'])
+                    ImportFromModel.ui_import_model.append(ifm)
 
     def fill_task_ui(self):
         """
-        Заполнить task_ui задание (task_ui).
+        Заполнить task_ui задание взяв данные с формы QT (task_ui).
         """
         self.task_ui = {
             "KIzFolder": self.T_IzFolder.toPlainText(),  # QPlainTextEdit
@@ -555,6 +575,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
             'Imp_add': {
                 'node': {'add': self.CB_N.isChecked(),
                          'import_file_name': self.file_N.text(),
+                         "selection": self.CB_Filtr_N.isChecked(),
                          "years": self.Filtr_god_N.text(),
                          "season": self.Filtr_sez_N.currentText(),
                          "max_min": self.Filtr_max_min_N.currentText(),
@@ -565,6 +586,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                          'calc': self.tip_N.currentText(), },
                 'vetv': {'add': self.CB_V.isChecked(),
                          'import_file_name': self.file_V.text(),
+                         "selection": self.CB_Filtr_V.isChecked(),
                          "years": self.Filtr_god_V.text(),
                          "season": self.Filtr_sez_V.currentText(),
                          "max_min": self.Filtr_max_min_V.currentText(),
@@ -575,6 +597,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                          'calc': self.tip_V.currentText(), },
                 'gen': {'add': self.CB_G.isChecked(),
                         'import_file_name': self.file_G.text(),
+                        "selection": self.CB_Filtr_G.isChecked(),
                         "years": self.Filtr_god_G.text(),
                         "season": self.Filtr_sez_G.currentText(),
                         "max_min": self.Filtr_max_min_G.currentText(),
@@ -585,6 +608,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                         'calc': self.tip_G.currentText(), },
                 'area': {'add': self.CB_A.isChecked(),
                          'import_file_name': self.file_A.text(),
+                         "selection": self.CB_Filtr_A.isChecked(),
                          "years": self.Filtr_god_A.text(),
                          "season": self.Filtr_sez_A.currentText(),
                          "max_min": self.Filtr_max_min_A.currentText(),
@@ -595,6 +619,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                          'calc': self.tip_A.currentText(), },
                 'area2': {'add': self.CB_A2.isChecked(),
                           'import_file_name': self.file_A2.text(),
+                          "selection": self.CB_Filtr_A2.isChecked(),
                           "years": self.Filtr_god_A2.text(),
                           "season": self.Filtr_sez_A2.currentText(),
                           "max_min": self.Filtr_max_min_A2.currentText(),
@@ -605,6 +630,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                           'calc': self.tip_A2.currentText(), },
                 'darea': {'add': self.CB_D.isChecked(),
                           'import_file_name': self.file_D.text(),
+                          "selection": self.CB_Filtr_D.isChecked(),
                           "years": self.Filtr_god_D.text(),
                           "season": self.Filtr_sez_D.currentText(),
                           "max_min": self.Filtr_max_min_D.currentText(),
@@ -615,6 +641,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                           'calc': self.tip_D.currentText(), },
                 'PQ': {'add': self.CB_PQ.isChecked(),
                        'import_file_name': self.file_PQ.text(),
+                       "selection": self.CB_Filtr_PQ.isChecked(),
                        "years": self.Filtr_god_PQ.text(),
                        "season": self.Filtr_sez_PQ.currentText(),
                        "max_min": self.Filtr_max_min_PQ.currentText(),
@@ -625,6 +652,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                        'calc': self.tip_PQ.currentText(), },
                 'IT': {'add': self.CB_IT.isChecked(),
                        'import_file_name': self.file_IT.text(),
+                       "selection": self.CB_Filtr_IT.isChecked(),
                        "years": self.Filtr_god_IT.text(),
                        "season": self.Filtr_sez_IT.currentText(),
                        "max_min": self.Filtr_max_min_IT.currentText(),
@@ -681,7 +709,7 @@ class CorModel(GeneralSettings):
 
     def __init__(self, task):
         super(CorModel, self).__init__()
-        self.pxl = None
+        self.print_xl = None
         self.cor_xl = None
         self.task = task
         self.rastr_files = None
@@ -725,11 +753,12 @@ class CorModel(GeneralSettings):
                 import_model()  # ИД для импорта
 
         if "import_val_XL" in self.task:
-            if self.task["import_val_XL"]:  # задать параметры узла по значениям в таблице excel (имя книги, имя листа)
+            if self.task["import_val_XL"]:  # Задать параметры узла по значениям в таблице excel (имя книги, имя листа)
                 self.cor_xl = CorXL(excel_file_name=self.task["excel_cor_file"], sheets=self.task["excel_cor_sheet"])
                 self.cor_xl.init_export_model()
 
         load_add = []
+        # Загрузить файл сечения.
         if "printXL" in self.task:
             if ((self.task["printXL"] and self.task["set_printXL"]["sechen"]) or
                     (self.task["control_rg2"] and self.task["control_rg2_task"]["section"])):
@@ -767,8 +796,8 @@ class CorModel(GeneralSettings):
         if ImportFromModel.ui_import_model:
             ImportFromModel.ui_import_model = []
 
-        if self.pxl:
-            self.pxl.finish()
+        if self.print_xl:
+            self.print_xl.finish()
 
         self.the_end()
 
@@ -798,10 +827,12 @@ class CorModel(GeneralSettings):
                 logging.info("\t***Блок начала ***")
                 block_b(rm)
                 logging.info("\t*** Конец блока начала ***")
+
         # Импорт моделей
         if ImportFromModel.ui_import_model:
             for im in ImportFromModel.ui_import_model:
                 im.import_csv(rm)
+
         # Задать параметры по значениям в таблице excel
         if "import_val_XL" in self.task:
             if self.task["import_val_XL"]:
@@ -832,9 +863,9 @@ class CorModel(GeneralSettings):
 
         if 'printXL' in self.task:
             if self.task['printXL']:
-                if not type(self.pxl) == PrintXL:
-                    self.pxl = PrintXL(self.task)
-                self.pxl.add_val(rm)
+                if not type(self.print_xl) == PrintXL:
+                    self.print_xl = PrintXL(self.task)
+                self.print_xl.add_val(rm)
 
 
 class RastrModel(RastrMethod):
@@ -965,8 +996,8 @@ class RastrModel(RastrMethod):
             if condition['season']:
                 if condition['season'].strip():  # ПРОВЕРКА "зим" "лет" "паводок"
                     fff = False
-                    temp = condition['season'].replace(' ', '')
-                    for us in temp.split(","):
+                    _ = condition['season'].replace(' ', '')
+                    for us in _.split(","):
                         if self.name_list[1] == us:
                             fff = True
                     if not fff:
@@ -986,11 +1017,11 @@ class RastrModel(RastrMethod):
             if condition['add_name']:  # ПРОВЕРКА (-41С;МДП:ТЭ-У)
                 if condition['add_name'].strip():  # ПРОВЕРКА (-41С;МДП:ТЭ-У)
                     if ";" in condition['add_name']:
-                        temp = condition['add_name'].split(";")
+                        _ = condition['add_name'].split(";")
                     else:
-                        temp = condition['add_name'].split(",")
+                        _ = condition['add_name'].split(",")
                     fff = False
-                    for us in temp:
+                    for us in _:
                         for DopName_i in self.DopName:
                             if DopName_i == us:
                                 fff = True
@@ -1100,8 +1131,8 @@ class RastrModel(RastrMethod):
                 if branch.count:
                     j = branch.FindNextSel(-1)
                     while j > -1:
-                        n_it = branch.cols.item("n_it").Z(j)
-                        if (n_it,) not in all_graph_it:
+                        n_it = branch.cols.item(field).Z(j)
+                        if (n_it,) not in all_graph_it and n_it > 0:
                             logging.error(f"\t\tВНИМАНИЕ graphikIT! vetv: {branch.SelString(j)!r}, "
                                           f"{branch.cols.item('name').ZS(j)!r}, "
                                           f"{field}={n_it} не найден в таблице График_Iдоп_от_Т")
@@ -1206,20 +1237,27 @@ class RastrModel(RastrMethod):
             name_fun = name_fun.split('[', 1)[0]
             name_fun = name_fun.replace(' ', '')
             if not name_fun:
-                continue
+                continue  # К следующей строке.
 
             # Условие выполнения в фигурных скобках
             condition_dict = {}
+            statements = ''
             match = re.search(re.compile(r"\{(.+?)}"), task_row)
             if match:
-                conditions = match[1].split('|')
+                conditions = match[1].replace(' ', '').split('|')
                 for condition in conditions:
-                    parameter, value = condition.split('=')
-                    condition_dict[parameter.strip()] = value.strip()
+                    parameter, value = condition.split(':')
+                    if parameter in ['years', 'season', 'max_min', 'add_name']:
+                        condition_dict[parameter] = value
+                    else:
+                        statements += condition + '|'
             if condition_dict and self.kod_name_rg2:
                 if not self.test_name(condition=condition_dict):
+                    continue  # К следующей строке.
+            if statements:
+                if not self.test_parameter_rm_all(statements):
                     continue
-            # Параметры функции в круглых скобках
+            # Параметры функции в квадратных скобках
             function_parameters = []
             match = re.search(re.compile(r"\[(.+?)]"), task_row)
             if match:
@@ -1230,7 +1268,7 @@ class RastrModel(RastrMethod):
 
 class CorSheet:
     """
-    Клас лист для хранения листов книги excel и работы с ними
+    Клас лист для хранения листов книги excel и работы с ними.
     """
     SHAPE = {"Параметры импорта из файлов RastrWin": 'import_model',
              'Выполнить изменение модели по строкам': 'list_cor'}
@@ -1293,27 +1331,30 @@ class CorSheet:
         Таблица корректировок по списку, нр изм, удалить, снять отметку.
         """
         # номера столбцов
-        C_VALUE = 3
         C_SELECTION = 2
+        C_VALUE = 3
 
         for row in range(3, self.xls.max_row + 1):
             name_fun = self.xls.cell(row, 1).value
             if name_fun:
                 if '#' not in name_fun:
+                    sel = str(self.xls.cell(row, C_SELECTION).value)
+                    value = self.xls.cell(row, C_VALUE).value
                     year = self.xls.cell(row, 4).value
                     season = self.xls.cell(row, 5).value
                     max_min = self.xls.cell(row, 6).value
                     add_name = self.xls.cell(row, 7).value
-                    sel = str(self.xls.cell(row, C_SELECTION).value)
-                    value = self.xls.cell(row, C_VALUE).value
+                    statement = self.xls.cell(row, 8).value
+
                     if any([year, season, max_min, add_name]) and rm.kod_name_rg2:  # any если хотя бы один истина
                         if not rm.test_name(condition={"years": year, "season": season,
                                                        "max_min": max_min, "add_name": add_name},
                                             info=f'\t\tcor_x:{sel=}, {value=}'):
                             continue
-
-                    rm.txt_task_cor(name=name_fun, sel=sel,
-                                    value=value)
+                    if statement:
+                        if not rm.test_parameter_rm_all(statement):
+                            continue
+                    rm.txt_task_cor(name=name_fun, sel=sel, value=value)
 
     def tab_cor(self, rm: RastrModel) -> None:
         name_files = ""
@@ -1367,9 +1408,9 @@ class CorXL:
     Изменить параметры модели по заданию в таблице excel.
     """
 
-    def __init__(self, excel_file_name: str, sheets: str) -> None:  # , rm: RastrModel
+    def __init__(self, excel_file_name: str, sheets: str) -> None:
         """
-        Проверить наличие книги и листов, создать классы CorSheet для листов
+        Проверить наличие книги и листов, создать классы CorSheet для листов.
         :param excel_file_name: полное имя файла excel, нр I:\примеры.xlsx;
         :param sheets: имя листов, нр [импорт из моделей][XL->RastrWin], если '*', то все листы по порядку
         """
@@ -1380,7 +1421,8 @@ class CorXL:
             raise ValueError("Ошибка в задании, не найден файл: " + excel_file_name)
         else:
             self.excel_file_name = excel_file_name
-            self.wb = load_workbook(excel_file_name, data_only=True)  # data_only - загружать расчетные значения ячеек
+            # data_only - Загружать расчетные значения ячеек, иначе будут формулы.
+            self.wb = load_workbook(excel_file_name, data_only=True)
 
             if sheets == '*':  # все листы
                 self.sheets = self.wb.sheetnames
@@ -1418,12 +1460,12 @@ class ImportFromModel:
         """
         Импорт данных из файлов .rg2, .rst и др.
         Создает папку temp в папке с файлом и сохраняет в ней .csv файлы
-        import_file_name = полное имя файла
-        criterion_start={"years": "","season": "","max_min": "", "add_name": ""} условие выполнения
-        tables = таблица для импорта, нр "node;vetv"
-        param= параметры для импорта: "" все параметры или перечисление, нр 'sel,sta'(ключи не обязательно)
-        sel= выборка нр "sel" или "" - все
-        calc= число типа int, строка или ключевое слово:
+        :param import_file_name: полное имя файла
+        :param criterion_start: {"years": "","season": "","max_min": "", "add_name": ""} условие выполнения
+        :param tables: таблица для импорта, нр "node;vetv"
+        :param param: параметры для импорта: "" все параметры или перечисление, нр 'sel,sta'(ключи не обязательно)
+        :param sel: выборка нр "sel" или "" - все
+        :param calc: число типа int, строка или ключевое слово:
         {"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}
         """
         self.import_rm = None
@@ -1455,9 +1497,8 @@ class ImportFromModel:
                     raise ValueError("Ошибка в задании, не распознано задание calc ImportFromModel: " + calc)
             self.file_csv = []
             ImportFromModel.number += 1
-            number = str(ImportFromModel.number)
             for tabl in self.tables:
-                self.file_csv.append(f"{self.folder_temp}\\{self.basename}_{tabl}_{number}.csv")
+                self.file_csv.append(f"{self.folder_temp}\\{self.basename}_{tabl}_{ImportFromModel.number}.csv")
                 self.param.append(param)
 
             # Экспорт данных из файла в .csv файлы в папку temp
@@ -1491,14 +1532,20 @@ class ImportFromModel:
                     """{"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
                     tab = rm.rastr.Tables(self.tables[index])
                     tab.ReadCSV(self.calc, self.file_csv[index], self.param[index], ";", '')
+        ImportFromModel.number = 0
 
 
 class PrintXL:
     """Класс печать данных в excel"""
     list_name_z = []
-    short_name_tables = {'n': 'node', 'v': 'vetv', 'g': 'Generator', 'na': 'area', 'npa': 'area2', 'no': 'darea',
-                         'nga': 'ngroup', 'ns': 'sechen'}
-
+    short_name_tables = {'n': 'node',
+                         'v': 'vetv',
+                         'g': 'Generator',
+                         'na': 'area',
+                         'npa': 'area2',
+                         'no': 'darea',
+                         'nga': 'ngroup',
+                         'ns': 'sechen'}
     #  ...._log  лист протокол для сводной
 
     def __init__(self, task):  # добавить листы и первая строка с названиями
@@ -1506,19 +1553,20 @@ class PrintXL:
         self.name_xl_file = ''  # Имя файла EXCEL для сохранения
         self.excel = None
         self.wbook = None
+        self.sheets = {}  # Для хранения ссылок на листы excel {'имя листа': ссылка}
         self.task = task
         self.list_name = ["name_rg2", "год", "лет/зим", "макс/мин", "доп_имя1", "доп_имя2", "доп_имя3"]
         self.book = Workbook()
-        #  создать лист xl и присвоить ссылку на него
+        #  Создать лист xl и присвоить ссылку на него
         for key in self.task['set_printXL']:
             if self.task['set_printXL'][key]['add']:
-                self.task['set_printXL'][key]["sheet"] = self.book.create_sheet(key + "_log")
-                # записать первую строку параметров
+                self.sheets[key] = self.book.create_sheet(key + "_log")
+                # Записать первую строку параметров.
                 header_list = self.list_name + self.task['set_printXL'][key]['par'].split(',')
-                self.task['set_printXL'][key]["sheet"].append(header_list)
+                self.sheets[key].append(header_list)
 
         if self.task['print_parameters']['add']:
-            self.task['print_parameters']["sheet"] = self.book.create_sheet('parameters')
+            self.sheets['parameters'] = self.book.create_sheet('Значения')
 
         if self.task['print_balance_q']['add']:
             self.sheet_q = self.book.create_sheet("balance_Q")
@@ -1601,7 +1649,6 @@ class PrintXL:
 
             # принт данных из растр в таблицу для СВОДНОЙ
             r_table = rastr.tables(self.task['set_printXL'][key]['tabl'])
-            sheet = self.task['set_printXL'][key]["sheet"]
             param_list = self.task['set_printXL'][key]['par'].split(',')
             param_list = [param_list[i] if r_table.cols.Find(param_list[i]) > -1 else '-' for i in
                           range(len(param_list))]
@@ -1610,7 +1657,7 @@ class PrintXL:
             r_table.setsel(setsel)
             index = r_table.FindNextSel(-1)
             while index >= 0:
-                sheet.append(
+                self.sheets[key].append(
                     self.list_name_z + [r_table.cols.item(val).ZN(index) if val != '-' else '-' for val in param_list])
                 index = r_table.FindNextSel(index)
 
@@ -1620,7 +1667,7 @@ class PrintXL:
         Таблица: n-node,v-vetv,g-Generator,na-area,npa-area2,no-darea,nga-ngroup,ns-sechen.
         :param rastr:
         """
-        sheet = self.task['print_parameters']["sheet"]
+        sheet = self.sheets['parameters']
         one_row_list = None
         if sheet.max_row == 1:
             one_row_list = self.list_name[:]
@@ -1744,17 +1791,13 @@ class PrintXL:
             sheet = self.book[sheet_name]
             if sheet.max_row == 1:
                 del self.book[sheet_name]  # удалить пустой лист
-            elif 'log' in sheet_name:
-                # Создать объект таблица.
-                tab = Table(displayName=sheet_name,
-                            ref='A1:' + get_column_letter(sheet.max_column) + str(sheet.max_row))
-                style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
-                                       showLastColumn=False, showRowStripes=True, showColumnStripes=True)
-                tab.tableStyleInfo = style
-                sheet.add_table(tab)
-                if 'log' in sheet_name:
-                    self.book.create_sheet(sheet_name.replace('log', 'сводная'))
-                    self.sheet_couple[sheet_name] = sheet_name.replace('log', 'сводная')
+            else:
+                if 'log' in sheet_name or 'Значения' == sheet_name:
+                    PrintXL.create_table(sheet, sheet_name)  # Создать объект таблица.
+                    if 'log' in sheet_name:
+                        self.book.create_sheet(sheet_name.replace('log', 'сводная'))
+                        self.sheet_couple[sheet_name] = sheet_name.replace('log', 'сводная')
+
         self.name_xl_file = self.task['name_time'] + ' вывод данных.xlsx'
 
         if self.task['print_balance_q']['add']:
@@ -1762,14 +1805,27 @@ class PrintXL:
 
         self.book.save(self.name_xl_file)
         self.book = None
+        self.create_pivot()
 
-        for key in self.task['set_printXL']:
-            if self.task['set_printXL'][key]['add']:
-                self.create_pivot()
-                break
+
+    @staticmethod
+    def create_table(sheet, sheet_name):
+        """
+        Создать объект таблица из всего диапазона листа.
+        :param sheet: объект лист excel
+        :param sheet_name: Имя таблицы.
+        """
+        tab = Table(displayName=sheet_name, ref='A1:' + get_column_letter(sheet.max_column) + str(sheet.max_row))
+        style = TableStyleInfo(name="TableStyleMedium9", showFirstColumn=False,
+                               showLastColumn=False, showRowStripes=True, showColumnStripes=True)
+        tab.tableStyleInfo = style
+        sheet.add_table(tab)
 
     def create_pivot(self):
-        # Открыть win32com.client для создания сводных.
+        """
+        Открыть excel через win32com.client и создать сводные.
+        :return:
+        """
         self.excel = win32com.client.Dispatch("Excel.Application")
         self.excel.ScreenUpdating = False  # обновление экрана
         # self.excel.Calculation = -4135  # xlCalculationManual
@@ -1926,21 +1982,17 @@ def block_e(rm):
 
 
 def my_except_hook(func):
+    """
+    Переназначить функцию для добавления информации об ошибке в диалоговое окно.
+    :param func:
+    :return:
+    """
     def new_func(*args, **kwargs):
-        logging.error("Ошибка", f"Критическая ошибка: {args[0]}, {args[1]}")
+        logging.error( f"Критическая ошибка: {args[0]}, {args[1]}", exc_info=True)
         mb.showerror("Ошибка", f"Критическая ошибка: {args[0]}, {args[1]}")
         # https://python-scripts.com/python-traceback
         func(*args, **kwargs)
-
     return new_func
-
-
-def log_conf():
-    """Установить logging.basicConfig"""
-    # https://docs.python.org/3/library/logging.html
-    # 'w' - перезаписать лог, иначе будет добавляться
-    logging.basicConfig(filename="log_file.log", level=logging.INFO, filemode='w',
-                        format='%(asctime)s %(levelname)s:%(message)s')  # DEBUG, INFO, WARNING, ERROR и CRITICAL
 
 
 if __name__ == '__main__':
@@ -1948,7 +2000,17 @@ if __name__ == '__main__':
     calc_set = 1  # 1 -Изменить модели, 2-Расчет установившихся режимов, 3-Расчет токов КЗ
     cm = None  # глобальный объект класса CorModel
     sys.excepthook = my_except_hook(sys.excepthook)
-    log_conf()
+
+    # https://docs.python.org/3/library/logging.html
+    logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
+                        format='%(asctime)s %(name)s  %(levelname)s:%(message)s')  # DEBUG, INFO, WARNING, ERROR и CRITICAL
+
+    log = logging.getLogger(__name__)
+    file_handler_error = logging.FileHandler('file_error.log')
+    file_handler_error.setLevel(logging.DEBUG)
+    file_handler_error.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s:%(message)s'))
+    log.addHandler(file_handler_error)
+
     if VISUAL_CHOICE:  # в коде
         app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
         # app.setApplicationName("Правка моделей RastrWin")
@@ -2035,7 +2097,7 @@ if __name__ == '__main__':
                               "rows": "no,name,лет/зим,макс/мин,доп_имя1,доп_имя2",  # поля строк в сводной
                               "columns": "год",  # поля столбцов в сводной
                               "values": "pp,pg"},
-                    # из любой таблицы растр, нр "Generator" ,"P,Pmax" или "" все параметры, "Num>0" выборка)
+                    # Из любой таблицы растр, нр "Generator" ,"P,Pmax" или "" все параметры, "Num>0" выборка)
                     "tab": {'add': False, "sel": "Num>0", 'tabl': "Generator",
                             'par': "Num,Name,sta,Node,P,Pmax,Pmin,value",
                             "rows": "Num,Name",  # поля строк в сводной
@@ -2059,4 +2121,8 @@ if __name__ == '__main__':
 
 # TODO дописать: перенос параметров из одноименных файлов
 # TODO дописать: сравнение файлов
-# TODO не загружается задание yaml при автосохранении
+# TODO очищать протокол
+# TODO авто скрм
+# TODO условие выполнения из модели
+# TODO точка и запятая работали
+# TODO выборка при импорте из файла не должна работать если нет галочки
