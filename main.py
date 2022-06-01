@@ -66,7 +66,7 @@ class Window:
         fileName_choose, _ = QtWidgets.QFileDialog.getOpenFileName(self, directory=directory,
                                                                    filter=filter_)  # "All Files(*);Text Files(*.txt)"
         if fileName_choose:
-            logging.info(f"Выбран файл: {fileName_choose}")
+            log.info(f"Выбран файл: {fileName_choose}")
             return fileName_choose
 
     def choice_folder(self, directory: str):
@@ -83,7 +83,7 @@ class Window:
         """
         fileName_choose, _ = QtWidgets.QFileDialog.getSaveFileName(self, directory=directory, filter=filter_)
         if fileName_choose:
-            logging.info(f"Для сохранения выбран файл: {fileName_choose}, {_}")
+            log.info(f"Для сохранения выбран файл: {fileName_choose}, {_}")
             return fileName_choose
 
 
@@ -147,10 +147,10 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
                 self.LE_amt.setText(config['DEFAULT']["шаблон amt"])
                 self.LE_trn.setText(config['DEFAULT']["шаблон trn"])
             except LookupError:
-                logging.error('файл settings.ini не читается, перезаписан')
+                log.error('файл settings.ini не читается, перезаписан')
                 self.save_ini()
         else:
-            logging.info('создан файл settings.ini')
+            log.info('создан файл settings.ini')
             self.save_ini()
 
     def save_ini(self):
@@ -226,7 +226,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         self.choice_PQ.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_PQ))
         self.choice_IT.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_IT))
 
-        self.run_krg2.clicked.connect(lambda: self.gui_start())
+        self.run_krg2.clicked.connect(lambda: self.start())
         self.b_main_choice.clicked.connect(lambda: self.hide_show((gui_edit,), (gui_choice_window,)))
         # Подсказки
         # self.CB_KFilter_file.setToolTip("Всплывающее окно")
@@ -237,7 +237,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
             try:
                 self.T_IzFolder.setPlainText(config['save_form_folder']["path"])
             except LookupError:
-                logging.error('файл settings.ini не читается')
+                log.error('файл settings.ini не читается')
 
     def save_ini_form_folder(self):
         """
@@ -465,10 +465,11 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
 
         self.check_status(self.check_status_visibility)
 
-    def gui_start(self):
+    def start(self):
         """
         Добавить ImportFromModel и запуск
         """
+        file_handler.close()
         self.save_ini_form_folder()
         self.fill_task_ui()
         # Убрать 'file:///'
@@ -699,7 +700,7 @@ class GeneralSettings(ABC):
         self.set_info['end_info'] = (
             f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {self.now.strftime('%d-%m-%Y %H:%M')}"
             f" \nЗатрачено: {timedelta(seconds=time() - self.time_start)} c.")
-        logging.info(self.set_info['end_info'])
+        log.info(self.set_info['end_info'])
 
 
 class CorModel(GeneralSettings):
@@ -731,7 +732,7 @@ class CorModel(GeneralSettings):
         if "KInFolder" in self.task:
             if self.task["KInFolder"]:
                 if not os.path.exists(self.task["KInFolder"]):
-                    logging.info("Создана папка: " + self.task["KInFolder"])
+                    log.info("Создана папка: " + self.task["KInFolder"])
                     os.mkdir(self.task["KInFolder"])
             folder_save = self.task["KInFolder"] if self.task["KInFolder"] else self.task["KIzFolder"]
         else:
@@ -809,24 +810,24 @@ class CorModel(GeneralSettings):
         shutil.copyfile('log_file.log', notepad_path)
         with open(self.task['name_time'] + ' задание на корректировку.yaml', 'w') as f:
             yaml.dump(data=self.task, stream=f, default_flow_style=False, sort_keys=False)
-        webbrowser.open(notepad_path)
+        # webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
         mb.showinfo("Инфо", self.set_info['end_info'])
 
     def cor_file(self, rm):
         """Корректировать файл rm"""
         try:
             if self.task['cor_beginning_qt']['add']:
-                logging.info("\t*** Начало корректировку модели 'до импорта' ***")
+                log.info("\t*** Начало корректировку модели 'до импорта' ***")
                 rm.cor_rm_from_txt(self.task['cor_beginning_qt']['txt'])
-                logging.info("\t*** Конец выполнения корректировки моделей 'до импорта' ***\n")
+                log.info("\t*** Конец выполнения корректировки моделей 'до импорта' ***\n")
         except KeyError:
             pass
 
         if 'block_beginning' in self.task:
             if self.task['block_beginning']:
-                logging.info("\t***Блок начала ***")
+                log.info("\t***Блок начала ***")
                 block_b(rm)
-                logging.info("\t*** Конец блока начала ***")
+                log.info("\t*** Конец блока начала ***")
 
         # Импорт моделей
         if ImportFromModel.ui_import_model:
@@ -840,17 +841,17 @@ class CorModel(GeneralSettings):
 
         try:
             if self.task['cor_end_qt']['add']:
-                logging.info("\t*** Начало корректировку модели 'после импорта' ***")
+                log.info("\t*** Начало корректировку модели 'после импорта' ***")
                 rm.cor_rm_from_txt(self.task['cor_end_qt']['txt'])
-                logging.info("\t*** Конец выполнения корректировки моделей 'после импорта' ***\n")
+                log.info("\t*** Конец выполнения корректировки моделей 'после импорта' ***\n")
         except KeyError:
             pass
 
         if 'block_end' in self.task:
             if self.task['block_end']:
-                logging.info("\t*** Блок конца ***")
+                log.info("\t*** Блок конца ***")
                 block_e(rm)
-                logging.info("\t*** Конец блока конца ***")
+                log.info("\t*** Конец блока конца ***")
         # Исправить пробелы, заменить английские буквы на русские.
         if "cor_name" in self.task:
             if self.task["cor_name"]:
@@ -988,7 +989,7 @@ class RastrModel(RastrMethod):
                     if int(self.god) == us:
                         fff = True
                 if not fff:
-                    logging.debug(info + self.Name + f" Год '{self.god}' не проходит по условию: "
+                    log.debug(info + self.Name + f" Год '{self.god}' не проходит по условию: "
                                   + str(condition['years']))
                     return False
 
@@ -1001,7 +1002,7 @@ class RastrModel(RastrMethod):
                         if self.name_list[1] == us:
                             fff = True
                     if not fff:
-                        logging.debug(info + self.Name + f" Сезон '{self.name_list[1]}' не проходит по условию: "
+                        log.debug(info + self.Name + f" Сезон '{self.name_list[1]}' не проходит по условию: "
                                       + condition['season'])
                         return False
 
@@ -1009,7 +1010,7 @@ class RastrModel(RastrMethod):
             if condition['max_min']:
                 if condition['max_min'].strip():  # ПРОВЕРКА "макс" "мин"
                     if self.name_list[2] != condition['max_min'].replace(' ', ''):
-                        logging.debug(info + self.Name + f" '{self.name_list[2]}' не проходит по условию: "
+                        log.debug(info + self.Name + f" '{self.name_list[2]}' не проходит по условию: "
                                       + condition['max_min'])
                         return False
 
@@ -1026,7 +1027,7 @@ class RastrModel(RastrMethod):
                             if DopName_i == us:
                                 fff = True
                     if not fff:
-                        logging.debug(
+                        log.debug(
                             info + self.Name + f" Доп. имя {self.DopNameStr} не проходит по условию: " + condition[
                                 'add_name'])
                         return False
@@ -1042,10 +1043,10 @@ class RastrModel(RastrMethod):
             # try:
             self.rastr = win32com.client.Dispatch("Astra.Rastr")
             # except NameError:
-            #     logging.critical('Com объект Astra.Rastr не найден')
+            #     log.critical('Com объект Astra.Rastr не найден')
 
         self.rastr.Load(1, self.full_name, self.pattern)  # загрузить
-        logging.info(f"\n\nЗагружен файл: {self.full_name}\n")
+        log.info(f"\n\nЗагружен файл: {self.full_name}\n")
         # Загрузить файлы load_add
         if load_add:
             for extension in load_add:
@@ -1053,11 +1054,11 @@ class RastrModel(RastrMethod):
                 names = list(filter(lambda x: x.endswith('.' + extension), files))
                 if len(names) > 0:
                     self.rastr.Load(1, self.dir + '\\' + names[0], GeneralSettings.set_save["шаблон " + extension])
-                    logging.info("Загружен файл: " + names[0])
+                    log.info("Загружен файл: " + names[0])
 
     def save(self, full_name_new):
         self.rastr.Save(full_name_new, self.pattern)
-        logging.info("Файл сохранен: " + full_name_new)
+        log.info("Файл сохранен: " + full_name_new)
 
     def control_rg2(self, dict_task: dict):
         """  контроль  dict_task = {'node': True, 'vetv': True, 'Gen': True, 'section': True,
@@ -1079,19 +1080,19 @@ class RastrModel(RastrMethod):
         # Узлы без ветвей.
         all_ny_not_branches = all_ny - all_iq_ip
         if all_ny_not_branches:
-            logging.error(f'В таблице node узлы без ветвей: {all_ny_not_branches}')
+            log.error(f'В таблице node узлы без ветвей: {all_ny_not_branches}')
         # Ветви без узлов.
         all_ipiq_not_node = all_iq_ip - all_ny
         if all_ipiq_not_node:
-            logging.error(f'В таблице vetv есть ссылка на узлы которых нет в таблице node: {all_ipiq_not_node}')
+            log.error(f'В таблице vetv есть ссылка на узлы которых нет в таблице node: {all_ipiq_not_node}')
         # Генераторы без узлов.
         all_gen_not_node = all_gen_ny - all_ny
         if all_gen_not_node:
-            logging.error(f'В таблице Generator есть ссылка на узлы которых нет в таблице node: {all_gen_not_node}')
+            log.error(f'В таблице Generator есть ссылка на узлы которых нет в таблице node: {all_gen_not_node}')
 
         # Напряжения
         if dict_task["node"]:
-            logging.info("\tКонтроль напряжений.")
+            log.info("\tКонтроль напряжений.")
             self.voltage_nominal(choice=(dict_task["sel_node"] + '&uhom>30'))
             self.voltage_normal(choice=dict_task["sel_node"])
             self.voltage_deviation(choice=dict_task["sel_node"])
@@ -1100,7 +1101,7 @@ class RastrModel(RastrMethod):
         # Токи
         if dict_task['vetv']:
             # Контроль токовой загрузки
-            logging.info("\tКонтроль токовой загрузки, расчетная температура: " + self.degree_str)
+            log.info("\tКонтроль токовой загрузки, расчетная температура: " + self.degree_str)
             self.rastr.CalcIdop(self.degree_int, 0.0, "")
             if dict_task["sel_node"] != "":
                 if node.cols.Find("sel1") < 0:
@@ -1120,7 +1121,7 @@ class RastrModel(RastrMethod):
             if branch.count:  # есть превышений
                 j = branch.FindNextSel(-1)
                 while j > -1:
-                    logging.info(f"\t\tВНИМАНИЕ ТОКИ! vetv:{branch.SelString(j)}, "
+                    log.info(f"\t\tВНИМАНИЕ ТОКИ! vetv:{branch.SelString(j)}, "
                                  f"{branch.cols.item('name').ZS(j)} - {branch.cols.item('i_zag').ZS(j)} %")
                     j = branch.FindNextSel(j)
 
@@ -1133,13 +1134,13 @@ class RastrModel(RastrMethod):
                     while j > -1:
                         n_it = branch.cols.item(field).Z(j)
                         if (n_it,) not in all_graph_it and n_it > 0:
-                            logging.error(f"\t\tВНИМАНИЕ graphikIT! vetv: {branch.SelString(j)!r}, "
+                            log.error(f"\t\tВНИМАНИЕ graphikIT! vetv: {branch.SelString(j)!r}, "
                                           f"{branch.cols.item('name').ZS(j)!r}, "
                                           f"{field}={n_it} не найден в таблице График_Iдоп_от_Т")
                         j = branch.FindNextSel(j)
         #  ГЕНЕРАТОРЫ
         if dict_task['Gen']:
-            logging.info("\tКонтроль генераторов")
+            log.info("\tКонтроль генераторов")
             if dict_task["sel_node"] != "":
                 if node.cols.Find("sel1") < 0:
                     node.Cols.Add("sel1", 3)  # добавить столбцы
@@ -1161,13 +1162,13 @@ class RastrModel(RastrMethod):
                 Node = generator.cols.item("Node").ZS(j)
                 NumPQ = generator.cols.item("NumPQ").Z(j)
                 if P < Pmin > 0:
-                    logging.info(f"\t\tВНИМАНИЕ! {Name}, Num={Num},ny={Node}, P={str(round(P))} < Pmin={str(Pmin)}")
+                    log.info(f"\t\tВНИМАНИЕ! {Name}, Num={Num},ny={Node}, P={str(round(P))} < Pmin={str(Pmin)}")
                 if P > Pmax > 0:
-                    logging.info(f"\t\tВНИМАНИЕ! {Name}, Num={Num},ny={Node}, P={str(round(P))} > Pmax={str(Pmax)}")
+                    log.info(f"\t\tВНИМАНИЕ! {Name}, Num={Num},ny={Node}, P={str(round(P))} > Pmax={str(Pmax)}")
                 if NumPQ > 0:
                     chart_pq.setsel("Num=" + str(NumPQ))
                     if chart_pq.count == 0:
-                        logging.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},ny={Node}, "
+                        log.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},ny={Node}, "
                                      f"NumPQ={NumPQ} не найден в таблице PQ-диаграммы (graphik2)")
                 j = generator.FindNextSel(j)
         # сечения
@@ -1175,9 +1176,9 @@ class RastrModel(RastrMethod):
             if self.rastr.tables.Find("sechen") >= 0:
                 section = self.rastr.tables("sechen")
                 if section.size == 0:
-                    logging.error("\tCечения отсутствуют")
+                    log.error("\tCечения отсутствуют")
                 else:
-                    logging.info("\tКонтроль сечений")
+                    log.info("\tКонтроль сечений")
                     section.setsel("")
                     j = section.FindNextSel(-1)
                     while j != -1:
@@ -1186,7 +1187,7 @@ class RastrModel(RastrMethod):
                         pmax = section.cols.item("pmax").Z(j)
                         psech = section.cols.item("psech").Z(j)
                         if psech > pmax + 0.01:
-                            logging.info(f"\t\tВНИМАНИЕ! сечение: {name} {ns!r}, P = {round(psech)}, "
+                            log.info(f"\t\tВНИМАНИЕ! сечение: {name} {ns!r}, P = {round(psech)}, "
                                          f"pmax = {pmax}, отклонение: {round(pmax - psech)}")
                         j = section.FindNextSel(j)
             else:
@@ -1206,10 +1207,10 @@ class RastrModel(RastrMethod):
                     'darea_pop': 'pp', 'area_pop': 'pop', 'area2_pop': 'pop',
                     'darea_name': 'объединений', 'area_name': 'районов', 'area2_name': 'территорий'}
 
-        logging.info("\tКонтроль pop_zad " + key_zone[zone + '_name'])
+        log.info("\tКонтроль pop_zad " + key_zone[zone + '_name'])
         tabl = self.rastr.tables(zone)
         if tabl.cols.Find("pop_zad") < 0:
-            logging.error("Поле pop_zad отсутствует в таблице " + key_zone[zone + '_name'])
+            log.error("Поле pop_zad отсутствует в таблице " + key_zone[zone + '_name'])
         else:
             tabl.setsel("pop_zad>0")
             j = tabl.FindNextSel(-1)
@@ -1220,7 +1221,7 @@ class RastrModel(RastrMethod):
                 if deviation > 0.01:
                     name = tabl.cols.item("name").ZS(j)
                     no = tabl.cols.item(key_zone[zone]).ZS(j)
-                    logging.info(f"\t\tВНИМАНИЕ: {name} ({no}), pop: {str(pp)}, pop_zad: {str(pop_zad)}, "
+                    log.info(f"\t\tВНИМАНИЕ: {name} ({no}), pop: {str(pp)}, pop_zad: {str(pop_zad)}, "
                                  + f"отклонение: {str(round(pop_zad - pp))} или {str(round(deviation * 100))} %")
                 j = tabl.FindNextSel(j)
 
@@ -1295,14 +1296,14 @@ class CorSheet:
                 raise ValueError(f'Тип задания листа {name!r} не распознан.')
 
     def run_sheets(self, rm: RastrModel):
-        logging.info(f'\tВыполнение задания листа {self.name!r}')
+        log.info(f'\tВыполнение задания листа {self.name!r}')
         if self.type == 'import_model':
             self.import_model(rm)
         elif self.type == 'list_cor':
             self.list_cor(rm)
         elif self.type == 'tab_cor':
             self.tab_cor(rm)
-        logging.info(f'\tКонец выполнения задания листа {self.name!r}\n')
+        log.info(f'\tКонец выполнения задания листа {self.name!r}\n')
 
     def export_model(self):
         """"Экспорт из моделей"""
@@ -1381,9 +1382,9 @@ class CorSheet:
                     dict_param_column[column_name_file] = _.replace(' ', '')
 
         if not dict_param_column:
-            logging.info(f"\t {rm.name_base} НЕ НАЙДЕН на листе {self.name} книги excel")
+            log.info(f"\t {rm.name_base} НЕ НАЙДЕН на листе {self.name} книги excel")
         else:
-            logging.info(f'\t\tРасчетной модели соответствуют столбцы: параметры {dict_param_column}')
+            log.info(f'\t\tРасчетной модели соответствуют столбцы: параметры {dict_param_column}')
             calc_vals = {1: "ЗАМЕНИТЬ", 2: "+", 3: "-", 0: "*"}
             # 1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"
             for row in range(3, self.xls.max_row + 1):
@@ -1416,7 +1417,7 @@ class CorXL:
         """
 
         self.sheets_list = []  # для хранения объектов CorSheet
-        logging.info(f"Изменить модели по заданию из книги: {excel_file_name}, листы: {sheets}")
+        log.info(f"Изменить модели по заданию из книги: {excel_file_name}, листы: {sheets}")
         if not os.path.exists(excel_file_name):
             raise ValueError("Ошибка в задании, не найден файл: " + excel_file_name)
         else:
@@ -1503,7 +1504,7 @@ class ImportFromModel:
 
             # Экспорт данных из файла в .csv файлы в папку temp
             if self.import_file_name:
-                logging.info(f'Экспорт из файла <{self.import_file_name}> в CSV')
+                log.info(f'Экспорт из файла <{self.import_file_name}> в CSV')
                 self.import_rm = RastrModel(full_name=self.import_file_name)
                 self.import_rm.load()
                 for index in range(len(self.tables)):
@@ -1513,7 +1514,7 @@ class ImportFromModel:
                         if self.import_rm.rastr.Tables(self.tables[index]).Key not in self.param[index]:
                             self.param[index] += ',' + self.import_rm.rastr.Tables(self.tables[index]).Key
 
-                    logging.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}\n"
+                    log.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}\n"
                                  + f"\tПараметры: {self.param[index]}\n\tФайл CSV: {self.file_csv[index]}")
 
                     tab = self.import_rm.rastr.Tables(self.tables[index])
@@ -1523,10 +1524,10 @@ class ImportFromModel:
     def import_csv(self, rm: RastrModel) -> None:
         """Импорт данных из csv в файла"""
         if self.import_file_name:
-            logging.info(f"\tИмпорт из CSV <{self.import_file_name}> в модель:")
+            log.info(f"\tИмпорт из CSV <{self.import_file_name}> в модель:")
             if rm.test_name(condition=self.criterion_start, info='\tImportFromModel ') or not rm.kod_name_rg2:
                 for index in range(len(self.tables)):
-                    logging.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {self.calc}" +
+                    log.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {self.calc}" +
                                  f"\n\tФайл CSV: {self.file_csv[index]}" +
                                  f"\n\tПараметры: {self.param[index]}")
                     """{"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
@@ -1621,7 +1622,7 @@ class PrintXL:
 
     def add_val(self, rm: RastrModel):
 
-        logging.info("\tВывод данных из моделей в XL")
+        log.info("\tВывод данных из моделей в XL")
         if rm.name_standard == "не стандарт" or not rm.DopNameStr:
             dop_name_list = ['-'] * 3
         else:
@@ -1988,7 +1989,7 @@ def my_except_hook(func):
     :return:
     """
     def new_func(*args, **kwargs):
-        logging.error( f"Критическая ошибка: {args[0]}, {args[1]}", exc_info=True)
+        log.error( f"Критическая ошибка: {args[0]}, {args[1]}", exc_info=True)
         mb.showerror("Ошибка", f"Критическая ошибка: {args[0]}, {args[1]}")
         # https://python-scripts.com/python-traceback
         func(*args, **kwargs)
@@ -2001,15 +2002,24 @@ if __name__ == '__main__':
     cm = None  # глобальный объект класса CorModel
     sys.excepthook = my_except_hook(sys.excepthook)
 
-    # https://docs.python.org/3/library/logging.html
-    logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
-                        format='%(asctime)s %(name)s  %(levelname)s:%(message)s')  # DEBUG, INFO, WARNING, ERROR и CRITICAL
+    # DEBUG, INFO, WARNING, ERROR и CRITICAL
+    # logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
+    #                     format='%(asctime)s %(name)s  %(levelname)s:%(message)s')
 
     log = logging.getLogger(__name__)
-    file_handler_error = logging.FileHandler('file_error.log')
-    file_handler_error.setLevel(logging.DEBUG)
-    file_handler_error.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s:%(message)s'))
-    log.addHandler(file_handler_error)
+    log.setLevel(logging.DEBUG)
+    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s:%(message)s')
+
+    file_handler = logging.FileHandler(filename='log_file.log', mode='w')
+    file_handler.setLevel(logging.INFO)
+    file_handler.setFormatter(formatter)
+    # file_handler.close()
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG)
+    console_handler.setFormatter(formatter)
+
+    log.addHandler(file_handler)
+    log.addHandler(console_handler)
 
     if VISUAL_CHOICE:  # в коде
         app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
@@ -2057,9 +2067,8 @@ if __name__ == '__main__':
                 "cor_name": False,
                 "cor_name_task": 'node:name,dname vetv:dname Generator:Name',
                 # ----------------------------------------------------------------------------------------------------
-                # TODO "import_export_xl": False,  # False нет, True  import или export из xl в растр
-                # "table": "Generator",  # нр "oborudovanie"
-                # "export_xl": True,  # False нет, True - export из xl в растр
+                # TODO import или export из xl в растр
+                # "table": "Generator"
                 # "XL_table": [r"C:\Users\User\Desktop\1.xlsx", "Generator"],  # полный адрес и имя листа
                 # "tip_export_xl": 1,  # 1 загрузить, 0 присоединить 2 обновить
                 # ----------------------------------------------------------------------------------------------------
@@ -2069,9 +2078,6 @@ if __name__ == '__main__':
                 # "AutoShuntIzm": False,  # False нет, True вкл откл шунтов  autobsh
                 # "AutoShuntIzmSel": "(na>0|na<13)",  # строка выборка узлов
                 # Проверка параметров режима---------------------------------------------------------------------------
-                # напряжений в узлах; дтн  в линиях(rastr.CalcIdop по degree_int);
-                # pmax pmin относительно P у генераторов и pop_zad у территорий, объединений и районов; СЕЧЕНИЯ
-                # выборка в таблице узлы "na=1|na=8)"
                 "control_rg2": True,
                 "control_rg2_task": {'node': False, 'vetv': True, 'Gen': False, 'section': False, 'area': False,
                                      'area2': False, 'darea': False, 'sel_node': "na>0"},
@@ -2121,8 +2127,4 @@ if __name__ == '__main__':
 
 # TODO дописать: перенос параметров из одноименных файлов
 # TODO дописать: сравнение файлов
-# TODO очищать протокол
-# TODO авто скрм
-# TODO условие выполнения из модели
 # TODO точка и запятая работали
-# TODO выборка при импорте из файла не должна работать если нет галочки

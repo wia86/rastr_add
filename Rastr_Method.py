@@ -2,6 +2,8 @@ import logging
 import re
 from typing import Union
 
+log_r_m = logging.getLogger('__main__.' + __name__)
+
 
 class RastrMethod:
     """
@@ -41,7 +43,7 @@ class RastrMethod:
         :param del_all: удалять узлы с генераторами и отходящими ветвями;
         """
         if print_log:
-            logging.info(f"\t\tФункция cor: {keys=},  {tasks=}")
+            log_r_m.info(f"\t\tФункция cor: {keys=},  {tasks=}")
         keys = keys.strip().replace('  ', ' ')
         tasks = tasks.strip().replace('  ', ' ')
         if not keys:
@@ -123,7 +125,7 @@ class RastrMethod:
         table = self.rastr.tables(tabl)
         table.setsel(selection)
         if not table.count:
-            logging.error(f'В таблице {tabl} по выборке {selection} не найдено строк.')
+            log_r_m.error(f'В таблице {tabl} по выборке {selection} не найдено строк.')
 
         if formula == 'del':
             table.DelRows()
@@ -164,16 +166,16 @@ class RastrMethod:
             if uhom not in self.U_NOM:
                 ny = node.cols.item('ny').ZS(j)
                 name = node.cols.item('name').ZS(j)
-                logging.warning(f"\tНесоответствие номинального напряжения! {ny=}, {name=}, {uhom=}.")
+                log_r_m.warning(f"\tНесоответствие номинального напряжения! {ny=}, {name=}, {uhom=}.")
                 if edit:
                     for x in range(len(self.U_NOM)):
                         if self.U_MIN_NORM[x] < uhom < self.U_LARGEST_WORKING[x]:
                             node.cols.item("uhom").SetZ(j, self.U_NOM[x])
-                            logging.info(f"\tВнесены изменения! {ny=}, {name=}, uhom={self.U_NOM[x]}")
+                            log_r_m.info(f"\tВнесены изменения! {ny=}, {name=}, uhom={self.U_NOM[x]}")
                             break
                 # Если напряжение не исправилось
                 if node.cols.item('uhom').Z(j) not in self.U_NOM:
-                    logging.error(f"\tНоминальное напряжение не исправлено! {ny=}, {name=}, {uhom=}")
+                    log_r_m.error(f"\tНоминальное напряжение не исправлено! {ny=}, {name=}, {uhom=}")
 
             j = node.FindNextSel(j)
 
@@ -196,9 +198,9 @@ class RastrMethod:
                     name = node.cols.item('name').ZS(j)
                     vras = node.cols.item('vras').ZS(j)
                     if self.U_MIN_NORM[i] > node.cols.item("vras").Z(j):
-                        logging.warning(f"\tНизкое напряжение! ny={ny}, имя: {name}, vras={vras}, uhom={self.U_NOM[i]}")
+                        log_r_m.warning(f"\tНизкое напряжение! ny={ny}, имя: {name}, vras={vras}, uhom={self.U_NOM[i]}")
                     if node.cols.item("vras").Z(j) > self.U_LARGEST_WORKING[i]:
-                        logging.warning(
+                        log_r_m.warning(
                             f"\tВысокое напряжение! ny={ny}, имя: {name}, vras={vras}, uhom={self.U_NOM[i]}")
                 j = node.FindNextSel(j)
 
@@ -218,7 +220,7 @@ class RastrMethod:
             name = node.cols.item('name').ZS(j)
             vras = node.cols.item('vras').ZS(j)
             umin = node.cols.item('umin').ZS(j)
-            logging.warning(f"\tНапряжение ниже минимально-допустимого! ny={ny}, имя: {name}, vras={vras},umin={umin}")
+            log_r_m.warning(f"\tНапряжение ниже минимально-допустимого! ny={ny}, имя: {name}, vras={vras},umin={umin}")
             j = node.FindNextSel(j)
 
     def voltage_error(self, choice: str = ''):
@@ -238,7 +240,7 @@ class RastrMethod:
             name = node.cols.item('name').ZS(j)
             umax = node.cols.item('umax').ZS(j)
             uhom = node.cols.item('uhom').ZS(j)
-            logging.warning(f"\tumax<uhom! {ny=},{name=}, {umax=},{uhom=}. umax удалено.")
+            log_r_m.warning(f"\tumax<uhom! {ny=},{name=}, {umax=},{uhom=}. umax удалено.")
             node.cols.item('umax').SetZ(j, 0)
             j = node.FindNextSel(j)
 
@@ -252,7 +254,7 @@ class RastrMethod:
             name = node.cols.item('name').ZS(j)
             umin = node.cols.item('umin').ZS(j)
             uhom = node.cols.item('uhom').ZS(j)
-            logging.warning(f"\tumax<uhom! {ny=},{name=}, {umin=},{uhom=}. umin удалено.")
+            log_r_m.warning(f"\tumax<uhom! {ny=},{name=}, {umin=},{uhom=}. umin удалено.")
             node.cols.item('umin').SetZ(j, 0)
             j = node.FindNextSel(j)
 
@@ -266,7 +268,7 @@ class RastrMethod:
             name = node.cols.item('name').ZS(j)
             umin_av = node.cols.item('umin_av').ZS(j)
             uhom = node.cols.item('uhom').ZS(j)
-            logging.warning(f"\tumax<uhom! {ny=},{name=}, {umin_av=},{uhom=}. umin_av удалено.")
+            log_r_m.warning(f"\tumax<uhom! {ny=},{name=}, {umin_av=},{uhom=}. umin_av удалено.")
             node.cols.item('umin_av').SetZ(j, 0)
             j = node.FindNextSel(j)
 
@@ -276,10 +278,10 @@ class RastrMethod:
             kod_rgm = self.rastr.rgm(i)  # 0 сошелся, 1 развалился
             if not kod_rgm:  # 0 сошелся
                 if txt:
-                    logging.debug(f"\tРасчет режима: {txt}")
+                    log_r_m.debug(f"\tРасчет режима: {txt}")
                 return True
         # развалился
-        logging.error(f"Расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!")
+        log_r_m.error(f"Расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!")
         return False
 
     def sel0(self, txt=''):
@@ -288,7 +290,7 @@ class RastrMethod:
         self.rastr.Tables("vetv").cols.item("sel").Calc("0")
         self.rastr.Tables("Generator").cols.item("sel").Calc("0")
         if txt:
-            logging.info("\tСнять отметку узлов, ветвей и генераторов")
+            log_r_m.info("\tСнять отметку узлов, ветвей и генераторов")
 
     def all_cols(self, tab: str):
         """Возвращает все поля таблицы: 'ny,pn....', кроме начинающихся с '_'. """
@@ -331,7 +333,7 @@ class RastrMethod:
                 else:
                     raise ValueError(f'\tОшибка при добавлении в таблицу <{table=}> строки <{task_i=}>(проблемы с = )')
 
-        logging.info(f'\tВ таблицу <{table}> добавлена строка <{tasks}>, индекс <{index}>')
+        log_r_m.info(f'\tВ таблицу <{table}> добавлена строка <{tasks}>, индекс <{index}>')
         return index
 
     def cor_txt_field(self, table_field: str = 'node:name,dname vetv:dname Generator:Name'):
@@ -339,7 +341,7 @@ class RastrMethod:
         Исправить пробелы, заменить английские буквы на русские.
         :param table_field: задание в формате 'node:name,dname vetv:dname Generator:Name'
         """
-        logging.info("\tИсправить пробелы, заменить английские буквы на русские.")
+        log_r_m.info("\tИсправить пробелы, заменить английские буквы на русские.")
         for task in table_field.split(' '):
             name_table, field_table = task.split(':')
             for field_table_i in field_table.split(','):
@@ -398,7 +400,7 @@ class RastrMethod:
             while '- ' in r_field.ZS(index) and ' - ' not in r_field.ZS(index):
                 r_field.SetZ(index, r_field.ZS(index).replace('- ', ' - '))
             if not val1 == r_field.ZS(index):
-                logging.info(f'\t\tИсправление текстового поля: {table, field} <{val1}> на <{r_field.ZS(index)}>')
+                log_r_m.info(f'\t\tИсправление текстового поля: {table, field} <{val1}> на <{r_field.ZS(index)}>')
             index = r_table.FindNextSel(index)
 
     def shn(self, choice: str = ''):
@@ -406,7 +408,7 @@ class RastrMethod:
         Добавить зависимости СХН в таблицу узлы (uhom>100 nsx=1, uhom<100 nsx=2)
         :param choice: выборка, нр na=100
         """
-        logging.info("\tДобавлены зависимости СХН в таблицу узлы (uhom>100 nsx=1, uhom<100 nsx=2)")
+        log_r_m.info("\tДобавлены зависимости СХН в таблицу узлы (uhom>100 nsx=1, uhom<100 nsx=2)")
         all_choice = '' if choice == '' else choice + '&'
         self.group_cor(tabl="node", param="nsx", selection=all_choice + "uhom>100", formula="1")
         self.group_cor(tabl="node", param="nsx", selection=all_choice + "uhom<100", formula="2")
@@ -460,10 +462,10 @@ class RastrMethod:
                         t_node.cols.item("qn").Calc("qn*" + str(ratio))
 
                 if not self.rgm():
-                    logging.error(f"Аварийное завершение расчета, cor_pop: {zone=}, {new_pop=}")
+                    log_r_m.error(f"Аварийное завершение расчета, cor_pop: {zone=}, {new_pop=}")
                     return False
             else:
-                logging.info(f"\t\tПотребление {name_z!r}({zone}) = {pop_beginning:.1f} МВт изменено на {pop:.1f} МВт"
+                log_r_m.info(f"\t\tПотребление {name_z!r}({zone}) = {pop_beginning:.1f} МВт изменено на {pop:.1f} МВт"
                              f" (задано {new_pop}, отклонение {abs(new_pop - pop):.1f} МВт, {i + 1} ит.)")
                 return True
 
@@ -515,10 +517,10 @@ class RastrMethod:
         for statement_i in statement_list:
             if statement_i:
                 if ':' not in statement_i:
-                    raise ValueError (f"Ошибка в  утверждении (нет ':'): {statement_i=}")
+                    raise ValueError(f"Ошибка в  утверждении (нет ':'): {statement_i=}")
                 sel, statement = statement_i.replace(' ', '').split(':')
                 if not self.test_parameter_rm(sel, statement):
-                    logging.debug(f'Условие {statement_i!r} не выполняется')
+                    log_r_m.debug(f'Условие {statement_i!r} не выполняется')
                     return False
         return True
 
