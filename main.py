@@ -885,6 +885,7 @@ class RastrModel(RastrMethod):
         self.kod_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 лет макс 4 лет мин 5 паводок макс
         self.temp_a_v_gost = False  # True температуры:  а-в - зима + лето ПЭВТ
         self.TabRgmCount = 1  # счетчик режимов в каждой таблице
+        self.all_auto_shunt = {}
         self.txt_dop = ""
         self.degree_int = 0
         self.degree_str = ""
@@ -2068,7 +2069,8 @@ if __name__ == '__main__':
                 "cor_name_task": 'node:name,dname vetv:dname Generator:Name',
                 # ----------------------------------------------------------------------------------------------------
                 # TODO import или export из xl в растр
-                # "table": "Generator"
+                # export_xl [table:Generator; parametrs:... ]
+                # import_xl [table:Generator; xl:C:\Users\User\Desktop\1.xlsx list:Generator tip:1]
                 # "XL_table": [r"C:\Users\User\Desktop\1.xlsx", "Generator"],  # полный адрес и имя листа
                 # "tip_export_xl": 1,  # 1 загрузить, 0 присоединить 2 обновить
                 # ----------------------------------------------------------------------------------------------------

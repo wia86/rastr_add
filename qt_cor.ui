@@ -639,9 +639,10 @@
 #изм[(vetv) (area) (area2) (darea)|Tc=0]
 #снять отметку{years: 2026| season:лет| max_min:min| add_name:0°C| ny=2:vras&gt;525.5}
 #добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]
-#пробелы и буквы[node:name,dname vetv:dname Generator:Name]  
+#текст[node:name,dname,AutoBsh vetv:dname Generator:Name]  
 #СХН[na=11]
 #номинальные напряжения[na=11]  
+#СКРМ*[na=11]
 </string>
             </property>
            </widget>

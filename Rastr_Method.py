@@ -1,5 +1,6 @@
 import logging
 import re
+from collections import namedtuple
 from typing import Union
 
 log_r_m = logging.getLogger('__main__.' + __name__)
@@ -488,12 +489,18 @@ class RastrMethod:
             self.rgm(txt='txt_task_cor')
         elif 'добавить' in name:
             self.table_add_row(table=sel, tasks=value)
-        elif 'пробел' in name:
+        elif 'текст' in name:
             self.cor_txt_field(table_field=sel)
         elif 'схн' in name:
             self.shn(choice=sel)
         elif 'ном' in name:  # номинальные напряжения
             self.voltage_nominal(choice=sel, edit=True)
+        elif 'скрм' in name:
+            if 'скрм*' in name:
+                self.all_auto_shunt = self.auto_shunt_rec(selection=sel, only_AutoBsh=False)
+            else:
+                self.all_auto_shunt = self.auto_shunt_rec(selection=sel, only_AutoBsh=True)
+            self.auto_shunt_cor(all_auto_shunt=self.all_auto_shunt)
         else:
             raise ValueError(f'Задание {name=} не распознано ({sel=}, {value=})')
 
@@ -563,3 +570,154 @@ class RastrMethod:
             if rm_val < value:
                 return True
         return False
+
+    def auto_shunt_rec(self, selection: str = '', only_AutoBsh: bool = True) -> dict:
+        """
+        Функция формирует словарь all_auto_shunt с объектами класса AutoShunt для записи СКРМ.
+        :param selection: выборка в таблице узлы
+        :param only_AutoBsh: True узлы только с заданным значением в поле AutoBsh. False все узлы с СКРМ
+        :return словарь[ny] = namedtuple('СКРМ')
+        """
+        all_auto_shunt = {}
+        KU = namedtuple('СКРМ', ['ny', 'name', 'ny_adjacency', 'ny_control', 'umin', 'umax',
+                                 'type', ])  # KU компенсирующее устройство
+        have_AutoBsh = True
+        node = self.rastr.tables('node')
+        vetv = self.rastr.tables('vetv')
+        if node.cols.Find('AutoBsh') < 0:
+            have_AutoBsh = False
+            if only_AutoBsh:
+                raise ValueError(f"В таблице node нет параметра AutoBsh.")
+        selection_result = selection + '&pn=0&qn=0&pg=0&qg=0&bsh!=0' if selection else 'pn=0&qn=0&pg=0&qg=0&bsh!=0'
+        node.setsel(selection_result)
+        i = node.FindNextSel(-1)
+        while i > -1:
+            AutoBsh = ''
+            if have_AutoBsh:
+                AutoBsh = node.cols.item("AutoBsh").ZS(i)
+                AutoBsh = AutoBsh.replace(' ', '')
+                if not AutoBsh and only_AutoBsh:
+                    i = node.FindNextSel(i)
+                    continue  # если только по полю AutoBsh и оно не заполнено, то к следующему узлу
+            ny = node.cols.item("ny").Z(i)
+            name = node.cols.item("name").Z(i)
+            type_ = 'ШР' if node.cols.item("bsh").Z(i) > 0 else 'БСК'
+            vetv.setsel(f'ip={ny}|iq={ny}')
+            if not vetv.count == 1:
+                i = node.FindNextSel(i)
+                continue  # если не 1 ветвь, то к следующему узлу
+            iv = vetv.FindNextSel(-1)
+            ip = vetv.cols.item("ip").Z(iv)
+            iq = vetv.cols.item("iq").Z(iv)
+
+            ny_adjacency = ip if ny == iq else iq
+            ny_control = ''
+
+            if AutoBsh:  # 105-126.5;ny=100
+                if '(' in AutoBsh:
+                    log_r_m.error(f'Ошибка в задании {AutoBsh=}')
+                    i = node.FindNextSel(i)
+                    continue
+                if ';' in AutoBsh:
+                    try:
+                        u, ny_control = AutoBsh.split(';')
+                        ny_control = int(ny_control.replace('ny=', ''))
+                    except Exception:
+                        raise ValueError(f'Ошибка в задании {AutoBsh=}')
+                    AutoBsh = u
+                umin, umax = AutoBsh.split('-')
+                if not (umin and umax):
+                    log_r_m.error(f'Ошибка в задании {AutoBsh=}')
+                    i = node.FindNextSel(i)
+                    continue
+            else:
+                uhom = node.cols.item("uhom").Z(i)
+                if uhom > 300:
+                    umin = round(uhom * 0.95, 1)
+                    umax = round(uhom * 1.05, 1)
+                else:
+                    umin = round(uhom * 0.95, 1)
+                    umax = round(uhom * 1.14, 1)
+
+            all_auto_shunt[ny] = KU(ny, name, ny_adjacency, ny_control, int(umin), int(umax), type_)
+            log_r_m.debug(f'Найдено СКРМ {ny=} {name=} {ny_adjacency=} {ny_control=} {umin=} {umax=}')
+            i = node.FindNextSel(i)
+        return all_auto_shunt
+
+    def auto_shunt_cor(self, all_auto_shunt: dict) -> str:
+        """
+        Функция включает или отключает узлы с СКРМ в соответствии с уставкой по напряжению.
+        :param all_auto_shunt: словарь с namedtuple('СКРМ')
+        """
+        changes_in_rm = ''
+        if not all_auto_shunt:
+            return ''
+        for ny in all_auto_shunt:
+            ku = all_auto_shunt[ny]
+            ny_test = ku.ny_control if ku.ny_control else ku.ny_adjacency
+            i = self.index_in_table(name_table='node', key=f'ny={ny}')
+            i_test = self.index_in_table(name_table='node', key=f'ny={ny_test}')
+            node = self.rastr.tables('node')
+            sta = node.cols.item("sta").Z(i)  # 1 откл, 0 вкл
+            volt_test = round(node.cols.item("vras").Z(i_test), 1)
+            if volt_test:
+                if volt_test < ku.umin:
+                    if ku.type == 'БСК':  # включить
+                        if sta:
+                            self.enable_node_with_branches(ny)
+                            self.rgm()
+                            volt_result = round(node.cols.item("vras").Z(i_test), 1)
+                            changes_in_rm += (f'\nВключена БСК {ny=} {ku.name!r},'
+                                              f' напряжение увеличилось с {volt_test} до {volt_result}.')
+                    elif ku.type == 'ШР':  # отключить
+                        if not sta:
+                            node.cols.item("sta").SetZ(i, 1)
+                            self.rgm()
+                            volt_result = round(node.cols.item("vras").Z(i_test), 1)
+                            changes_in_rm += (f'\nОтключен ШР {ny=} {ku.name!r},'
+                                              f' напряжение увеличилось с {volt_test} до {volt_result}.')
+                elif volt_test > ku.umax:
+                    if ku.type == 'БСК':  # отключить
+                        if not sta:
+                            node.cols.item("sta").SetZ(i, 1)
+                            self.rgm()
+                            volt_result = round(node.cols.item("vras").Z(i_test), 1)
+                            changes_in_rm += (f'\nОтключена БСК {ny=} {ku.name!r},'
+                                              f' напряжение снизилось с {volt_test} до {volt_result}.')
+                    elif ku.type == 'ШР':  # включить
+                        if sta:
+                            self.enable_node_with_branches(ny)
+                            self.rgm()
+                            volt_result = round(node.cols.item("vras").Z(i_test), 1)
+                            changes_in_rm += (f'\nВключен ШР {ny=} {ku.name!r},'
+                                              f' напряжение снизилось с {volt_test} до {volt_result}.')
+        log_r_m.info(changes_in_rm)
+        return changes_in_rm
+
+    def index_in_table(self, name_table: str, key: str) -> int:
+        """
+        Функция по ключу и имени таблицы возвращает индекс строки.
+        :param name_table: например node
+        :param key: например ny=100
+        :return: Индекс строки в таблице. Если не найден key вернет -1. Если не найдена таблица вернет -2.
+        """
+        if not (name_table and key):
+            raise ValueError(f'Ошибка в задании {name_table=} {key=}')
+        if self.rastr.Tables.Find(name_table) == -1:
+            raise ValueError (f'Таблица {name_table=} не найдена в rastr')
+
+        table = self.rastr.tables(name_table)
+        table.setsel(key)
+        index = table.FindNextSel(-1)
+        if index < 0:
+            log_r_m.error(f'В таблице {name_table=} не найден {key=}')
+        return index
+
+    def enable_node_with_branches(self, ny: int):
+        """Включить узел с ветвями."""
+        if not ny:
+            raise ValueError(f'Ошибка в задании {ny=}')
+        self.cor(keys=str(ny), tasks='sta=0')
+        vetv = self.rastr.tables('vetv')
+        vetv.setsel(f'ip={ny}|iq={ny}')
+        vetv.cols.item("sta").calc('0')

@@ -1604,9 +1604,10 @@ class Ui_cor(object):
 "#изм[(vetv) (area) (area2) (darea)|Tc=0]\n"
 "#снять отметку{years: 2026| season:лет| max_min:min| add_name:0°C| ny=2:vras>525.5}\n"
 "#добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]\n"
-"#пробелы и буквы[node:name,dname vetv:dname Generator:Name]  \n"
+"#текст[node:name,dname,AutoBsh vetv:dname Generator:Name]  \n"
 "#СХН[na=11]\n"
 "#номинальные напряжения[na=11]  \n"
+"#СКРМ*[na=11]\n"
 ""))
         self.CB_ImpRg2.setText(_translate("cor", "Импорт из файлa (.rg2)"))
         self.CB_N.setText(_translate("cor", "выполнить"))
