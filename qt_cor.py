@@ -15,7 +15,7 @@ class Ui_cor(object):
     def setupUi(self, cor):
         cor.setObjectName("cor")
         cor.setEnabled(True)
-        cor.resize(1044, 779)
+        cor.resize(1042, 881)
         self.centralwidget = QtWidgets.QWidget(cor)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -39,7 +39,7 @@ class Ui_cor(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 1025, 1360))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 1023, 1360))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
@@ -1597,14 +1597,14 @@ class Ui_cor(object):
         self.CB_cor_b.setText(_translate("cor", "Задание на корректировку до импорта"))
         self.TE_cor_b.setPlainText(_translate("cor", "\n"
 "# краткая справка:\n"
-"#удалить*[15145 ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)\n"
-"#изм[15148|name=Промплощадка:_изм_name]  # при изменении текстовых полей \'  \' заменить на \'_\'\n"
+"#удалить*[15145;ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)\n"
+"#изм[15148|name=Промплощадка: изм name]  # \n"
 "#изм[15302|pg=qn*2+10] # задание может быть формулой\n"
-"#изм[na=11(node) (vetv)|sel=1]  # отметить узлы 11 района и все ветви\n"
-"#изм[(vetv) (area) (area2) (darea)|Tc=0]\n"
+"#изм[na=11(node);(vetv)|sel=1]  # отметить узлы 11 района и все ветви\n"
+"#изм[(vetv);(area);(area2);(darea)|Tc=0]\n"
 "#снять отметку{years: 2026| season:лет| max_min:min| add_name:0°C| ny=2:vras>525.5}\n"
-"#добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]\n"
-"#текст[node:name,dname,AutoBsh vetv:dname Generator:Name]  \n"
+"#добавить[vetv|ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]\n"
+"#текст[node: name, dname, AutoBsh; vetv:dname; Generator: Name]  \n"
 "#СХН[na=11]\n"
 "#номинальные напряжения[na=11]  \n"
 "#СКРМ*[na=11]\n"
@@ -1835,5 +1835,5 @@ class Ui_cor(object):
         self.label_24.setText(_translate("cor", "значения в сводной:"))
         self.print_tab_log_vals.setText(_translate("cor", "P,Pmax"))
         self.CB_print_parametr.setText(_translate("cor", "вывод значений следующих параметров из моделей:"))
-        self.TA_parametr_vibor.setPlainText(_translate("cor", "v=15105,15113,0|15038,15037,4/r|x|b; n=15198/pg|qg"))
+        self.TA_parametr_vibor.setPlainText(_translate("cor", "v=15105,15113,0;15038,15037,4|r;x;b / n=15198|pg;qg"))
         self.CB_print_balance_Q.setText(_translate("cor", "таблица баланс реактивной мощности, выборка:"))

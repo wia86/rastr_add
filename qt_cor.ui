@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1044</width>
-    <height>779</height>
+    <width>1032</width>
+    <height>881</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -75,7 +75,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1025</width>
+         <width>1013</width>
          <height>1360</height>
         </rect>
        </property>
@@ -632,14 +632,14 @@
             <property name="plainText">
              <string>
 # краткая справка:
-#удалить*[15145 ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
-#изм[15148|name=Промплощадка:_изм_name]  # при изменении текстовых полей '  ' заменить на '_'
+#удалить*[15145;ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
+#изм[15148|name=Промплощадка: изм name]  # 
 #изм[15302|pg=qn*2+10] # задание может быть формулой
-#изм[na=11(node) (vetv)|sel=1]  # отметить узлы 11 района и все ветви
-#изм[(vetv) (area) (area2) (darea)|Tc=0]
+#изм[na=11(node);(vetv)|sel=1]  # отметить узлы 11 района и все ветви
+#изм[(vetv);(area);(area2);(darea)|Tc=0]
 #снять отметку{years: 2026| season:лет| max_min:min| add_name:0°C| ny=2:vras&gt;525.5}
-#добавить[vetv|ip=15524 iq=3 np=3 x=2 r=1,5 b=-0,000182]
-#текст[node:name,dname,AutoBsh vetv:dname Generator:Name]  
+#добавить[vetv|ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]
+#текст[node: name, dname, AutoBsh; vetv:dname; Generator: Name]  
 #СХН[na=11]
 #номинальные напряжения[na=11]  
 #СКРМ*[na=11]
@@ -4280,7 +4280,7 @@
               </size>
              </property>
              <property name="plainText">
-              <string>v=15105,15113,0|15038,15037,4/r|x|b; n=15198/pg|qg</string>
+              <string>v=15105,15113,0;15038,15037,4|r;x;b / n=15198|pg;qg</string>
              </property>
             </widget>
            </item>

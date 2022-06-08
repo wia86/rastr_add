@@ -59,7 +59,7 @@ class Window:
         for element in show_window:
             element.show()
 
-    def choice_file(self, directory: str, filter_: str = ''):
+    def choice_file(self, directory: str, filter_: str = 'All Files(*)'):
         """
         Выбор файла.
         """
@@ -258,9 +258,9 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         """
         name = ''
         if type_choice == 'file':
-            name = self.choice_file(directory=self.T_IzFolder.toPlainText())
+            name = self.choice_file(directory=self.T_IzFolder.toPlainText().replace('*', ''))
         elif type_choice == 'folder':
-            name = self.choice_folder(directory=self.T_IzFolder.toPlainText())
+            name = self.choice_folder(directory=self.T_IzFolder.toPlainText().replace('*', ''))
         if name:
             name = name.replace('/', '\\')
             if insert.__class__.__name__ == 'QPlainTextEdit':
@@ -714,12 +714,18 @@ class CorModel(GeneralSettings):
         self.cor_xl = None
         self.task = task
         self.rastr_files = None
+        self.all_folder = False  # Не перебирать вложенные папки
+        self.load_add = []
 
     def run_cor(self):
         """Запуск корректировки моделей"""
         # определяем корректировать файл или файлы в папке по анализу "KIzFolder"
         if 'KIzFolder' not in self.task:
             raise ValueError('В задании отсутствует папка для корректировки: KIzFolder')
+
+        if "*" in self.task["KIzFolder"]:
+            self.task["KIzFolder"] = self.task["KIzFolder"].replace('*', '')
+            self.all_folder = True
 
         if os.path.isdir(self.task["KIzFolder"]):
             self.task["folder_file"] = 'folder'  # если корр папка
@@ -733,7 +739,7 @@ class CorModel(GeneralSettings):
             if self.task["KInFolder"]:
                 if not os.path.exists(self.task["KInFolder"]):
                     log.info("Создана папка: " + self.task["KInFolder"])
-                    os.mkdir(self.task["KInFolder"])
+                    os.makedirs(self.task["KInFolder"])
             folder_save = self.task["KInFolder"] if self.task["KInFolder"] else self.task["KIzFolder"]
         else:
             self.task["KInFolder"] = ''
@@ -744,9 +750,9 @@ class CorModel(GeneralSettings):
         self.task['name_time'] = f"{self.task['folder_result']}\\{now.strftime('%d-%m-%Y %H-%M')}"
         if not os.path.exists(self.task['folder_result']):
             os.mkdir(self.task['folder_result'])  # создать папку result
-        self.task['folder_temp'] = self.task['folder_result'] + r"\temp"  # папка для сохранения рабочих файлов
-        if not os.path.exists(self.task['folder_temp']):
-            os.mkdir(self.task['folder_temp'])  # создать папку temp
+        # self.task['folder_temp'] = self.task['folder_result'] + r"\temp"  # папка для сохранения рабочих файлов
+        # if not os.path.exists(self.task['folder_temp']):
+        #     os.mkdir(self.task['folder_temp'])  # создать папку temp
 
         # ЭКСПОРТ ИЗ МОДЕЛЕЙ
         if 'block_import' in self.task:
@@ -758,38 +764,27 @@ class CorModel(GeneralSettings):
                 self.cor_xl = CorXL(excel_file_name=self.task["excel_cor_file"], sheets=self.task["excel_cor_sheet"])
                 self.cor_xl.init_export_model()
 
-        load_add = []
         # Загрузить файл сечения.
         if "printXL" in self.task:
             if ((self.task["printXL"] and self.task["set_printXL"]["sechen"]) or
                     (self.task["control_rg2"] and self.task["control_rg2_task"]["section"])):
-                load_add.append('sch')
+                self.load_add.append('sch')
 
         if self.task["folder_file"] == 'folder':  # корр файлы в папке
-            files = os.listdir(self.task["KIzFolder"])  # список всех файлов в папке
-            self.rastr_files = list(filter(lambda x: x.endswith('.rg2') | x.endswith('.rst'), files))
 
-            for rastr_file in self.rastr_files:  # цикл по файлам .rg2 .rst в папке KIzFolder
-                full_name = self.task["KIzFolder"] + '\\' + rastr_file
-                full_name_new = self.task["KInFolder"] + '\\' + rastr_file
-                rm = RastrModel(full_name)
-                # если включен фильтр файлов и имя стандартизовано
-                if self.task["KFilter_file"] and rm.kod_name_rg2:
-                    if not rm.test_name(condition=self.task["cor_criterion_start"], info='Цикл по файлам KIzFolder: '):
-                        continue  # пропускаем если не соответствует фильтру
+            if self.all_folder:  # с вложенными папками
+                for address, dirs, files in os.walk(self.task["KIzFolder"]):
+                    in_dir = address.replace(self.task["KIzFolder"], self.task["KInFolder"])
+                    if not os.path.exists(in_dir):
+                        os.makedirs(in_dir)
+                    self.for_file_in_dir(from_dir=address, in_dir=in_dir)
 
-                self.file_count += 1
-                #  если включен фильтр файлов проверяем количество расчетных файлов
-                if self.task["KFilter_file"] and self.file_count == self.task["max_file_count"] + 1:
-                    break
-                rm.load(load_add=load_add)
-                self.cor_file(rm)
-                if self.task["KInFolder"]:
-                    rm.save(full_name_new)
+            else:  # без вложенных папок
+                self.for_file_in_dir(from_dir=self.task["KIzFolder"], in_dir=self.task["KInFolder"])
 
         elif self.task["folder_file"] == 'file':  # корр файл
             rm = RastrModel(full_name=self.task["KIzFolder"])
-            rm.load(load_add=load_add)
+            rm.load(load_add=self.load_add)
             self.cor_file(rm)
             if self.task["KInFolder"]:
                 rm.save(self.task["KInFolder"] + '\\' + rm.Name)
@@ -812,6 +807,28 @@ class CorModel(GeneralSettings):
             yaml.dump(data=self.task, stream=f, default_flow_style=False, sort_keys=False)
         # webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
         mb.showinfo("Инфо", self.set_info['end_info'])
+
+    def for_file_in_dir(self, from_dir: str, in_dir: str):
+        files = os.listdir(from_dir)  # список всех файлов в папке
+        self.rastr_files = list(filter(lambda x: x.endswith('.rg2') | x.endswith('.rst'), files))
+
+        for rastr_file in self.rastr_files:  # цикл по файлам .rg2 .rst в папке KIzFolder
+            full_name = os.path.join(from_dir, rastr_file)
+            full_name_new = os.path.join(in_dir, rastr_file)
+            rm = RastrModel(full_name)
+            # если включен фильтр файлов и имя стандартизовано
+            if self.task["KFilter_file"] and rm.kod_name_rg2:
+                if not rm.test_name(condition=self.task["cor_criterion_start"], info='Цикл по файлам KIzFolder: '):
+                    continue  # пропускаем если не соответствует фильтру
+
+            self.file_count += 1
+            #  если включен фильтр файлов проверяем количество расчетных файлов
+            if self.task["KFilter_file"] and self.file_count == self.task["max_file_count"] + 1:
+                break
+            rm.load(load_add=self.load_add)
+            self.cor_file(rm)
+            if self.task["KInFolder"]:
+                rm.save(full_name_new)
 
     def cor_file(self, rm):
         """Корректировать файл rm"""
@@ -991,7 +1008,7 @@ class RastrModel(RastrMethod):
                         fff = True
                 if not fff:
                     log.debug(info + self.Name + f" Год '{self.god}' не проходит по условию: "
-                                  + str(condition['years']))
+                              + str(condition['years']))
                     return False
 
         if 'season' in condition:
@@ -1004,7 +1021,7 @@ class RastrModel(RastrMethod):
                             fff = True
                     if not fff:
                         log.debug(info + self.Name + f" Сезон '{self.name_list[1]}' не проходит по условию: "
-                                      + condition['season'])
+                                  + condition['season'])
                         return False
 
         if 'max_min' in condition:
@@ -1012,7 +1029,7 @@ class RastrModel(RastrMethod):
                 if condition['max_min'].strip():  # ПРОВЕРКА "макс" "мин"
                     if self.name_list[2] != condition['max_min'].replace(' ', ''):
                         log.debug(info + self.Name + f" '{self.name_list[2]}' не проходит по условию: "
-                                      + condition['max_min'])
+                                  + condition['max_min'])
                         return False
 
         if 'add_name' in condition:
@@ -1123,7 +1140,7 @@ class RastrModel(RastrMethod):
                 j = branch.FindNextSel(-1)
                 while j > -1:
                     log.info(f"\t\tВНИМАНИЕ ТОКИ! vetv:{branch.SelString(j)}, "
-                                 f"{branch.cols.item('name').ZS(j)} - {branch.cols.item('i_zag').ZS(j)} %")
+                             f"{branch.cols.item('name').ZS(j)} - {branch.cols.item('i_zag').ZS(j)} %")
                     j = branch.FindNextSel(j)
 
             # проверка наличия n_it,n_it_av в таблице График_Iдоп_от_Т(graphikIT)
@@ -1136,8 +1153,8 @@ class RastrModel(RastrMethod):
                         n_it = branch.cols.item(field).Z(j)
                         if (n_it,) not in all_graph_it and n_it > 0:
                             log.error(f"\t\tВНИМАНИЕ graphikIT! vetv: {branch.SelString(j)!r}, "
-                                          f"{branch.cols.item('name').ZS(j)!r}, "
-                                          f"{field}={n_it} не найден в таблице График_Iдоп_от_Т")
+                                      f"{branch.cols.item('name').ZS(j)!r}, "
+                                      f"{field}={n_it} не найден в таблице График_Iдоп_от_Т")
                         j = branch.FindNextSel(j)
         #  ГЕНЕРАТОРЫ
         if dict_task['Gen']:
@@ -1170,7 +1187,7 @@ class RastrModel(RastrMethod):
                     chart_pq.setsel("Num=" + str(NumPQ))
                     if chart_pq.count == 0:
                         log.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},ny={Node}, "
-                                     f"NumPQ={NumPQ} не найден в таблице PQ-диаграммы (graphik2)")
+                                 f"NumPQ={NumPQ} не найден в таблице PQ-диаграммы (graphik2)")
                 j = generator.FindNextSel(j)
         # сечения
         if dict_task['section']:
@@ -1189,7 +1206,7 @@ class RastrModel(RastrMethod):
                         psech = section.cols.item("psech").Z(j)
                         if psech > pmax + 0.01:
                             log.info(f"\t\tВНИМАНИЕ! сечение: {name} {ns!r}, P = {round(psech)}, "
-                                         f"pmax = {pmax}, отклонение: {round(pmax - psech)}")
+                                     f"pmax = {pmax}, отклонение: {round(pmax - psech)}")
                         j = section.FindNextSel(j)
             else:
                 raise ValueError("Файл сечений не загружен")
@@ -1223,7 +1240,7 @@ class RastrModel(RastrMethod):
                     name = tabl.cols.item("name").ZS(j)
                     no = tabl.cols.item(key_zone[zone]).ZS(j)
                     log.info(f"\t\tВНИМАНИЕ: {name} ({no}), pop: {str(pp)}, pop_zad: {str(pop_zad)}, "
-                                 + f"отклонение: {str(round(pop_zad - pp))} или {str(round(deviation * 100))} %")
+                             + f"отклонение: {str(round(pop_zad - pp))} или {str(round(deviation * 100))} %")
                 j = tabl.FindNextSel(j)
 
     def cor_rm_from_txt(self, task_txt: str):
@@ -1516,7 +1533,7 @@ class ImportFromModel:
                             self.param[index] += ',' + self.import_rm.rastr.Tables(self.tables[index]).Key
 
                     log.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}\n"
-                                 + f"\tПараметры: {self.param[index]}\n\tФайл CSV: {self.file_csv[index]}")
+                             + f"\tПараметры: {self.param[index]}\n\tФайл CSV: {self.file_csv[index]}")
 
                     tab = self.import_rm.rastr.Tables(self.tables[index])
                     tab.setsel(self.sel)
@@ -1529,8 +1546,8 @@ class ImportFromModel:
             if rm.test_name(condition=self.criterion_start, info='\tImportFromModel ') or not rm.kod_name_rg2:
                 for index in range(len(self.tables)):
                     log.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {self.calc}" +
-                                 f"\n\tФайл CSV: {self.file_csv[index]}" +
-                                 f"\n\tПараметры: {self.param[index]}")
+                             f"\n\tФайл CSV: {self.file_csv[index]}" +
+                             f"\n\tПараметры: {self.param[index]}")
                     """{"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
                     tab = rm.rastr.Tables(self.tables[index])
                     tab.ReadCSV(self.calc, self.file_csv[index], self.param[index], ";", '')
@@ -1548,6 +1565,7 @@ class PrintXL:
                          'no': 'darea',
                          'nga': 'ngroup',
                          'ns': 'sechen'}
+
     #  ...._log  лист протокол для сводной
 
     def __init__(self, task):  # добавить листы и первая строка с названиями
@@ -1635,7 +1653,7 @@ class PrintXL:
         self.add_val_table(rm)
 
         if self.task['print_parameters']['add']:
-            self.add_val_parameters(rm.rastr)
+            self.add_val_parameters(rm.rastr, sel=self.task['print_parameters']['sel'])
 
         if self.task['print_balance_q']['add']:
             self.add_val_balance_q(rm)
@@ -1663,23 +1681,21 @@ class PrintXL:
                     self.list_name_z + [r_table.cols.item(val).ZN(index) if val != '-' else '-' for val in param_list])
                 index = r_table.FindNextSel(index)
 
-    def add_val_parameters(self, rastr):
+    def add_val_parameters(self, rastr, sel):
         """
-        Вывод заданных параметров в формате: "v=42,48,0|43,49,0|27,11,3/r|x|b; n=8|6/pg|qg|pn|qn".
+        Вывод заданных параметров в формате: "v=15105,15113,0;15038,15037,4|r;x;b / n=15198|pg;qg".
         Таблица: n-node,v-vetv,g-Generator,na-area,npa-area2,no-darea,nga-ngroup,ns-sechen.
-        :param rastr:
         """
         sheet = self.sheets['parameters']
         one_row_list = None
         if sheet.max_row == 1:
             one_row_list = self.list_name[:]
         val_list = self.list_name_z[:]
-
-        for task_i in self.task['print_parameters']['sel'].replace(' ', '').split(';'):
-            key_row, key_column = task_i.split("/")  # нр"ny=8|9", "pn|qn"
-            key_column = key_column.split('|')  # ['pn','qn']
+        for task_i in sel.replace(' ', '').split('/'):
+            key_row, key_column = task_i.split("|")  # нр"ny=8;9", "pn;qn"
+            key_column = key_column.split(';')  # ['pn','qn']
             key_row = key_row.split('=')  # ['n','8|9']
-            set_key_row = key_row[1].split('|')  # ['8','9']
+            set_key_row = key_row[1].split(';')  # ['8','9']
             try:
                 tabl_key = self.short_name_tables[key_row[0]]
             except KeyError:
@@ -1808,7 +1824,6 @@ class PrintXL:
         self.book.save(self.name_xl_file)
         self.book = None
         self.create_pivot()
-
 
     @staticmethod
     def create_table(sheet, sheet_name):
@@ -1989,11 +2004,13 @@ def my_except_hook(func):
     :param func:
     :return:
     """
+
     def new_func(*args, **kwargs):
-        log.error( f"Критическая ошибка: {args[0]}, {args[1]}", exc_info=True)
+        log.error(f"Критическая ошибка: {args[0]}, {args[1]}", exc_info=True)
         mb.showerror("Ошибка", f"Критическая ошибка: {args[0]}, {args[1]}")
         # https://python-scripts.com/python-traceback
         func(*args, **kwargs)
+
     return new_func
 
 
@@ -2073,12 +2090,6 @@ if __name__ == '__main__':
                 # import_xl [table:Generator; xl:C:\Users\User\Desktop\1.xlsx list:Generator tip:1]
                 # "XL_table": [r"C:\Users\User\Desktop\1.xlsx", "Generator"],  # полный адрес и имя листа
                 # "tip_export_xl": 1,  # 1 загрузить, 0 присоединить 2 обновить
-                # ----------------------------------------------------------------------------------------------------
-                # TODO что бы узел с скрм  вкл и отк этот  сопротивление единственной ветви r+x<0.2 и pn:qn:0
-                # "AutoShuntForm": False,  # False нет, True сущ bsh записать в автошунт
-                # "AutoShuntFormSel": "(na>0|na<13)",  # строка выборка узлов
-                # "AutoShuntIzm": False,  # False нет, True вкл откл шунтов  autobsh
-                # "AutoShuntIzmSel": "(na>0|na<13)",  # строка выборка узлов
                 # Проверка параметров режима---------------------------------------------------------------------------
                 "control_rg2": True,
                 "control_rg2_task": {'node': False, 'vetv': True, 'Gen': False, 'section': False, 'area': False,
@@ -2129,4 +2140,3 @@ if __name__ == '__main__':
 
 # TODO дописать: перенос параметров из одноименных файлов
 # TODO дописать: сравнение файлов
-# TODO точка и запятая работали

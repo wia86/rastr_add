@@ -29,38 +29,37 @@ class RastrMethod:
     def cor(self, keys: str = '', tasks: str = '', print_log: bool = True, del_all: bool = False):
         """
         Коррекция значений в таблицах rastrwin;
-        Если несколько выборок, то указываются через пробел (н.р. na=1|na=2 no=1 npa=1 nga=2 Num=25 g=12).
+        Если несколько выборок, то указываются через ; (н.р. na=1|na=2;no=1; npa=1; nga=2; Num=25; g=12).
         В круглых скобках указать имя таблицы (н.р. na=1(node)).
         Если корректировать все строки таблицы, то указать только имя таблицы, н.р. (node).
         Если выборка по ключам, то имя таблицы указывать не нужно (н.р. ny=1 в таблице узлы).
-        Краткая форма выборки по узлам: 12 21 вместо ny=12 ny=21.
+        Краткая форма выборки по узлам: 12;21 вместо ny=12;ny=21.
         Краткая форма выборки по узлам: 12,13,0 вместо ip=12&iq=13&np=0.
         Краткая форма выборки по генераторам: g=12 вместо Num=12.
         При задании краткой формы имя таблицы указывать не нужно.
-        :param keys: "125 ny=25 na=1(node)" для узла, "Num=25 g=12" для генераторов, "1,2,0" для ветви,
-        "na=2 no=1 npa=1 nga=2" для районов, объединения, территорий и нагрузочных групп;
-        :param tasks: 'del' удалить строки в таблице, 'pn=10.2 qn=qn*2' изменить значение параметров;
+        :param keys: "125;ny=25;na=1(node)" для узла, "Num=25;g=12" для генераторов, "1,2,0" для ветви,
+        "na=2;no=1;npa=1;nga=2" для районов, объединения, территорий и нагрузочных групп;
+        :param tasks: 'del' удалить строки в таблице, 'pn=10.2;qn=qn*2' изменить значение параметров;
         :param print_log: выводить в лог;
         :param del_all: удалять узлы с генераторами и отходящими ветвями;
         """
         if print_log:
             log_r_m.info(f"\t\tФункция cor: {keys=},  {tasks=}")
-        keys = keys.strip().replace('  ', ' ')
+        keys = keys.replace(' ', '')
         tasks = tasks.strip().replace('  ', ' ')
-        if not keys:
-            raise ValueError(f'keys:{keys},tasks:{tasks}')
-        for key in keys.strip().split(" "):  # например:['na=11(node)','125', 'g=125', '12,13,0']
+        if not (keys and tasks.replace(' ', '')):
+            raise ValueError(f'{keys=},{tasks=}')
+        for key in keys.split(";"):  # например:['na=11(node)','125', 'g=125', '12,13,0']
 
             rastr_table, selection_in_table = self.recognize_key(key)
 
-            for task in tasks.strip().split(" "):  # разделение задания например:['pn=10.2', 'qn=5.4']
-                formula = ''
+            for task in tasks.split(";"):  # разделение задания например:['pn=10.2', 'qn=5.4']
                 param = ''
                 if task == 'del':
                     formula = 'del'
                 elif task.count('=') == 1:
                     param, formula = task.split("=")
-
+                    param = param.replace(' ', '')
                     if not (formula and param):
                         raise ValueError(f"Задание не распознано, {key=}, {task=}")
                 else:
@@ -116,7 +115,6 @@ class RastrMethod:
         :param param: параметры, нр 'pn';
         :param selection: выборка, нр 'sel';
         :param formula: 'del' удалить строки, формула для расчета параметра, нр 'pn*2' или значение, нр '10'.
-        Если поле param текстовое, то в значении formula <_> заменится на пробел.
         Меняются все поля в выборке через 'Calc'. А значит formula может быть например 'pn*0.4'
         :param del_all: удалять узлы с генераторами и отходящими ветвями;
         """
@@ -144,13 +142,13 @@ class RastrMethod:
                 raise ValueError(f"В таблице {tabl!r} нет параметра {param!r}.")
 
             if table.cols(param).Prop(1) == 2:  # если поле типа строка
-                ndx = table.FindNextSel(-1)
-                while ndx > -1:
-                    table.cols.Item(param).SetZ(ndx, formula.replace('_', ' '))
-                    ndx = table.FindNextSel(ndx)
+                i = table.FindNextSel(-1)
+                while i > -1:
+                    table.cols.Item(param).SetZ(i, formula)
+                    i = table.FindNextSel(i)
             else:
                 cor_param = table.cols.item(param)
-                cor_param.Calc(formula)
+                cor_param.Calc(formula.replace(' ', ''))
 
     def voltage_nominal(self, choice: str = 'uhom>30', edit: bool = False):
         """
@@ -308,7 +306,7 @@ class RastrMethod:
         """
         Добавить запись в таблицу и вернуть index.
         :param table: таблица, например "vetv";
-        :param tasks: параметры в формате "ip=1 iq=2 np=10 i_dop=100";
+        :param tasks: параметры в формате "ip=1;iq=2; np=10; i_dop=100";
         :return: index;
         """
         if not all([table, tasks]):
@@ -317,7 +315,7 @@ class RastrMethod:
         r_table = self.rastr.tables(table)
         r_table.AddRow()  # добавить строку в конце таблицы
         index = r_table.size - 1
-        for task_i in tasks.split(" "):
+        for task_i in tasks.replace(' ', '').split(";"):
             if task_i:
                 if task_i.count('=') == 1:
                     parameters, value = task_i.split("=")
@@ -337,13 +335,10 @@ class RastrMethod:
         log_r_m.info(f'\tВ таблицу <{table}> добавлена строка <{tasks}>, индекс <{index}>')
         return index
 
-    def cor_txt_field(self, table_field: str = 'node:name,dname vetv:dname Generator:Name'):
-        """
-        Исправить пробелы, заменить английские буквы на русские.
-        :param table_field: задание в формате 'node:name,dname vetv:dname Generator:Name'
-        """
+    def cor_txt_field(self, table_field: str = 'node:name,dname;vetv:dname;Generator:Name'):
+        """        Исправить пробелы, заменить английские буквы на русские.        """
         log_r_m.info("\tИсправить пробелы, заменить английские буквы на русские.")
-        for task in table_field.split(' '):
+        for task in table_field.replace(' ', '').split(';'):
             name_table, field_table = task.split(':')
             for field_table_i in field_table.split(','):
                 self.cor_letter_space(table=name_table, field=field_table_i)
@@ -504,16 +499,6 @@ class RastrMethod:
         else:
             raise ValueError(f'Задание {name=} не распознано ({sel=}, {value=})')
 
-    def change_loading_section(self, ns: int, new_loading: float, way: str = 'pg'):
-        """
-        # TODO Изменить переток мощности в сечении номер ns до величины new_loading путем (way) изменения нагрузки ('pn') или
-        генерации ('qn')
-        :param ns:
-        :param new_loading:
-        :param way:
-        """
-        table = self.rastr.tables('sechen')
-
     def test_parameter_rm_all(self, statement_all: str) -> bool:
         """
         Проверяет все утверждения и возвращает истина если все истина.
@@ -568,6 +553,9 @@ class RastrMethod:
                 return True
         elif operator == '<':
             if rm_val < value:
+                return True
+        elif operator == '=':
+            if rm_val == value:
                 return True
         return False
 
@@ -721,3 +709,13 @@ class RastrMethod:
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
         vetv.cols.item("sta").calc('0')
+
+    def change_loading_section(self, ns: int, new_loading: float, way: str = 'pg'):
+        """
+        # TODO Изменить переток мощности в сечении номер ns до величины new_loading путем (way) изменения нагрузки
+         ('pn') или генерации ('qn')
+        :param ns:
+        :param new_loading:
+        :param way:
+        """
+        table = self.rastr.tables('sechen')
