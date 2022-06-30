@@ -124,7 +124,7 @@ class RastrMethod:
         table = self.rastr.tables(tabl)
         table.setsel(selection)
         if not table.count:
-            log_r_m.error(f'В таблице {tabl} по выборке {selection} не найдено строк.')
+            log_r_m.warning(f'В таблице {tabl} по выборке {selection} не найдено строк.')
 
         if formula == 'del':
             table.DelRows()
@@ -465,40 +465,6 @@ class RastrMethod:
                              f" (задано {new_pop}, отклонение {abs(new_pop - pop):.1f} МВт, {i + 1} ит.)")
                 return True
 
-    def txt_task_cor(self, name: str, sel: str = '', value: str = ''):
-        """
-        Функция для выполнения задания в текстовом формате
-        :param name: имя функции
-        :param sel: выборка
-        :param value: значение
-        :return:
-        """
-        name = name.lower()
-        if 'уд' in name:
-            self.cor(keys=sel, tasks='del', del_all=('*' in name))
-        elif 'изм' in name:
-            self.cor(keys=sel, tasks=value)
-        elif 'снять' in name:
-            self.cor(keys='(node) (vetv) (Generator)', tasks='sel=0')
-        elif 'расчет' in name:
-            self.rgm(txt='txt_task_cor')
-        elif 'добавить' in name:
-            self.table_add_row(table=sel, tasks=value)
-        elif 'текст' in name:
-            self.cor_txt_field(table_field=sel)
-        elif 'схн' in name:
-            self.shn(choice=sel)
-        elif 'ном' in name:  # номинальные напряжения
-            self.voltage_nominal(choice=sel, edit=True)
-        elif 'скрм' in name:
-            if 'скрм*' in name:
-                self.all_auto_shunt = self.auto_shunt_rec(selection=sel, only_AutoBsh=False)
-            else:
-                self.all_auto_shunt = self.auto_shunt_rec(selection=sel, only_AutoBsh=True)
-            self.auto_shunt_cor(all_auto_shunt=self.all_auto_shunt)
-        else:
-            raise ValueError(f'Задание {name=} не распознано ({sel=}, {value=})')
-
     def test_parameter_rm_all(self, statement_all: str) -> bool:
         """
         Проверяет все утверждения и возвращает истина если все истина.
@@ -692,7 +658,7 @@ class RastrMethod:
         if not (name_table and key):
             raise ValueError(f'Ошибка в задании {name_table=} {key=}')
         if self.rastr.Tables.Find(name_table) == -1:
-            raise ValueError (f'Таблица {name_table=} не найдена в rastr')
+            raise ValueError(f'Таблица {name_table=} не найдена в rastr')
 
         table = self.rastr.tables(name_table)
         table.setsel(key)
@@ -709,13 +675,3 @@ class RastrMethod:
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
         vetv.cols.item("sta").calc('0')
-
-    def change_loading_section(self, ns: int, new_loading: float, way: str = 'pg'):
-        """
-        # TODO Изменить переток мощности в сечении номер ns до величины new_loading путем (way) изменения нагрузки
-         ('pn') или генерации ('qn')
-        :param ns:
-        :param new_loading:
-        :param way:
-        """
-        table = self.rastr.tables('sechen')
