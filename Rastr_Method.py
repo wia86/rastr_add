@@ -11,9 +11,9 @@ class RastrMethod:
     Сборник методов работы с rastr
     """
     # Работа с напряжением узлов
-    U_NOM = [6, 10, 35, 110, 220, 330, 500, 750]  # номинальные напряжения
-    U_MIN_NORM = [5.8, 9.7, 32, 100, 205, 315, 490, 730]  # минимальное нормальное напряжение
-    U_LARGEST_WORKING = [7.2, 12, 42, 126, 252, 363, 525, 787]  # наибольшее рабочее напряжения
+    U_NOM = [6, 10, 35, 110, 150, 220, 330, 500, 750]  # номинальные напряжения
+    U_MIN_NORM = [5.8, 9.7, 32, 100, 135,  205, 315, 490, 730]  # минимальное нормальное напряжение
+    U_LARGEST_WORKING = [7.2, 12, 42, 126, 180,  252, 363, 525, 787]  # наибольшее рабочее напряжения
     KEY_TABLES = {'ny': 'node',
                   'Num': 'Generator',
                   # 'g': 'Generator',
@@ -105,7 +105,7 @@ class RastrMethod:
                         if key_equally[0] in self.KEY_TABLES:
                             rastr_table = self.KEY_TABLES[key_equally[0]]  # вернет имя таблицы
         if not rastr_table:
-            raise ValueError(f"Таблица не определена: {key}")
+            raise ValueError(f"Таблица не определена: {key=}")
         return rastr_table, selection_in_table
 
     def group_cor(self, tabl: str, param: str, selection: str, formula: str, del_all: bool = False):
@@ -309,23 +309,25 @@ class RastrMethod:
         :param tasks: параметры в формате "ip=1;iq=2; np=10; i_dop=100";
         :return: index;
         """
+        table = table.strip()
         if not all([table, tasks]):
             raise ValueError(f'\tОшибка при добавлении в таблицу <{table=}> строки <{tasks=}>')
 
         r_table = self.rastr.tables(table)
         r_table.AddRow()  # добавить строку в конце таблицы
         index = r_table.size - 1
-        for task_i in tasks.replace(' ', '').split(";"):
+        for task_i in tasks.split(";"):
             if task_i:
                 if task_i.count('=') == 1:
                     parameters, value = task_i.split("=")
+                    parameters = parameters.replace(' ', '')
                     if all([parameters, value]):
                         if r_table.cols.Find(parameters) < 0:
                             raise ValueError(f"В таблице {r_table!r} нет параметра {parameters!r}.")
                         if r_table.cols(parameters).Prop(1) == 2:  # если поле типа строка
-                            r_table.cols.Item(parameters).SetZ(index, value.replace('_', ' '))
+                            r_table.cols.Item(parameters).SetZ(index, value)
                         else:
-                            r_table.cols.item(parameters).SetZ(index, value)
+                            r_table.cols.item(parameters).SetZ(index, value.replace(' ', ''))
 
                     else:
                         raise ValueError(f'\tОшибка при добавлении в таблицу <{table=}> строки <{task_i=}>')

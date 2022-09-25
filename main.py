@@ -908,6 +908,7 @@ class RastrModel(RastrMethod):
         self.degree_str = ""
         self.loadRGM = False
         self.DopNameStr = ""
+        self.DopName = ""
         self.rastr = None
         self.name_list = ["-", "-", "-"]
         pattern_name = re.compile("^(20[1-9][0-9])\s(лет\w?|зим\w?|паводок)\s?(макс|мин)?")
@@ -1187,11 +1188,11 @@ class RastrModel(RastrMethod):
                 Num = generator.cols.item("Num").ZS(j)
                 Node = generator.cols.item("Node").ZS(j)
                 NumPQ = generator.cols.item("NumPQ").Z(j)
-                if P < Pmin > 0:
+                if P < Pmin and Pmin:
                     log.info(f"\t\tВНИМАНИЕ! {Name}, Num={Num},ny={Node}, P={str(round(P))} < Pmin={str(Pmin)}")
-                if P > Pmax > 0:
+                if P > Pmax and Pmax:
                     log.info(f"\t\tВНИМАНИЕ! {Name}, Num={Num},ny={Node}, P={str(round(P))} > Pmax={str(Pmax)}")
-                if NumPQ > 0:
+                if NumPQ:
                     chart_pq.setsel("Num=" + str(NumPQ))
                     if chart_pq.count == 0:
                         log.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},ny={Node}, "
@@ -1211,10 +1212,10 @@ class RastrModel(RastrMethod):
                         name = section.cols.item("name").ZS(j)
                         ns = section.cols.item("ns").ZS(j)
                         pmax = section.cols.item("pmax").Z(j)
-                        p_new = section.cols.item("p_new").Z(j)
-                        if p_new > pmax + 0.01:
-                            log.info(f"\t\tВНИМАНИЕ! сечение: {name} {ns!r}, P = {round(p_new)}, "
-                                     f"pmax = {pmax}, отклонение: {round(pmax - p_new)}")
+                        psech = section.cols.item("psech").Z(j)
+                        if psech > pmax + 0.01:
+                            log.info(f"\t\tВНИМАНИЕ! сечение: {name} {ns!r}, P = {round(psech)}, "
+                                     f"pmax = {pmax}, отклонение: {round(pmax - psech)}")
                         j = section.FindNextSel(j)
             else:
                 raise ValueError("Файл сечений не загружен")
@@ -1271,8 +1272,13 @@ class RastrModel(RastrMethod):
             statements = ''
             match = re.search(re.compile(r"\{(.+?)}"), task_row)
             if match:
-                conditions = match[1].replace(' ', '').split('|')
+                conditions = match[1].split('|')
                 for condition in conditions:
+                    condition = condition.strip()
+                    if 'add_name' not in condition:
+                        condition = condition.replace(' ', '')
+                    if ":" not in condition:
+                        raise ValueError(f'Ошибка в задании {condition!r}')
                     parameter, value = condition.split(':')
                     if parameter in ['years', 'season', 'max_min', 'add_name']:
                         condition_dict[parameter] = value
@@ -2608,3 +2614,4 @@ if __name__ == '__main__':
 
 # TODO дописать: перенос параметров из одноименных файлов
 # TODO дописать: сравнение файлов
+# TODO : в изм разделитель , а в добавить . !!!??????
