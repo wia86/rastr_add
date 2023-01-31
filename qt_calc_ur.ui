@@ -46,7 +46,7 @@
            <x>0</x>
            <y>0</y>
            <width>971</width>
-           <height>1131</height>
+           <height>1091</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
@@ -84,6 +84,9 @@
               <property name="text">
                <string>Внести изменения в модели</string>
               </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
              </widget>
             </item>
             <item>
@@ -109,9 +112,9 @@
                <string># Ремонтные схемы, Доп имя, температура и прочее
 # В фигурных скобках указывается условие выполнения в формате {years = 2026| season=лет| max_min=min| add_name=0°C}
 # Примеры:
-#удалить*[15145 ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
+удалить*[15504]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
 #изм[(vetv) (area) (area2) (darea)|Tc=0]{years = 2026|season=зим|max_min=макс|add_name=0°C}  # обнулить температуру
-#расчет  # расчет режима
+расчет  # расчет режима
 </string>
               </property>
              </widget>
@@ -281,7 +284,7 @@
                 <string>в табличном виде</string>
                </property>
                <property name="checked">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -826,7 +829,7 @@
                 </widget>
                </item>
                <item>
-                <widget class="QLineEdit" name="le__auto_kontrol_choice">
+                <widget class="QLineEdit" name="le_auto_kontrol_choice">
                  <property name="minimumSize">
                   <size>
                    <width>0</width>
@@ -839,26 +842,6 @@
                 </widget>
                </item>
               </layout>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="cb_add_disabling_repair">
-               <property name="text">
-                <string>учитывать доп. отключения и ремонтные схемы  </string>
-               </property>
-               <property name="checked">
-                <bool>false</bool>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="cb_pa">
-               <property name="text">
-                <string>ПА</string>
-               </property>
-               <property name="checked">
-                <bool>false</bool>
-               </property>
-              </widget>
              </item>
             </layout>
            </widget>
@@ -934,7 +917,7 @@
                   </size>
                  </property>
                  <property name="plainText">
-                  <string>I:\rastr_add\test\пример задания.xlsx</string>
+                  <string>I:\rastr_add\test\пример перечня НВ.xlsx</string>
                  </property>
                 </widget>
                </item>
@@ -989,7 +972,7 @@
                   <string/>
                  </property>
                  <property name="text">
-                  <string>[XL-&gt;RastrWin][pop][cor]</string>
+                  <string>[НВ][НВ1]</string>
                  </property>
                 </widget>
                </item>
@@ -1025,7 +1008,7 @@
              </font>
             </property>
             <property name="title">
-             <string>Выбор моделей</string>
+             <string>Путь к папке с расчетными файлами или к файлу:</string>
             </property>
             <property name="flat">
              <bool>false</bool>
@@ -1134,7 +1117,7 @@
                 <string>Выборка файлов</string>
                </property>
                <property name="checked">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -1213,7 +1196,7 @@
                      <number>9999</number>
                     </property>
                     <property name="value">
-                     <number>9999</number>
+                     <number>1</number>
                     </property>
                    </widget>
                   </item>
@@ -1268,7 +1251,7 @@
                      </size>
                     </property>
                     <property name="text">
-                     <string/>
+                     <string>2026</string>
                     </property>
                    </widget>
                   </item>
@@ -1513,7 +1496,7 @@
                <item>
                 <widget class="QCheckBox" name="cb_PP">
                  <property name="text">
-                  <string>PP,</string>
+                  <string>PР</string>
                  </property>
                  <property name="checked">
                   <bool>false</bool>
@@ -1523,7 +1506,7 @@
                <item>
                 <widget class="QCheckBox" name="cb_PPO">
                  <property name="text">
-                  <string>РРО;</string>
+                  <string>РРО. Отключаемые элементы сети:</string>
                  </property>
                  <property name="checked">
                   <bool>false</bool>
@@ -1671,6 +1654,9 @@
               <property name="text">
                <string>Импорт из модели .rg2</string>
               </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
              </widget>
             </item>
             <item>
@@ -1732,7 +1718,7 @@
                     </size>
                    </property>
                    <property name="plainText">
-                    <string>I:\rastr_add\zad</string>
+                    <string>I:\rastr_add\test\файлы импорта\файл задания на расчет.rg2</string>
                    </property>
                   </widget>
                  </item>
@@ -1785,9 +1771,9 @@
                  </property>
                  <property name="plainText">
                   <string># таблица: параметры (обновить)
-node: autosta, autoN, automatika, otkl_add, sta_otkl_add, remont_add, sta_remont_add
-node: otkl1, otkl2, otkl3, Kontrol, N
-vetv: autosta, autoN, automatika, otkl_add, sta_otkl_add, remont_add, sta_remont_add
+#node: autosta, autoN, automatika, otkl_add, sta_otkl_add, remont_add, sta_remont_add
+node: otkl1, otkl2, otkl3, Kontrol, N, umin,umin_av,umax
+#vetv: autosta, autoN, automatika, otkl_add, sta_otkl_add, remont_add, sta_remont_add
 vetv: otkl1, otkl2, otkl3, Kontrol, N, znak-</string>
                  </property>
                 </widget>
@@ -1812,7 +1798,7 @@ vetv: otkl1, otkl2, otkl3, Kontrol, N, znak-</string>
              <string/>
             </property>
             <property name="text">
-             <string>Импорт задания из EXCEL на корректировку моделей</string>
+             <string>Импорт перечня расчетных сочетаний из EXCEL</string>
             </property>
            </widget>
           </item>

@@ -29,7 +29,7 @@ import webbrowser
 from tkinter import messagebox as mb
 import numpy as np
 import yaml
-from qt_choice import Ui_choice  # pyuic5 qt_choice.ui -o qt_choice.py
+from qt_choice import Ui_choice  # pyuic5 qt_choice.ui -o qt_choice.py # Запустить строку в Terminal
 from qt_set import Ui_Settings  # pyuic5 qt_set.ui -o qt_set.py
 from qt_cor import Ui_cor  # pyuic5 qt_cor.ui -o qt_cor.py
 from qt_calc_ur import Ui_calc_ur  # pyuic5 qt_calc_ur.ui -o qt_calc_ur.py
@@ -66,7 +66,7 @@ class Window:
         fileName_choose, _ = QtWidgets.QFileDialog.getOpenFileName(self, directory=directory,
                                                                    filter=filter_)  # "All Files(*);Text Files(*.txt)"
         if fileName_choose:
-            log.info(f"Выбран файл: {fileName_choose}")
+            log.info(f"GUI. Выбран файл: {fileName_choose}")
             return fileName_choose
 
     def choice_folder(self, directory: str):
@@ -83,11 +83,35 @@ class Window:
         """
         fileName_choose, _ = QtWidgets.QFileDialog.getSaveFileName(self, directory=directory, filter=filter_)
         if fileName_choose:
-            log.info(f"Для сохранения выбран файл: {fileName_choose}, {_}")
+            log.info(f"GUI. Для сохранения выбран файл: {fileName_choose}, {_}")
             return fileName_choose
+
+    def choice(self, type_choice: str, insert, directory=None):
+        """
+        Функция выбора папки или файла.
+        :param type_choice: 'file', 'folder'
+        :param insert: объект QT 'QPlainTextEdit' или 'QLineEdit' для вставки пути выбранного файла.
+        :param directory: объект QT 'QPlainTextEdit' c начальной папкой для поиска.
+        """
+        name = ''
+        if type_choice == 'file':
+            name = self.choice_file(directory=directory.toPlainText().replace('*', ''))
+        elif type_choice == 'folder':
+            name = self.choice_folder(directory=directory.toPlainText().replace('*', ''))
+
+        if name:
+            name = name.replace('/', '\\')
+            if insert.__class__.__name__ == 'QPlainTextEdit':
+                insert.setPlainText(name)
+            elif insert.__class__.__name__ == 'QLineEdit':
+                insert.setText(name)
 
 
 class MainChoiceWindow(QtWidgets.QMainWindow, Ui_choice, Window):
+    """
+    Окно главного меню.
+    """
+
     def __init__(self):
         super(MainChoiceWindow, self).__init__()
         self.setupUi(self)
@@ -96,10 +120,15 @@ class MainChoiceWindow(QtWidgets.QMainWindow, Ui_choice, Window):
         self.calc_ur.clicked.connect(lambda: self.hide_show((gui_choice_window,), (gui_calc_ur,)))
 
 
-class CalcURWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
+class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
+    """
+    Окно задания и запуска УР.
+    """
+
     def __init__(self):
-        super(CalcURWindow, self).__init__()
+        super(CalcWindow, self).__init__()
         self.setupUi(self)
+        self.task_calc = {}
         self.b_set.clicked.connect(lambda: gui_calc_ur_set.show())
         self.b_main_choice.clicked.connect(lambda: self.hide_show((gui_calc_ur,), (gui_choice_window,)))
 
@@ -120,14 +149,144 @@ class CalcURWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         for CB, _ in self.check_status_visibility:
             CB.clicked.connect(lambda: self.check_status(self.check_status_visibility))
 
+        # Функциональные кнопки
+        # TODO self.b_task_save.clicked.connect(self.task_save_yaml)
+        # TODO self.b_task_load.clicked.connect(self.task_load_yaml)
 
-class CalcURSetWindow(QtWidgets.QMainWindow, Ui_calc_ur_set, Window):
+        self.b_choice_path_folder.clicked.connect(lambda: self.choice(type_choice='folder',
+                                                                      insert=self.te_path_initial_models,
+                                                                      directory=self.te_path_initial_models))
+        self.b_choice_path_file.clicked.connect(lambda: self.choice(type_choice='file',
+                                                                    insert=self.te_path_initial_models,
+                                                                    directory=self.te_path_initial_models))
+        self.b_choice_XL.clicked.connect(lambda: self.choice(type_choice='file', insert=self.te_XL_path,
+                                                             directory=self.te_path_initial_models))
+        self.b_choice_path_import_folder.clicked.connect(lambda: self.choice(type_choice='folder',
+                                                                             insert=self.te_path_import_rg2,
+                                                                             directory=self.te_path_initial_models))
+        self.b_choice_path_import_file.clicked.connect(lambda: self.choice(type_choice='file',
+                                                                           insert=self.te_path_import_rg2,
+                                                                           directory=self.te_path_initial_models))
+
+        self.run_calc_rg2.clicked.connect(lambda: self.start())
+        self.te_path_initial_models.setPlainText(GeneralSettings.read_ini(section='save_form_folder_calc', key="path"))
+
+    def start(self):
+        """
+        Добавить ImportFromModel и запуск
+        """
+        file_handler.close()
+        GeneralSettings.write_ini(section='save_form_folder_calc', key="path",
+                                  value=self.te_path_initial_models.toPlainText())
+
+        self.fill_task_calc()
+        # # Убрать 'file:///'
+        # for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
+        #     self.task_ui[str_name].lstrip('file:///')
+        # """Запуск корректировки моделей"""
+        global cm
+        cm = CalcModel(self.task_calc)
+        # self.gui_import()
+        cm.run_calc()
+
+    def fill_task_calc(self):
+        """
+        Заполнить task_calc задание взяв данные с формы QT.
+        """
+        self.task_calc = {
+            "calc_folder": self.te_path_initial_models.toPlainText().strip(),
+            # Выборка файлов.
+            "Filter_file": self.cb_filter.isChecked(),  # QCheckBox
+            "file_count_max": self.sb_count_file.value(),  # QSpainBox
+            "calc_criterion": {"years": self.le_condition_file_years.text(),  # QLineEdit text()
+                               "season": self.le_condition_file_season.currentText(),  # QComboBox
+                               "max_min": self.le_condition_file_max_min.currentText(),
+                               "add_name": self.le_condition_file_add_name.text()},
+            # Корректировка в начале.
+            "cor_rm": {'add': self.cb_cor_txt.isChecked(),
+                       'txt': self.te_cor_txt.toPlainText()},
+            # Импорт ид для расчетов УР из моделей.
+            'CB_Import_Rg2': self.cb_import_model.isChecked(),
+            "Import_file": self.te_path_import_rg2.toPlainText(),
+            'txt_Import_Rg2': self.te_import_rg2.toPlainText(),
+            # Расчет всех возможных сочетаний.
+            'CB_SRS': self.cb_combinations.isChecked(),
+            "comb_field": self.le_comb_field.text(),
+            'CB_node': self.cb_node.isChecked(),
+            'CB_vetv': self.cb_vetv.isChecked(),
+            "SRS": {'otkl': self.cb_O.isChecked(),
+                    'remont': self.cb_P.isChecked(),
+                    'PO': self.cb_PO.isChecked(),
+                    'PP': self.cb_PP.isChecked(),
+                    'PPO': self.cb_PPO.isChecked()},
+            'filter_comb': self.cb_filter_comb.isChecked(),
+            "filter_comb_val": self.le_filter_comb_val.text(),
+            'auto_sel_otkl': self.cb_auto_task.isChecked(),
+            "auto_choice": self.le_auto_choice.text(),
+            # Импорт перечня расчетных сочетаний из EXCEL
+            'srs_XL': self.cb_excel.isChecked(),
+            "srs_XL_path": self.te_XL_path.toPlainText(),
+            'srs_XL_sheets': self.le_XL_sheets.text(),
+            # Функции.
+            'Imax_fix': self.cb_Imax.isChecked(),
+            'auto_kontrol': self.cb_auto_kontrol.isChecked(),
+            'auto_kontrol_choice': self.le_auto_kontrol_choice.text(),
+            # Результаты в EXCEL
+            'results_XL': self.cb_results_tab.isChecked(),
+            # TODO заполнять таблицы контролируемые - отключаемые элементы
+            # Результаты в RG2
+            'results_RG2': self.cb_results_pic.isChecked(),
+            # TODO настройки
+        }
+
+
+class CalcSetWindow(QtWidgets.QMainWindow, Ui_calc_ur_set, Window):
+    """
+    Окно основных настроек расчета УР.
+    """
+
     def __init__(self):
-        super(CalcURSetWindow, self).__init__()
+        super(CalcSetWindow, self).__init__()
         self.setupUi(self)
+        self.load_ini_ur()
+        self.b_save.clicked.connect(lambda: self.save_ini_ur())
+
+    def load_ini_ur(self):
+        """Загрузить, создать или перезаписать файл .ini """
+        if os.path.exists(GeneralSettings.ini):
+            config = configparser.ConfigParser()
+            config.read(GeneralSettings.ini)
+            try:
+                self.cb_gost.setChecked(eval(config['CalcSetWindow']["gost"]))
+                self.cb_skrm.setChecked(eval(config['CalcSetWindow']["skrm"]))
+                self.cb_avr.setChecked(eval(config['CalcSetWindow']["avr"]))
+                self.cb_add_disabling_repair.setChecked(eval(config['CalcSetWindow']["add_disabling_repair"]))
+                self.cb_pa.setChecked(eval(config['CalcSetWindow']["pa"]))
+            except LookupError:
+                log.error(f'файл {GeneralSettings.ini} не читается, перезаписан')
+                self.save_ini_ur()
+        else:
+            log.info(f'создан файл {GeneralSettings.ini}')
+            self.save_ini_ur()
+
+    def save_ini_ur(self):
+        config = configparser.ConfigParser()
+        config.read(GeneralSettings.ini)
+        config['CalcSetWindow'] = {
+            "gost": self.cb_gost.isChecked(),
+            "skrm": self.cb_skrm.isChecked(),
+            "avr": self.cb_avr.isChecked(),
+            "add_disabling_repair": self.cb_add_disabling_repair.isChecked(),
+            "pa": self.cb_pa.isChecked()}
+        with open(GeneralSettings.ini, 'w') as configfile:
+            config.write(configfile)
 
 
 class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
+    """
+    Окно общих настроек.
+    """
+
     def __init__(self):
         super(SetWindow, self).__init__()
         self.setupUi(self)
@@ -136,9 +295,9 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
 
     def load_ini(self):
         """Загрузить, создать или перезаписать файл .ini """
-        if os.path.exists('settings.ini'):
+        if os.path.exists(GeneralSettings.ini):
             config = configparser.ConfigParser()
-            config.read('settings.ini')
+            config.read(GeneralSettings.ini)
             try:
                 self.LE_path.setText(config['DEFAULT']["folder RastrWin3"])
                 self.LE_rg2.setText(config['DEFAULT']["шаблон rg2"])
@@ -147,14 +306,15 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
                 self.LE_amt.setText(config['DEFAULT']["шаблон amt"])
                 self.LE_trn.setText(config['DEFAULT']["шаблон trn"])
             except LookupError:
-                log.error('файл settings.ini не читается, перезаписан')
+                log.error(f'файл {GeneralSettings.ini} не читается, перезаписан')
                 self.save_ini()
         else:
-            log.info('создан файл settings.ini')
+            log.info(f'создан файл {GeneralSettings.ini}')
             self.save_ini()
 
     def save_ini(self):
         config = configparser.ConfigParser()
+        config.read(GeneralSettings.ini)
         config['DEFAULT'] = {
             "folder RastrWin3": self.LE_path.text(),
             "шаблон rg2": self.LE_rg2.text(),
@@ -162,11 +322,15 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
             "шаблон sch": self.LE_sch.text(),
             "шаблон amt": self.LE_amt.text(),
             "шаблон trn": self.LE_trn.text()}
-        with open('settings.ini', 'w') as configfile:
+        with open(GeneralSettings.ini, 'w') as configfile:
             config.write(configfile)
 
 
 class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
+    """
+    Окно корректировки моделей.
+    """
+
     def __init__(self):
         super(EditWindow, self).__init__()  # *args, **kwargs
         self.setupUi(self)
@@ -213,60 +377,37 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         # Функциональные кнопки
         self.task_save.clicked.connect(self.task_save_yaml)
         self.task_load.clicked.connect(self.task_load_yaml)
-        self.choice_from_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_IzFolder))
-        self.choice_from_file.clicked.connect(lambda: self.choice(type_choice='file', insert=self.T_IzFolder))
-        self.choice_in_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_InFolder))
-        self.choice_XL.clicked.connect(lambda: self.choice(type_choice='file', insert=self.T_PQN_XL_File))
-        self.choice_N.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_N))
-        self.choice_V.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_V))
-        self.choice_G.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_G))
-        self.choice_A.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_A))
-        self.choice_A2.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_A2))
-        self.choice_D.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_D))
-        self.choice_PQ.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_PQ))
-        self.choice_IT.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_IT))
+        self.choice_from_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_IzFolder,
+                                                                    directory=self.T_IzFolder))
+        self.choice_from_file.clicked.connect(lambda: self.choice(type_choice='file', insert=self.T_IzFolder,
+                                                                  directory=self.T_IzFolder))
+        self.choice_in_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_InFolder,
+                                                                  directory=self.T_IzFolder))
+        self.choice_XL.clicked.connect(lambda: self.choice(type_choice='file', insert=self.T_PQN_XL_File,
+                                                           directory=self.T_IzFolder))
+        self.choice_N.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_N,
+                                                          directory=self.T_IzFolder))
+        self.choice_V.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_V,
+                                                          directory=self.T_IzFolder))
+        self.choice_G.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_G,
+                                                          directory=self.T_IzFolder))
+        self.choice_A.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_A,
+                                                          directory=self.T_IzFolder))
+        self.choice_A2.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_A2,
+                                                           directory=self.T_IzFolder))
+        self.choice_D.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_D,
+                                                          directory=self.T_IzFolder))
+        self.choice_PQ.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_PQ,
+                                                           directory=self.T_IzFolder))
+        self.choice_IT.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_IT,
+                                                           directory=self.T_IzFolder))
 
         self.run_krg2.clicked.connect(lambda: self.start())
         self.b_main_choice.clicked.connect(lambda: self.hide_show((gui_edit,), (gui_choice_window,)))
         # Подсказки
-        # self.CB_KFilter_file.setToolTip("Всплывающее окно")
+        self.T_IzFolder.setToolTip("Для корректировки файлов во всех вложенных папках нужно в конце поставить *")
         # Загрузить из .ini начальный путь для T_IzFolder
-        if os.path.exists('settings.ini'):
-            config = configparser.ConfigParser()
-            config.read('settings.ini')
-            try:
-                self.T_IzFolder.setPlainText(config['save_form_folder']["path"])
-            except LookupError:
-                log.error('файл settings.ini не читается')
-
-    def save_ini_form_folder(self):
-        """
-        Сохранить в .ini путь к папке с исходными моделями.
-        """
-        if os.path.exists('settings.ini'):
-            config = configparser.ConfigParser()
-            config.read('settings.ini')
-            config['save_form_folder'] = {"path": self.T_IzFolder.toPlainText()}
-            with open('settings.ini', 'w') as configfile:
-                config.write(configfile)
-
-    def choice(self, type_choice: str, insert):
-        """
-        Функция выбора папки или файла.
-        :param type_choice: 'file', 'folder'
-        :param insert: объект QT  для вставки пути выбранного файла.
-        """
-        name = ''
-        if type_choice == 'file':
-            name = self.choice_file(directory=self.T_IzFolder.toPlainText().replace('*', ''))
-        elif type_choice == 'folder':
-            name = self.choice_folder(directory=self.T_IzFolder.toPlainText().replace('*', ''))
-        if name:
-            name = name.replace('/', '\\')
-            if insert.__class__.__name__ == 'QPlainTextEdit':
-                insert.setPlainText(name)
-            elif insert.__class__.__name__ == 'QLineEdit':
-                insert.setText(name)
+        self.T_IzFolder.setPlainText(GeneralSettings.read_ini(section='save_form_folder_edit', key="path"))
 
     def import_name_table(self):
         """
@@ -314,7 +455,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         self.CB_cor_e.setChecked(task_yaml["cor_end_qt"]['add'])
         self.TE_cor_e.setPlainText(task_yaml["cor_end_qt"]['txt'])
 
-        self.CB_kontrol_rg2.setChecked(task_yaml["control_rg2"])
+        self.CB_kontrol_rg2.setChecked(task_yaml["checking_parameters_rg2"])
         self.CB_U.setChecked(task_yaml["control_rg2_task"]['node'])
         self.CB_I.setChecked(task_yaml["control_rg2_task"]['vetv'])
         self.CB_gen.setChecked(task_yaml["control_rg2_task"]['Gen'])
@@ -470,16 +611,17 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         Добавить ImportFromModel и запуск
         """
         file_handler.close()
-        self.save_ini_form_folder()
+        GeneralSettings.write_ini(section='save_form_folder_edit', key="path", value=self.T_IzFolder.toPlainText())
+
         self.fill_task_ui()
         # Убрать 'file:///'
         for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
             self.task_ui[str_name].lstrip('file:///')
-        """Запуск корректировки моделей"""
-        global cm
-        cm = CorModel(self.task_ui)
+        # Запуск корректировки моделей.
+        global em
+        em = EditModel(self.task_ui)
         self.gui_import()
-        cm.run_cor()
+        em.run_cor()
 
     def gui_import(self):
         """
@@ -501,33 +643,34 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                                           param=self.task_ui['Imp_add'][tables]['param'],
                                           sel=self.task_ui['Imp_add'][tables]['sel'],
                                           calc=self.task_ui['Imp_add'][tables]['calc'])
-                    ImportFromModel.ui_import_model.append(ifm)
+                    ImportFromModel.set_import_model.append(ifm)
 
     def fill_task_ui(self):
         """
-        Заполнить task_ui задание взяв данные с формы QT (task_ui).
+        Заполнить task_ui задание взяв данные с формы QT.
         """
         self.task_ui = {
             "KIzFolder": self.T_IzFolder.toPlainText(),  # QPlainTextEdit
             "KInFolder": self.T_InFolder.toPlainText(),
+            # Выборка файлов.
             "KFilter_file": self.CB_KFilter_file.isChecked(),  # QCheckBox
             "max_file_count": self.D_count_file.value(),  # QSpainBox
             "cor_criterion_start": {"years": self.condition_file_years.text(),  # QLineEdit text()
                                     "season": self.condition_file_season.currentText(),  # QComboBox
                                     "max_min": self.condition_file_max_min.currentText(),
                                     "add_name": self.condition_file_add_name.text()},
-            # Корректировка в начале
+            # Корректировка в начале.
             "cor_beginning_qt": {'add': self.CB_cor_b.isChecked(),
                                  'txt': self.TE_cor_b.toPlainText()},
             # Задание из 'EXCEL'
             "import_val_XL": self.CB_import_val_XL.isChecked(),
             "excel_cor_file": self.T_PQN_XL_File.toPlainText(),
             "excel_cor_sheet": self.T_PQN_Sheets.text(),
-            # Корректировка в конце
+            # Корректировка в конце.
             "cor_end_qt": {'add': self.CB_cor_e.isChecked(),
                            'txt': self.TE_cor_e.toPlainText()},
             # Расчет режима и контроль параметров режима
-            "control_rg2": self.CB_kontrol_rg2.isChecked(),
+            "checking_parameters_rg2": self.CB_kontrol_rg2.isChecked(),
             "control_rg2_task": {'node': self.CB_U.isChecked(),
                                  'vetv': self.CB_I.isChecked(),
                                  'Gen': self.CB_gen.isChecked(),
@@ -672,6 +815,8 @@ class GeneralSettings(ABC):
     """
     # коллекция настроек, которые хранятся в ini файле
     set_save = {}
+    ini = 'settings.ini'
+    log_file = 'log_file.log'
 
     # @abstractmethod
     def __init__(self):
@@ -679,9 +824,9 @@ class GeneralSettings(ABC):
         self.set_info = {"calc_val": {1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"},
                          'collapse': '', 'end_info': ''}
         # прочитать ini файл
-        if os.path.exists('settings.ini'):
+        if os.path.exists(self.ini):
             config = configparser.ConfigParser()
-            config.read('settings.ini')
+            config.read(self.ini)
             try:
                 for key in config['DEFAULT']:
                     GeneralSettings.set_save[key] = config['DEFAULT'][key]
@@ -695,21 +840,196 @@ class GeneralSettings(ABC):
         self.time_start = time()
         self.now_start = self.now.strftime("%d-%m-%Y %H:%M")
 
-    # @abstractmethod
     def the_end(self):  # по завершению
         self.set_info['end_info'] = (
             f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {self.now.strftime('%d-%m-%Y %H:%M')}"
             f" \nЗатрачено: {timedelta(seconds=time() - self.time_start)} c.")
         log.info(self.set_info['end_info'])
 
+    @staticmethod
+    def read_ini(section: str, key: str):
+        """
+        Прочитать в файле settings.ini значение в разделе section по ключу key.
+        """
+        if os.path.exists(GeneralSettings.ini):
+            config = configparser.ConfigParser()
+            config.read(GeneralSettings.ini)
+            try:
+                return config[section][key]
+            except LookupError:
+                log.error(f'В файле {GeneralSettings.ini!r} не найден разделе {section!r} или ключ {key!r}.')
 
-class CorModel(GeneralSettings):
+    @staticmethod
+    def write_ini(section: str, key: str, value):
+        """
+        Записать в файл settings.ini значение value в раздел section по ключу key.
+        """
+        config = configparser.ConfigParser()
+        config.read(GeneralSettings.ini)
+        config[section] = {key: value}
+        with open(GeneralSettings.ini, 'w') as configfile:
+            config.write(configfile)
+
+
+class CalcModel(GeneralSettings):
+    """
+    Расчет нормативных возмущений.
+    """
+    def __init__(self, task_calc):
+        super(CalcModel, self).__init__()
+        self.task_calc = task_calc
+        self.all_folder = False  # Не перебирать вложенные папки
+
+    def run_calc(self):
+        """
+        Запуск расчета нормативных возмущений (НВ) в РМ.
+        """
+        log.info('Запуск расчета нормативных возмущений (НВ) в расчетной модели (РМ).')
+        if "*" in self.task_calc["calc_folder"]:
+            self.task_calc["calc_folder"] = self.task_calc["calc_folder"].replace('*', '')
+            self.all_folder = True
+
+        if not os.path.exists(self.task_calc["calc_folder"]):
+            raise ValueError(f'Не найден путь: {self.task_calc["calc_folder"]}.')
+
+        # папка для сохранения результатов
+        self.task_calc['folder_result_calc'] = self.task_calc["calc_folder"] + r"\result"
+        if os.path.isfile(self.task_calc["calc_folder"]):
+            self.task_calc['folder_result_calc'] = os.path.dirname(self.task_calc["calc_folder"]) + r"\result"
+        if not os.path.exists(self.task_calc['folder_result_calc']):
+            os.mkdir(self.task_calc['folder_result_calc'])  # создать папку result
+
+        self.task_calc['name_time'] = f"{self.task_calc['folder_result_calc']}"\
+                                      f"\\{datetime.now().strftime('%d-%m-%Y %H-%M')}"
+
+        # Цикл, если несколько файлов задания.
+        if self.task_calc['CB_Import_Rg2'] and os.path.isdir(self.task_calc["Import_file"]):
+            task_files = os.listdir(self.task_calc["Import_file"])
+            task_files = list(filter(lambda x: x.endswith('.rg2'), task_files))
+            for task_file in task_files:  # цикл по файлам '.rg2' в папке
+                task_full_name = os.path.join(self.task_calc["Import_file"], task_file)
+                log.info(f'Текущий файл задания: {task_full_name}')
+                self.run_calc_task(task_full_name)
+        else:
+            if self.task_calc['CB_Import_Rg2']:
+                self.run_calc_task(self.task_calc['Import_file'])
+            else:
+                self.run_calc_task()
+
+        self.the_end()
+        notepad_path = f'{self.task_calc["name_time"]} протокол расчета РМ.log'
+        shutil.copyfile(GeneralSettings.log_file, notepad_path)
+        with open(self.task_calc['name_time'] + ' задание на корректировку.yaml', 'w') as f:
+            yaml.dump(data=self.task_calc, stream=f, default_flow_style=False, sort_keys=False)
+        #webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
+        mb.showinfo("Инфо", self.set_info['end_info'])
+
+    def run_calc_task(self, task_full_name: str = ''):
+        """
+        Запуск расчета с текущим файлом импорта задания или без него.
+        :task_full_name: полный путь к текущему файлу задания
+        """
+        # Экспорт из модели исходных данных для расчетов УР.
+        if task_full_name:
+            ImportFromModel.set_import_model = []
+            self.import_id_rg2(path_file=task_full_name, txt_task=self.task_calc['txt_Import_Rg2'])
+
+        if os.path.isdir(self.task_calc["calc_folder"]):
+            if self.all_folder:  # с вложенными папками
+                for address, dir_, file_ in os.walk(self.task_calc["calc_folder"]):
+                    self.for_file(folder_calc=address)
+            else:  # без вложенных папок
+                self.for_file(folder_calc=self.task_calc["calc_folder"])
+
+        elif os.path.isfile(self.task_calc["calc_folder"]):
+            rm = RastrModel(self.task_calc["calc_folder"])
+            if not rm.code_name_rg2:
+                raise ValueError(f'Имя файла {self.task_calc["calc_folder"]!r} не подходит.')
+            self.calc_file(rm=rm)
+
+    def for_file(self, folder_calc: str):
+        """
+        Цикл по файлам.
+        :param folder_calc:
+        :return:
+        """
+        files_calc = os.listdir(folder_calc)  # список всех файлов в папке
+        rm_files = list(filter(lambda x: x.endswith('.rg2'), files_calc))
+
+        for rastr_file in rm_files:  # цикл по файлам '.rg2' в папке
+            full_name = os.path.join(folder_calc, rastr_file)
+            rm = RastrModel(full_name)
+            # если включен фильтр файлов и имя стандартизовано
+            if self.task_calc["Filter_file"] and rm.code_name_rg2:
+                if not rm.test_name(condition=self.task_calc["calc_criterion"], info=f'Цикл по файлам {folder_calc}: '):
+                    continue  # пропускаем если не соответствует фильтру
+            if not rm.code_name_rg2:
+                log.info(f'Имя файла {full_name} не подходит.')
+                continue
+            self.file_count += 1
+            #  если включен фильтр файлов проверяем количество расчетных файлов
+            if self.task_calc["Filter_file"] and self.file_count == self.task_calc["file_count_max"] + 1:
+                break
+            self.calc_file(rm)
+
+    def calc_file(self, rm):
+        """
+        Рассчитать РМ.
+        """
+        rm.load()
+        if self.task_calc['cor_rm']['add']:
+            log.info("\t*** Внесения изменений в РМ. ***")
+            rm.cor_rm_from_txt(self.task_calc['cor_rm']['txt'])
+            log.info("\t*** Внесение изменений в РМ выполнено. ***")
+
+        # Импорт моделей
+        if ImportFromModel.set_import_model:
+            for im in ImportFromModel.set_import_model:
+                im.import_csv(rm)
+
+        # Контролируемые и отключаемые элементы сети.
+        # todo автоотметка контроль, откл
+        rm.init_control()
+        # rm.init_disable()
+
+        rm.save(full_name_new=self.task_calc['folder_result_calc']+'\\' + rm.Name)
+
+    @staticmethod
+    def import_id_rg2(path_file: str, txt_task):
+        """
+        Преобразует txt формат в ImportFromModel.
+        :param path_file:
+        :param txt_task:
+        # таблица: параметры (обновить)
+        node: otkl1, otkl2
+        vetv: sta, otkl2
+        """
+        for row in txt_task.split('\n'):
+            row = row.split('#')[0]  # удалить текст после '#'
+            row = row.replace(' ', '')
+            if ':' in row:
+                name_table, name_fields = row.split(':')
+                if name_table and name_fields:
+                    ifm = ImportFromModel(
+                        import_file_name=path_file,
+                        # criterion_start={"years": "",
+                        #                  "season": "",
+                        #                  "max_min": "",
+                        #                  "add_name": ""},
+                        tables=name_table,
+                        param=name_fields,
+                        # sel="",
+                        calc=2)  # обновить
+                    ImportFromModel.set_import_model.append(ifm)
+
+
+class EditModel(GeneralSettings):
     """
     Коррекция файлов.
     """
 
     def __init__(self, task):
-        super(CorModel, self).__init__()
+        super(EditModel, self).__init__()
         self.print_xl = None
         self.cor_xl = None
         self.task = task
@@ -718,41 +1038,36 @@ class CorModel(GeneralSettings):
         self.load_additional = []
 
     def run_cor(self):
-        """Запуск корректировки моделей"""
-        # определяем корректировать файл или файлы в папке по анализу "KIzFolder"
-        if 'KIzFolder' not in self.task:
-            raise ValueError('В задании отсутствует папка для корректировки: KIzFolder')
-
+        """
+        Запуск корректировки моделей.
+        """
+        log.info('Запуск корректировки РМ.')
+        self.task["KIzFolder"] = self.task["KIzFolder"].strip()
         if "*" in self.task["KIzFolder"]:
             self.task["KIzFolder"] = self.task["KIzFolder"].replace('*', '')
             self.all_folder = True
 
-        if os.path.isdir(self.task["KIzFolder"]):
-            self.task["folder_file"] = 'folder'  # если корр папка
-        elif os.path.isfile(self.task["KIzFolder"]):
-            self.task["folder_file"] = 'file'  # если корр файл
-        else:
-            mb.showerror("Ошибка в задании", "Не найден: " + self.task["KIzFolder"] + ", выход")
-            return False
-        # создать папку KInFolder
-        if "KInFolder" in self.task:
-            if self.task["KInFolder"]:
-                if not os.path.exists(self.task["KInFolder"]):
-                    log.info("Создана папка: " + self.task["KInFolder"])
-                    os.makedirs(self.task["KInFolder"])
-            folder_save = self.task["KInFolder"] if self.task["KInFolder"] else self.task["KIzFolder"]
-        else:
-            self.task["KInFolder"] = ''
-            folder_save = self.task["KIzFolder"]
+        if not os.path.exists(self.task["KIzFolder"]):
+            raise ValueError(f'Не найден путь: {self.task["KIzFolder"]}.')
 
-        self.task['folder_result'] = folder_save + r"\result"  # папка для сохранения результатов
-        now = datetime.now()
-        self.task['name_time'] = f"{self.task['folder_result']}\\{now.strftime('%d-%m-%Y %H-%M')}"
+        self.task['folder_result'] = self.task["KIzFolder"] + r"\result"
+        if os.path.isfile(self.task["KIzFolder"]):
+            self.task['folder_result'] = os.path.dirname(self.task["KIzFolder"]) + r"\result"
+
+        self.task["KInFolder"] = self.task["KInFolder"].strip()
+        # папка для сохранения result и KInFolder
+        if self.task["KInFolder"] and not os.path.exists(self.task["KInFolder"]):
+            if os.path.isdir(self.task["KIzFolder"]):
+                log.info("Создана папка: " + self.task["KInFolder"])
+                os.makedirs(self.task["KInFolder"])  # создать папку
+                self.task['folder_result'] = self.task["KInFolder"] + r"\result"
+            else:
+                self.task['folder_result'] = os.path.dirname(self.task["KIzFolder"]) + r"\result"
+
         if not os.path.exists(self.task['folder_result']):
             os.mkdir(self.task['folder_result'])  # создать папку result
-        # self.task['folder_temp'] = self.task['folder_result'] + r"\temp"  # папка для сохранения рабочих файлов
-        # if not os.path.exists(self.task['folder_temp']):
-        #     os.mkdir(self.task['folder_temp'])  # создать папку temp
+
+        self.task['name_time'] = f"{self.task['folder_result']}\\{datetime.now().strftime('%d-%m-%Y %H-%M')}"
 
         # ЭКСПОРТ ИЗ МОДЕЛЕЙ
         if 'block_import' in self.task:
@@ -767,10 +1082,10 @@ class CorModel(GeneralSettings):
         # Загрузить файл сечения.
         if "printXL" in self.task:
             if ((self.task["printXL"] and self.task["set_printXL"]["sechen"]['add']) or
-                    (self.task["control_rg2"] and self.task["control_rg2_task"]["section"])):
+                    (self.task["checking_parameters_rg2"] and self.task["control_rg2_task"]["section"])):
                 self.load_additional.append('sch')
 
-        if self.task["folder_file"] == 'folder':  # корр файлы в папке
+        if os.path.isdir(self.task["KIzFolder"]):  # корр файлы в папке
 
             if self.all_folder:  # с вложенными папками
                 for address, dirs, files in os.walk(self.task["KIzFolder"]):
@@ -782,27 +1097,32 @@ class CorModel(GeneralSettings):
             else:  # без вложенных папок
                 self.for_file_in_dir(from_dir=self.task["KIzFolder"], in_dir=self.task["KInFolder"])
 
-        elif self.task["folder_file"] == 'file':  # корр файл
+        elif os.path.isfile(self.task["KIzFolder"]):  # корр файл
             rm = RastrModel(full_name=self.task["KIzFolder"])
             rm.load(load_additional=self.load_additional)
+            if self.load_additional:
+                rm.downloading_additional_files(self.load_additional)
+
             self.cor_file(rm)
             if self.task["KInFolder"]:
-                rm.save(self.task["KInFolder"] + '\\' + rm.Name)
+                if os.path.isdir(self.task["KInFolder"]):
+                    rm.save(self.task["KInFolder"] + '\\' + rm.Name)
+                else: # if os.path.isfile(self.task["KInFolder"]):
+                    rm.save(self.task["KInFolder"])
+
         # для нескольких запусков через GUI
-        if ImportFromModel.ui_import_model:
-            ImportFromModel.ui_import_model = []
+        if ImportFromModel.set_import_model:
+            ImportFromModel.set_import_model = []
 
         if self.print_xl:
             self.print_xl.finish()
 
         self.the_end()
-
-        if 'collapse' in self.set_info:
-            if self.set_info['collapse']:
-                self.set_info['end_info'] += f"\nВНИМАНИЕ! развалились модели:\n[{self.set_info['collapse']}].\n"
+        if self.set_info['collapse']:
+            self.set_info['end_info'] += f"\nВНИМАНИЕ! Развалились модели:\n[{self.set_info['collapse']}].\n"
 
         notepad_path = self.task['name_time'] + ' протокол коррекции файлов.log'
-        shutil.copyfile('log_file.log', notepad_path)
+        shutil.copyfile(GeneralSettings.log_file, notepad_path)
         with open(self.task['name_time'] + ' задание на корректировку.yaml', 'w') as f:
             yaml.dump(data=self.task, stream=f, default_flow_style=False, sort_keys=False)
         # webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
@@ -817,7 +1137,7 @@ class CorModel(GeneralSettings):
             full_name_new = os.path.join(in_dir, rastr_file)
             rm = RastrModel(full_name)
             # если включен фильтр файлов и имя стандартизовано
-            if self.task["KFilter_file"] and rm.kod_name_rg2:
+            if self.task["KFilter_file"] and rm.code_name_rg2:
                 if not rm.test_name(condition=self.task["cor_criterion_start"], info='Цикл по файлам KIzFolder: '):
                     continue  # пропускаем если не соответствует фильтру
 
@@ -825,7 +1145,10 @@ class CorModel(GeneralSettings):
             #  если включен фильтр файлов проверяем количество расчетных файлов
             if self.task["KFilter_file"] and self.file_count == self.task["max_file_count"] + 1:
                 break
-            rm.load(load_additional=self.load_additional)
+            rm.load()
+            if self.load_additional:
+                rm.downloading_additional_files(self.load_additional)
+
             self.cor_file(rm)
             if self.task["KInFolder"]:
                 rm.save(full_name_new)
@@ -847,8 +1170,8 @@ class CorModel(GeneralSettings):
                 log.info("\t*** Конец блока начала ***")
 
         # Импорт моделей
-        if ImportFromModel.ui_import_model:
-            for im in ImportFromModel.ui_import_model:
+        if ImportFromModel.set_import_model:
+            for im in ImportFromModel.set_import_model:
                 im.import_csv(rm)
 
         # Задать параметры по значениям в таблице excel
@@ -874,9 +1197,9 @@ class CorModel(GeneralSettings):
             if self.task["cor_name"]:
                 rm.cor_txt_field(table_field=self.task["cor_name_task"])
 
-        if 'control_rg2' in self.task:
-            if self.task['control_rg2']:
-                if not rm.control_rg2(self.task['control_rg2_task']):  # расчет и контроль параметров режима
+        if 'checking_parameters_rg2' in self.task:
+            if self.task['checking_parameters_rg2']:
+                if not rm.checking_parameters_rg2(self.task['control_rg2_task']):  # расчет и контроль параметров режима
                     self.set_info['collapse'] += rm.name_base + ', '
 
         if 'printXL' in self.task:
@@ -897,20 +1220,23 @@ class RastrModel(RastrMethod):
         self.dir = os.path.dirname(full_name)
         self.Name = os.path.basename(full_name)  # вернуть имя с расширением "2020 зим макс.rg2"
         self.name_base = self.Name[:-4]  # вернуть имя без расширения "2020 зим макс"
-        self.tip_file = self.Name[-3:]  # rst или rg2
-        self.pattern = GeneralSettings.set_save["шаблон " + self.tip_file]
-        self.kod_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 лет макс 4 лет мин 5 паводок макс
+        self.type_file = self.Name[-3:]  # rst или rg2
+        self.pattern = GeneralSettings.set_save["шаблон " + self.type_file]
+        self.code_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 лет макс 4 лет мин 5 паводок макс
         self.temp_a_v_gost = False  # True температуры:  а-в - зима + лето ПЭВТ
-        self.TabRgmCount = 1  # счетчик режимов в каждой таблице
         self.all_auto_shunt = {}
-        self.txt_dop = ""
-        self.degree_int = 0
-        self.degree_str = ""
+        self.temperature_name = ""
+        self.temperature: float = 0
+        self.temperature_str: str = ""
         self.loadRGM = False
-        self.DopNameStr = ""
-        self.DopName = ""
+        self.additional_name = ""
+        self.additional_name_list = ""
         self.rastr = None
         self.name_list = ["-", "-", "-"]
+        # calc
+        self.control = {}
+        # self.TabRgmCount = 1  # счетчик режимов в каждой таблице
+
         pattern_name = re.compile("^(20[1-9][0-9])\s(лет\w?|зим\w?|паводок)\s?(макс|мин)?")
         match = re.search(pattern_name, self.name_base)
         if match:
@@ -919,27 +1245,27 @@ class RastrModel(RastrMethod):
                 if not self.name_list[2]:
                     self.name_list = "-"
                 if self.name_list[1] == "паводок":
-                    self.kod_name_rg2 = 5
+                    self.code_name_rg2 = 5
                     self.season_name = "Паводок"
                 if self.name_list[1] == "зим" and self.name_list[2] == "макс":
-                    self.kod_name_rg2 = 1
+                    self.code_name_rg2 = 1
                     self.season_name = "Зимний максимум нагрузки"
                 if self.name_list[1] == "зим" and self.name_list[2] == "мин":
-                    self.kod_name_rg2 = 2
+                    self.code_name_rg2 = 2
                     self.season_name = "Зимний минимум нагрузки"
                 if self.name_list[1] == "лет" and self.name_list[2] == "макс":
-                    self.kod_name_rg2 = 3
+                    self.code_name_rg2 = 3
                     self.season_name = "Летний максимум нагрузки"
                 if self.name_list[1] == "лет" and self.name_list[2] == "мин":
-                    self.kod_name_rg2 = 4
+                    self.code_name_rg2 = 4
                     self.season_name = "Летний минимум нагрузки"
 
         self.god = self.name_list[0]
-        if self.kod_name_rg2 > 0:
+        if self.code_name_rg2 > 0:
             self.name_standard = self.god + " " + self.name_list[1]
-            if self.kod_name_rg2 < 5:
+            if self.code_name_rg2 < 5:
                 self.name_standard += " " + self.name_list[2]
-            if (self.kod_name_rg2 in [1, 2]) or ("ПЭВТ" in self.name_base):
+            if (self.code_name_rg2 in [1, 2]) or ("ПЭВТ" in self.name_base):
                 self.temp_a_v_gost = True  # зима + период экстремально высоких температур -ПЭВТ
         else:
             self.name_standard = "не стандарт"  # отсеиваем файлы задание и прочее
@@ -947,45 +1273,35 @@ class RastrModel(RastrMethod):
         pattern_name = re.compile(r"\((.+)\)")
         match = re.search(pattern_name, self.name_base)
         if match:
-            self.DopNameStr = match[1]
+            self.additional_name = match[1]
 
-        if self.DopNameStr.replace(" ", "") != "":
-            if "," in self.DopNameStr:
-                self.DopName = self.DopNameStr.split(",")
-            elif ";" in self.DopNameStr:
-                self.DopName = self.DopNameStr.split(";")
+        if self.additional_name.replace(" ", "") != "":
+            if "," in self.additional_name:
+                self.additional_name_list = self.additional_name.split(",")
+            elif ";" in self.additional_name:
+                self.additional_name_list = self.additional_name.split(";")
             else:
-                self.DopName = [self.DopNameStr]
+                self.additional_name_list = [self.additional_name]
         if "°C" in self.name_base:
             pattern_name = re.compile("(-?\d+((,|\.)\d*)?)\s?°C")  # -45.,14 °C
             match = re.search(pattern_name, self.name_base)
             if match:
-                self.degree_str = match[1].replace(',', '.')
-                self.degree_int = float(self.degree_str)  # число
-                self.txt_dop = "Расчетная температура " + self.degree_str + " °C. "
+                self.temperature_str = match[1].replace(',', '.')
+                self.temperature = float(self.temperature_str)  # число
+                self.temperature_name = "Расчетная температура " + self.temperature_str + " °C. "
 
-        # if calc_set == 2:  # расчет режимов
-        #     if self.kod_name_rg2 > 0:
-        # if GLR.zad_temperature == 1:
-        #     if self.name_list[1] == "зим":
-        #         self.degree_int = GLR.temperature_zima
-        #     else:
-        #         self.degree_int = GLR.temperature_leto
-        #
-        #     self.degree_str = str(self.degree_int)
-        #     self.txt_dop = "Расчетная температура " + self.degree_str + " °C. "
+    def init_control(self):
+        """
 
-        # for DopName_tek in self.DopName:
-        #     for each ii in GLR.rg2_name_metka
-        #         if trim (DopName_tek) = trim (ii (0)):
-        #             txt_dop = txt_dop + ii (1)
+        :return:
+        """
+        self.voltage_fix_frame()
+        self.control = {'node': self.table_index_list('node', 'Kontrol'),
+                        'line': self.table_index_list('vetv', 'Kontrol&tip!=1'),
+                        'trans': self.table_index_list('vetv', 'Kontrol&tip=1')}
 
-        # self.NAME_RG2_plus = self.season_name + " " + self.god + " г"
-        # if self.txt_dop != "":
-        #     self.NAME_RG2_plus += ". " + self.txt_dop
-        # self.NAME_RG2_plus2 = self.season_name + "(" + self.degree_str + " °C)"
-        # self.TEXT_NAME_TAB = GLR.tabl_name_OK1 + str(
-        #     GLR.Ntabl_OK) + GLR.tabl_name_OK2 + self.season_name + " " + self.god + " г. " + self.txt_dop
+
+
 
     def test_name(self, condition: dict, info: str = "") -> bool:
         """
@@ -995,7 +1311,7 @@ class RastrModel(RastrMethod):
         condition = {"years":"","season":"","max_min":"","add_name":""}-всегда истина
         str = для вывода в протокол
         """
-        if not self.kod_name_rg2:
+        if not self.code_name_rg2:
             return True
         if not condition:
             return True
@@ -1043,20 +1359,20 @@ class RastrModel(RastrMethod):
                         _ = condition['add_name'].split(",")
                     fff = False
                     for us in _:
-                        for DopName_i in self.DopName:
+                        for DopName_i in self.additional_name_list:
                             if DopName_i == us:
                                 fff = True
                     if not fff:
                         log.debug(
-                            info + self.Name + f" Доп. имя {self.DopNameStr} не проходит по условию: " + condition[
+                            info + self.Name + f" Доп. имя {self.additional_name} не проходит по условию: " + condition[
                                 'add_name'])
                         return False
         return True
 
     def load(self, load_additional: list = None):
-        """загрузить модель в Rastr
-        load_additional=['amt','sch','trn'] расширения файлов которые нужно загрузить
-        загружается первый попавшийся файл в папке IzFolder"""
+        """
+        Загрузить модель в Rastr
+        """
         if not self.rastr:
             try:
                 self.rastr = win32com.client.Dispatch("Astra.Rastr")
@@ -1065,13 +1381,10 @@ class RastrModel(RastrMethod):
 
         self.rastr.Load(1, self.full_name, self.pattern)  # загрузить или перезагрузить
         log.info(f"\n\nЗагружен файл: {self.full_name}\n")
-        # Загрузить файлы load_additional
-        if load_additional:
-            self.downloading_additional_files(load_additional)
 
     def downloading_additional_files(self, load_additional: list = None):
         """
-        Загрузка в Rastr дополнительных файлов.
+        Загрузка в Rastr дополнительных файлов из папки с РМ.
         :param load_additional: ['amt','sch','trn']
         """
         for extension in load_additional:
@@ -1087,10 +1400,10 @@ class RastrModel(RastrMethod):
         self.rastr.Save(full_name_new, self.pattern)
         log.info("Файл сохранен: " + full_name_new)
 
-    def control_rg2(self, dict_task: dict):
+    def checking_parameters_rg2(self, dict_task: dict):
         """  контроль  dict_task = {'node': True, 'vetv': True, 'Gen': True, 'section': True,
              'area': True, 'area2': True, 'darea': True, 'sel_node': "na>0"}  """
-        if not self.rgm("control_rg2"):
+        if not self.rgm("checking_parameters_rg2"):
             return False
 
         node = self.rastr.tables("node")
@@ -1128,8 +1441,8 @@ class RastrModel(RastrMethod):
         # Токи
         if dict_task['vetv']:
             # Контроль токовой загрузки
-            log.info("\tКонтроль токовой загрузки, расчетная температура: " + self.degree_str)
-            self.rastr.CalcIdop(self.degree_int, 0.0, "")
+            log.info("\tКонтроль токовой загрузки, расчетная температура: " + self.temperature_str)
+            self.rastr.CalcIdop(self.temperature, 0.0, "")
             if dict_task["sel_node"] != "":
                 if node.cols.Find("sel1") < 0:
                     node.Cols.Add("sel1", 3)  # добавить столбцы sel1
@@ -1259,7 +1572,7 @@ class RastrModel(RastrMethod):
         """
         task_rows = task_txt.split('\n')
         for task_row in task_rows:
-            task_row = task_row.split('#', 1)[0]  # удалить текст после '#'
+            task_row = task_row.split('#')[0]  # удалить текст после '#'
             # Имя функции стоит перед "(" и "["
             name_fun = task_row.split('(', 1)[0]
             name_fun = name_fun.split('[', 1)[0]
@@ -1284,7 +1597,7 @@ class RastrModel(RastrMethod):
                         condition_dict[parameter] = value
                     else:
                         statements += condition + '|'
-            if condition_dict and self.kod_name_rg2:
+            if condition_dict and self.code_name_rg2:
                 if not self.test_name(condition=condition_dict):
                     continue  # К следующей строке.
             if statements:
@@ -1442,12 +1755,12 @@ class RastrModel(RastrMethod):
 
             p_current = round(self.rastr.Calc("sum", "sechen", "psech", f"ns={ns}"), 2)
             change_p = round(p_new - p_current, 2)
-            log.debug(f'\t{cycle=}, {p_current=}, {p_new=}, {change_p=} МВт ({round (abs(change_p/p_new)*100)} %)')
+            log.debug(f'\t{cycle=}, {p_current=}, {p_new=}, {change_p=} МВт ({round(abs(change_p / p_new) * 100)} %)')
 
             if abs(change_p / p_new) * 100 < accuracy:
                 if (p_current < p_new and p_new > 0) or (p_current > p_new and p_new < 0):
                     log.info(f'\tЗаданная точность достигнута P={p_current},'
-                             f' отклонение {change_p}. {cycle+1} итераций')
+                             f' отклонение {change_p}. {cycle + 1} итераций')
                     break
 
             # изменение нагрузки
@@ -1470,7 +1783,7 @@ class RastrModel(RastrMethod):
 
             # изменение генерации
             elif type_correction == 'pg':
-                NodeGeneration.change_p =change_p
+                NodeGeneration.change_p = change_p
                 section_up_sum = 0
                 section_down_sum = 0
                 for nd in node_all:
@@ -1518,8 +1831,8 @@ class RastrModel(RastrMethod):
 
 
 class NodeGeneration:
-    """Класс для хранения информации о узле для изменения мощности в сечении."""
-    dr_p_koeff = 0  # если  1 то умножаем дополнительно на dr_p в этом случае больше загружаются
+    """Класс для хранения информации об узле для изменения мощности в сечении."""
+    dr_p_koeff = 0  # если 1, то умножаем дополнительно на dr_p в этом случае больше загружаются
     # генераторы которые меньше влияют на изменение мощности в сечении
 
     no_pmin = True  # ' не учитывать Pmin 
@@ -1580,9 +1893,9 @@ class NodeGeneration:
         change_p = abs(NodeGeneration.abs_change_p)
         unbalance_p = NodeGeneration.unbalance_p
         pg_node = self.node_t.Cols("pg").Z(self.i)
-        
+
         if self.up_pgen:
-            deviation_pg = koef_p_up * self.reserve_p_up   # На сколько нужно изменить генерацию в узле
+            deviation_pg = koef_p_up * self.reserve_p_up  # На сколько нужно изменить генерацию в узле
         else:
             deviation_pg = pg_node * koef_p_down
 
@@ -1597,20 +1910,21 @@ class NodeGeneration:
                 deviation_pg = deviation_pg - unbalance_p
                 unbalance_p = 0
 
-        if not self.gen_available :  # нет генераторов
+        if not self.gen_available:  # нет генераторов
             if self.up_pgen:  # увеличиваем генерацию узла, koef_p_up
                 if self.pg_max and self.pg_max > pg_node:
                     if self.pg_min > pg_node + deviation_pg:  # (от 0 до pg_min)
                         if self.pg_min and not self.no_pmin:  # если есть Рмин и учитываем Рмин то
                             if change_p > self.pg_min:
-                                self.node_t.cols.Item("pg").SetZ(self.i,self.pg_min)
+                                self.node_t.cols.Item("pg").SetZ(self.i, self.pg_min)
                                 # unbalance_p = unbalance_p + (self.pg_min - deviation_pg)
                                 change_p = change_p - self.pg_min
                         else:  # нет Рмин или не учитываем Рмин
                             self.node_t.cols.Item("pg").SetZ(self.i, pg_node + deviation_pg)
                             change_p = change_p - deviation_pg
-                    elif self.pg_max > pg_node + deviation_pg and (self.pg_min < pg_node + deviation_pg or self.pg_min == pg_node + deviation_pg):  # (от pg_min (включительно) до pg_max)v
-                        self.node_t.cols.Item("pg").SetZ(self.i,pg_node + deviation_pg)
+                    elif self.pg_max > pg_node + deviation_pg and (
+                            self.pg_min < pg_node + deviation_pg or self.pg_min == pg_node + deviation_pg):  # (от pg_min (включительно) до pg_max)v
+                        self.node_t.cols.Item("pg").SetZ(self.i, pg_node + deviation_pg)
                         change_p = change_p - deviation_pg
                     elif self.pg_max < pg_node + deviation_pg or self.pg_max == pg_node + deviation_pg:  # (больше или равно pg_max)
                         self.node_t.cols.Item("pg").SetZ(self.i, self.pg_max)
@@ -1731,8 +2045,6 @@ class NodeGeneration:
         #             exit                    sub
 
 
-
-
 class Gen:
     """Класс для хранения информации о генераторах в узле для изменения мощности в сечении."""
 
@@ -1839,7 +2151,7 @@ class CorSheet:
                     add_name = self.xls.cell(row, 7).value
                     statement = self.xls.cell(row, 8).value
 
-                    if any([year, season, max_min, add_name]) and rm.kod_name_rg2:  # any если хотя бы один истина
+                    if any([year, season, max_min, add_name]) and rm.code_name_rg2:  # any если хотя бы один истина
                         if not rm.test_name(condition={"years": year, "season": season,
                                                        "max_min": max_min, "add_name": add_name},
                                             info=f'\t\tcor_x:{sel=}, {value=}'):
@@ -1867,7 +2179,7 @@ class CorSheet:
                         if match.re.groups == 4:
                             if rm.test_name(condition={"years": match[1], "season": match[2],
                                                        "max_min": match[3], "add_name": match[4]},
-                                            info=f"\tcor_xl, условие: {name_file}, ") or not rm.kod_name_rg2:
+                                            info=f"\tcor_xl, условие: {name_file}, ") or not rm.code_name_rg2:
                                 duct_add = True
                 if duct_add:
                     _ = self.xls.cell(2, column_name_file).value
@@ -1943,12 +2255,12 @@ class CorXL:
 
 
 class ImportFromModel:
-    # __slots__ = 'ui_import_model', 'calc_str'
-    ui_import_model = []  # хранение объектов класса ImportFromModel созданных в GUI и коде
+    # __slots__ = 'set_import_model', 'calc_str'
+    set_import_model = []  # хранение объектов класса ImportFromModel созданных в GUI и коде
     calc_str = {"обновить": 2, "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3, "объединить": 3}
     number = 0  # для создания уникального имени csv файла
 
-    def __init__(self, import_file_name: str = '', criterion_start: Union[dict, None] = None, tables: str = '',
+    def __init__(self, import_file_name: str, criterion_start: Union[dict, None] = None, tables: str = '',
                  param='', sel: Union[str, None] = '', calc: Union[int, str] = '2'):
         """
         Импорт данных из файлов .rg2, .rst и др.
@@ -1967,6 +2279,7 @@ class ImportFromModel:
         else:
             self.folder_temp = os.path.dirname(import_file_name) + '\\temp'
             if not os.path.exists(self.folder_temp):
+                log.debug(f'Создана папка {os.path.dirname(import_file_name)!r}\\temp')
                 os.mkdir(self.folder_temp)
 
             self.import_file_name = import_file_name
@@ -1996,7 +2309,7 @@ class ImportFromModel:
 
             # Экспорт данных из файла в .csv файлы в папку temp
             if self.import_file_name:
-                log.info(f'Экспорт из файла <{self.import_file_name}> в CSV')
+                log.info(f'Экспорт из файла {self.import_file_name} в CSV')
                 self.import_rm = RastrModel(full_name=self.import_file_name)
                 self.import_rm.load()
                 for index in range(len(self.tables)):
@@ -2016,8 +2329,8 @@ class ImportFromModel:
     def import_csv(self, rm: RastrModel) -> None:
         """Импорт данных из csv в файла"""
         if self.import_file_name:
-            log.info(f"\tИмпорт из CSV <{self.import_file_name}> в модель:")
-            if rm.test_name(condition=self.criterion_start, info='\tImportFromModel ') or not rm.kod_name_rg2:
+            log.info(f"\tИмпорт из CSV {self.import_file_name} в РМ:")
+            if rm.test_name(condition=self.criterion_start, info='\tImportFromModel ') or not rm.code_name_rg2:
                 for index in range(len(self.tables)):
                     log.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {self.calc}" +
                              f"\n\tФайл CSV: {self.file_csv[index]}" +
@@ -2116,10 +2429,10 @@ class PrintXL:
     def add_val(self, rm: RastrModel):
 
         log.info("\tВывод данных из моделей в XL")
-        if rm.name_standard == "не стандарт" or not rm.DopNameStr:
+        if rm.name_standard == "не стандарт" or not rm.additional_name:
             dop_name_list = ['-'] * 3
         else:
-            dop_name_list = rm.DopName[:3]
+            dop_name_list = rm.additional_name_list[:3]
             if len(dop_name_list) < 3:
                 dop_name_list += ['-'] * (3 - len(dop_name_list))
         self.list_name_z = [rm.name_base, rm.god, rm.name_list[1], rm.name_list[2]] + dop_name_list
@@ -2443,18 +2756,15 @@ def str_yeas_in_list(id_str: str):
         return []
 
 
-def start_calc():
-    """Запуск расчета моделей"""
-    pass
-
-
 def block_b(rm):
     rm.sel0('block_b')
     rm.rgm("block_b")
 
 
 def import_model():
-    """ ИД для импорта из модели(выполняется после блока начала)"""
+    """
+    ИД для импорта из модели(выполняется после блока начала). Только для ввода в коде
+    """
     ifm = ImportFromModel(import_file_name=r"H:\ОЭС Урала без ТЭ\Пермская ЭС\КПР ПЭ 2021\ТКЗ\импорт перспективы.rg2",
                           criterion_start={"years": "",
                                            "season": "",
@@ -2464,7 +2774,7 @@ def import_model():
                           param="",
                           sel="sel",
                           calc=3)
-    ImportFromModel.ui_import_model.append(ifm)
+    ImportFromModel.set_import_model.append(ifm)
 
 
 def block_e(rm):
@@ -2491,7 +2801,8 @@ def my_except_hook(func):
 if __name__ == '__main__':
     VISUAL_CHOICE = 1  # 1 задание через QT, 0 - в коде
     calc_set = 1  # 1 -Изменить модели, 2-Расчет установившихся режимов, 3-Расчет токов КЗ
-    cm = None  # глобальный объект класса CorModel
+    em = None  # глобальный объект класса EditModel
+    cm = None  # глобальный объект класса CalcModel
     sys.excepthook = my_except_hook(sys.excepthook)
 
     # DEBUG, INFO, WARNING, ERROR и CRITICAL
@@ -2502,7 +2813,7 @@ if __name__ == '__main__':
     log.setLevel(logging.DEBUG)
     formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s:%(message)s')
 
-    file_handler = logging.FileHandler(filename='log_file.log', mode='w')
+    file_handler = logging.FileHandler(filename=GeneralSettings.log_file, mode='w')
     file_handler.setLevel(logging.INFO)
     file_handler.setFormatter(formatter)
     # file_handler.close()
@@ -2519,9 +2830,9 @@ if __name__ == '__main__':
 
         gui_choice_window = MainChoiceWindow()
         gui_choice_window.show()
-        gui_calc_ur = CalcURWindow()
+        gui_calc_ur = CalcWindow()
         # gui_calc_ur.show()
-        gui_calc_ur_set = CalcURSetWindow()
+        gui_calc_ur_set = CalcSetWindow()
         # gui_calc_ur_set.show()
         gui_edit = EditWindow()
         # gui_edit.show()
@@ -2565,7 +2876,7 @@ if __name__ == '__main__':
                 # "XL_table": [r"C:\Users\User\Desktop\1.xlsx", "Generator"],  # полный адрес и имя листа
                 # "tip_export_xl": 1,  # 1 загрузить, 0 присоединить 2 обновить
                 # Проверка параметров режима---------------------------------------------------------------------------
-                "control_rg2": True,
+                "checking_parameters_rg2": True,
                 "control_rg2_task": {'node': False, 'vetv': True, 'Gen': False, 'section': False, 'area': False,
                                      'area2': False, 'darea': False, 'sel_node': "na>0"},
                 # выводить данные из моделей в XL---------------------------------------------------------------------
@@ -2607,11 +2918,10 @@ if __name__ == '__main__':
                 "block_import": False,  # начало
             }
             """Запуск корректировки моделей"""
-            cm = CorModel(cor_task)
-            cm.run_cor()
-        if calc_set == 2:
-            start_calc()  # calc
+            em = EditModel(cor_task)
+            em.run_cor()
+
 
 # TODO дописать: перенос параметров из одноименных файлов
 # TODO дописать: сравнение файлов
-# TODO : в изм разделитель , а в добавить . !!!??????
+# спросить про перезапись файлов

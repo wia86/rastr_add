@@ -14,6 +14,9 @@ class RastrMethod:
     U_NOM = [6, 10, 35, 110, 150, 220, 330, 500, 750]  # номинальные напряжения
     U_MIN_NORM = [5.8, 9.7, 32, 100, 135,  205, 315, 490, 730]  # минимальное нормальное напряжение
     U_LARGEST_WORKING = [7.2, 12, 42, 126, 180,  252, 363, 525, 787]  # наибольшее рабочее напряжения
+
+    # U_LARGEST_WORKING_dict = {6: 7.2, 10: 12, 35: 42, 110: 126,150: 180,220: 252, 330: 363,500: 525,750: 787}
+
     KEY_TABLES = {'ny': 'node',
                   'Num': 'Generator',
                   # 'g': 'Generator',
@@ -148,7 +151,7 @@ class RastrMethod:
                     i = table.FindNextSel(i)
             else:
                 cor_param = table.cols.item(param)
-                cor_param.Calc(formula.replace(' ', ''))
+                cor_param.Calc(formula.replace(' ', '').replace(',', '.'))
 
     def voltage_nominal(self, choice: str = 'uhom>30', edit: bool = False):
         """
@@ -177,6 +180,28 @@ class RastrMethod:
                     log_r_m.error(f"\tНоминальное напряжение не исправлено! {ny=}, {name=}, {uhom=}")
 
             j = node.FindNextSel(j)
+
+    def voltage_fix_frame(self):
+        """
+        В таблице узлы задать поля umin(uhom*1.15*0.7), umin_av(uhom*1.1*0.7), если uhom>100
+        и и_umax
+        """
+        # todo задать umin для менее 100 кВ 5-10 %
+        node = self.rastr.tables("node")
+        node.setsel('umin=0&uhom>100')
+        node.cols.item("umin").calc("uhom*1.15*0.7")  # umin
+        node.setsel('umin_av=0&uhom>100')
+        node.cols.item("umin_av").calc("uhom*1.1*0.7")  # umin_av
+        node.setsel('umax=0&uhom<50')
+        node.cols.item("umax").calc("uhom*1.2")  # umax
+        node.setsel('umax=0&uhom>50&uhom<300')
+        node.cols.item("umax").calc("uhom*1.1455")  # umax
+        node.setsel('umax=0&uhom=330')
+        node.cols.item("umax").calc("uhom*1.1")  # umax
+        node.setsel('umax=0&uhom>400')
+        node.cols.item("umax").calc("uhom*1.05")  # umax
+        node.setsel('umax=0&uhom=750')
+        node.cols.item("umax").calc("uhom*1.0493")  # umax
 
     def voltage_normal(self, choice: str = ''):
         """
@@ -306,7 +331,7 @@ class RastrMethod:
         """
         Добавить запись в таблицу и вернуть index.
         :param table: таблица, например "vetv";
-        :param tasks: параметры в формате "ip=1;iq=2; np=10; i_dop=100";
+        :param tasks: параметры в формате "ip=1;iq=2; np=10; i_dop=100.5";
         :return: index;
         """
         table = table.strip()
@@ -327,7 +352,7 @@ class RastrMethod:
                         if r_table.cols(parameters).Prop(1) == 2:  # если поле типа строка
                             r_table.cols.Item(parameters).SetZ(index, value)
                         else:
-                            r_table.cols.item(parameters).SetZ(index, value.replace(' ', ''))
+                            r_table.cols.item(parameters).SetZ(index, value.replace(' ', '').replace('.', ','))
 
                     else:
                         raise ValueError(f'\tОшибка при добавлении в таблицу <{table=}> строки <{task_i=}>')
@@ -677,3 +702,19 @@ class RastrMethod:
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
         vetv.cols.item("sta").calc('0')
+
+    def table_index_list(self, table_name: str, setsel: str):
+        """
+        Вернуть list из индексов строк таблице в соответствии с выборкой.
+        :param table_name: имя таблицы
+        :param setsel: выборка в таблице
+        :return:
+        """
+        index_list = []
+        table = self.rastr.tables(table_name)
+        table.setsel(setsel)
+        i = table.FindNextSel(-1)
+        while i > -1:
+            index_list.append(i)
+            i = table.FindNextSel(i)
+        return index_list

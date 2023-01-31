@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>721</width>
-    <height>116</height>
+    <height>166</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -17,6 +17,9 @@
    <layout class="QGridLayout" name="gridLayout">
     <item row="0" column="0">
      <layout class="QVBoxLayout" name="verticalLayout">
+      <property name="spacing">
+       <number>0</number>
+      </property>
       <item>
        <widget class="QCheckBox" name="cb_gost">
         <property name="text">
@@ -41,6 +44,26 @@
        <widget class="QCheckBox" name="cb_avr">
         <property name="text">
          <string>АВР</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cb_add_disabling_repair">
+        <property name="text">
+         <string>Учитывать доп. отключения и ремонтные схемы (поле otkl_add, remont_add)</string>
+        </property>
+        <property name="checked">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QCheckBox" name="cb_pa">
+        <property name="text">
+         <string>ПА</string>
         </property>
         <property name="checked">
          <bool>true</bool>
