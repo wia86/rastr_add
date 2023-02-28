@@ -1,10 +1,10 @@
 # установка модулей:
-# pip freeze > requirements.txt
-# pip install -r requirements.txt
+# pip freeze > requirements11.txt
+# pip install -r requirements11.txt
 # exe приложение:
 # pyinstaller --onefile --noconsole main.py
 # pyinstaller -F --noconsole main.py
-import win32com.client
+import win32com.client  # установить pywin32
 from abc import ABC
 from Rastr_Method import RastrMethod
 from openpyxl import Workbook, load_workbook
@@ -13,10 +13,10 @@ from openpyxl.utils import get_column_letter
 from openpyxl.comments import Comment
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Protection, Font
 from openpyxl.styles.numbers import BUILTIN_FORMATS
-# import pandas as pd
 from typing import Union  # Any
 import sys
 import shutil
+from itertools import combinations
 from PyQt5 import QtWidgets
 from datetime import datetime, timedelta
 from time import time
@@ -28,6 +28,7 @@ import logging
 import webbrowser
 from tkinter import messagebox as mb
 import numpy as np
+import pandas as pd
 import yaml
 from qt_choice import Ui_choice  # pyuic5 qt_choice.ui -o qt_choice.py # Запустить строку в Terminal
 from qt_set import Ui_Settings  # pyuic5 qt_set.ui -o qt_set.py
@@ -111,7 +112,6 @@ class MainChoiceWindow(QtWidgets.QMainWindow, Ui_choice, Window):
     """
     Окно главного меню.
     """
-
     def __init__(self):
         super(MainChoiceWindow, self).__init__()
         self.setupUi(self)
@@ -124,7 +124,6 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
     """
     Окно задания и запуска УР.
     """
-
     def __init__(self):
         super(CalcWindow, self).__init__()
         self.setupUi(self)
@@ -137,8 +136,9 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             (self.cb_filter, self.gb_filter),
             (self.cb_cor_txt, self.te_cor_txt),
             (self.cb_import_model, self.gb_import_model),
-            (self.cb_combinations, self.gb_combinations),
-            (self.cb_excel, self.gb_excel),
+            (self.cb_disable_comb, self.gb_disable_comb),
+            (self.cb_disable_excel, self.gb_disable_excel),
+            (self.cb_control, self.gb_control),
             (self.cb_results_tab, self.gb_results_tab),
             (self.cb_tab_KO, self.gb_tab_KO),
             (self.cb_results_pic, self.gb_results_pic),
@@ -180,7 +180,7 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
                                   value=self.te_path_initial_models.toPlainText())
 
         self.fill_task_calc()
-        # # Убрать 'file:///'
+        # todo Убрать 'file:///'
         # for str_name in ["KIzFolder", "KInFolder", "excel_cor_file"]:
         #     self.task_ui[str_name].lstrip('file:///')
         # """Запуск корректировки моделей"""
@@ -190,10 +190,8 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         cm.run_calc()
 
     def fill_task_calc(self):
-        """
-        Заполнить task_calc задание взяв данные с формы QT.
-        """
         self.task_calc = {
+            # Окно запуска расчета.
             "calc_folder": self.te_path_initial_models.toPlainText().strip(),
             # Выборка файлов.
             "Filter_file": self.cb_filter.isChecked(),  # QCheckBox
@@ -210,27 +208,31 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             "Import_file": self.te_path_import_rg2.toPlainText(),
             'txt_Import_Rg2': self.te_import_rg2.toPlainText(),
             # Расчет всех возможных сочетаний.
-            'CB_SRS': self.cb_combinations.isChecked(),
+            'cb_disable_comb': self.cb_disable_comb.isChecked(),
+            "SRS": {'n-1': self.cb_n1.isChecked(),
+                    'n-2': self.cb_n2.isChecked(),
+                    'n-3': self.cb_n3.isChecked()},
+            'cb_comb_field': self.cb_comb_field.isChecked(),
             "comb_field": self.le_comb_field.text(),
-            'CB_node': self.cb_node.isChecked(),
-            'CB_vetv': self.cb_vetv.isChecked(),
-            "SRS": {'otkl': self.cb_O.isChecked(),
-                    'remont': self.cb_P.isChecked(),
-                    'PO': self.cb_PO.isChecked(),
-                    'PP': self.cb_PP.isChecked(),
-                    'PPO': self.cb_PPO.isChecked()},
+
+            'cb_auto_disable': self.cb_auto_disable.isChecked(),
+            "auto_disable_choice": self.le_auto_disable_choice.text(),
+
             'filter_comb': self.cb_filter_comb.isChecked(),
             "filter_comb_val": self.le_filter_comb_val.text(),
-            'auto_sel_otkl': self.cb_auto_task.isChecked(),
-            "auto_choice": self.le_auto_choice.text(),
             # Импорт перечня расчетных сочетаний из EXCEL
-            'srs_XL': self.cb_excel.isChecked(),
+            'cb_disable_excel': self.cb_disable_excel.isChecked(),
             "srs_XL_path": self.te_XL_path.toPlainText(),
             'srs_XL_sheets': self.le_XL_sheets.text(),
-            # Функции.
-            'Imax_fix': self.cb_Imax.isChecked(),
-            'auto_kontrol': self.cb_auto_kontrol.isChecked(),
-            'auto_kontrol_choice': self.le_auto_kontrol_choice.text(),
+            # Расчет всех возможных сочетаний.
+            'cb_control': self.cb_control.isChecked(),
+            'cb_control_field': self.cb_control_field.isChecked(),
+            "le_control_field": self.le_control_field.text(),
+
+            'cb_auto_control': self.cb_auto_control.isChecked(),
+            "le_auto_control_choice": self.le_auto_control_choice.text(),
+            'cb_Imax': self.cb_Imax.isChecked(),
+
             # Результаты в EXCEL
             'results_XL': self.cb_results_tab.isChecked(),
             # TODO заполнять таблицы контролируемые - отключаемые элементы
@@ -238,6 +240,9 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             'results_RG2': self.cb_results_pic.isChecked(),
             # TODO настройки
         }
+        """
+        Заполнить task_calc задание взяв данные с формы QT.
+        """
 
 
 class CalcSetWindow(QtWidgets.QMainWindow, Ui_calc_ur_set, Window):
@@ -330,7 +335,6 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
     """
     Окно корректировки моделей.
     """
-
     def __init__(self):
         super(EditWindow, self).__init__()  # *args, **kwargs
         self.setupUi(self)
@@ -830,20 +834,23 @@ class GeneralSettings(ABC):
             try:
                 for key in config['DEFAULT']:
                     GeneralSettings.set_save[key] = config['DEFAULT'][key]
+                for key in config['CalcSetWindow']:
+                    GeneralSettings.set_save[key] = config['CalcSetWindow'][key]
             except LookupError:
                 raise LookupError('файл settings.ini не читается')
         else:
             raise LookupError("Отсутствует файл settings.ini")
 
         self.file_count = 0  # счетчик расчетных файлов
+        self.number_comb = 1  # счетчик общего количества расчетных комбинаций
         self.now = datetime.now()
         self.time_start = time()
         self.now_start = self.now.strftime("%d-%m-%Y %H:%M")
 
     def the_end(self):  # по завершению
         self.set_info['end_info'] = (
-            f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {self.now.strftime('%d-%m-%Y %H:%M')}"
-            f" \nЗатрачено: {timedelta(seconds=time() - self.time_start)} c.")
+            f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {datetime.now().strftime('%d-%m-%Y %H:%M')}"
+            f" \nЗатрачено: {timedelta(seconds=time() - self.time_start)} c (файлов: {self.file_count-1}).")
         log.info(self.set_info['end_info'])
 
     @staticmethod
@@ -875,10 +882,24 @@ class CalcModel(GeneralSettings):
     """
     Расчет нормативных возмущений.
     """
+
     def __init__(self, task_calc):
         super(CalcModel, self).__init__()
         self.task_calc = task_calc
         self.all_folder = False  # Не перебирать вложенные папки
+        self.set_comb = {}  # {количество отключений: контроль ДТН, 1:"ДДТН",2:"АДТН"}
+
+        # self.control_index = {}
+        self.control_df_node = None
+        self.control_df_vetv = None
+        self.disable_df_gen = None
+        self.disable_df_node = None
+        self.disable_df_vetv = None
+        # DF для хранения токовых перегрузок и недопустимого снижения U
+        self.overloads_all = pd.DataFrame()
+        self.overloads_srs = pd.DataFrame()
+        self.info_file = pd.Series(dtype=str)
+        self.info_srs = pd.Series(dtype=str)
 
     def run_calc(self):
         """
@@ -899,7 +920,7 @@ class CalcModel(GeneralSettings):
         if not os.path.exists(self.task_calc['folder_result_calc']):
             os.mkdir(self.task_calc['folder_result_calc'])  # создать папку result
 
-        self.task_calc['name_time'] = f"{self.task_calc['folder_result_calc']}"\
+        self.task_calc['name_time'] = f"{self.task_calc['folder_result_calc']}" \
                                       f"\\{datetime.now().strftime('%d-%m-%Y %H-%M')}"
 
         # Цикл, если несколько файлов задания.
@@ -921,7 +942,7 @@ class CalcModel(GeneralSettings):
         shutil.copyfile(GeneralSettings.log_file, notepad_path)
         with open(self.task_calc['name_time'] + ' задание на корректировку.yaml', 'w') as f:
             yaml.dump(data=self.task_calc, stream=f, default_flow_style=False, sort_keys=False)
-        #webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
+        # webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
         mb.showinfo("Инфо", self.set_info['end_info'])
 
     def run_calc_task(self, task_full_name: str = ''):
@@ -947,11 +968,13 @@ class CalcModel(GeneralSettings):
                 raise ValueError(f'Имя файла {self.task_calc["calc_folder"]!r} не подходит.')
             self.calc_file(rm=rm)
 
+        if not self.overloads_all.empty:
+            self.overloads_all.to_excel(self.task_calc['name_time'] + ' впиодд.xlsx')
+
     def for_file(self, folder_calc: str):
         """
         Цикл по файлам.
         :param folder_calc:
-        :return:
         """
         files_calc = os.listdir(folder_calc)  # список всех файлов в папке
         rm_files = list(filter(lambda x: x.endswith('.rg2'), files_calc))
@@ -960,12 +983,13 @@ class CalcModel(GeneralSettings):
             full_name = os.path.join(folder_calc, rastr_file)
             rm = RastrModel(full_name)
             # если включен фильтр файлов и имя стандартизовано
-            if self.task_calc["Filter_file"] and rm.code_name_rg2:
-                if not rm.test_name(condition=self.task_calc["calc_criterion"], info=f'Цикл по файлам {folder_calc}: '):
-                    continue  # пропускаем если не соответствует фильтру
             if not rm.code_name_rg2:
                 log.info(f'Имя файла {full_name} не подходит.')
                 continue
+            if self.task_calc["Filter_file"]:
+                if not rm.test_name(condition=self.task_calc["calc_criterion"],
+                                    info=f'Имя файла {full_name} не подходит.'):
+                    continue  # пропускаем, если не соответствует фильтру
             self.file_count += 1
             #  если включен фильтр файлов проверяем количество расчетных файлов
             if self.task_calc["Filter_file"] and self.file_count == self.task_calc["file_count_max"] + 1:
@@ -976,6 +1000,14 @@ class CalcModel(GeneralSettings):
         """
         Рассчитать РМ.
         """
+        self.info_file['Имя файла'] = rm.name_base
+        self.info_file['Год'] = rm.god
+        self.info_file['Сезон макс/мин'] = rm.season_name
+        self.info_file['Доп. имя'] = rm.additional_name_list[0]
+        self.info_file['Доп. имя2'] = rm.additional_name_list[1]
+        self.info_file['Доп. имя3'] = rm.additional_name_list[2]
+        self.info_file['Температура(°C)'] = rm.temperature
+
         rm.load()
         if self.task_calc['cor_rm']['add']:
             log.info("\t*** Внесения изменений в РМ. ***")
@@ -987,12 +1019,388 @@ class CalcModel(GeneralSettings):
             for im in ImportFromModel.set_import_model:
                 im.import_csv(rm)
 
-        # Контролируемые и отключаемые элементы сети.
-        # todo автоотметка контроль, откл
-        rm.init_control()
-        # rm.init_disable()
+        # Подготовка.
+        rm.voltage_fix_frame()
 
-        rm.save(full_name_new=self.task_calc['folder_result_calc']+'\\' + rm.Name)
+        # создать поле index
+        rm.add_fields_in_table(name_tables='vetv,node,Generator', fields='index', type_fields=0)
+        rm.table_index('vetv,node,Generator')
+
+        # Поля для сортировки ветвей
+        rm.add_fields_in_table(name_tables='vetv', fields='temp,temp1', type_fields=1)
+        rm.rastr.tables('vetv').cols.item("temp").calc('ip.uhom')
+        rm.rastr.tables('vetv').cols.item("temp1").calc('iq.uhom')
+
+        # Поля для контроля напряжений
+        rm.add_fields_in_table(name_tables='node', fields='umin_av', type_fields=1)
+        rm.add_fields_in_table(name_tables='node', fields='otv_min', type_fields=1,
+                               property=(5, 'if(sta=0) (vras-umin)/umin*100:0'))
+        rm.add_fields_in_table(name_tables='node', fields='otv_min_av', type_fields=1,
+                               property=(5, 'if(sta=0) (vras-umin_av)/umin_av*100:0'))
+
+        # Поля для автоматики, что бы не было ошибок
+        rm.add_fields_in_table(name_tables='vetv,node,Generator',
+                               fields='repair_scheme,disable_scheme,automation,dname,key', type_fields=2)
+        # Поля с ключами таблиц
+        rm.rastr.tables('node').cols.item("key").calc('"ny="+str(ny)')
+        rm.rastr.tables('vetv').cols.item("key").calc('"ip="+str(ip)+"&iq="+str(iq)+"&np="+str(np)')
+        rm.rastr.tables('Generator').cols.item("key").calc('"Num="+str(Num)')
+
+        # Сохранить текущее состояние РМ
+        rm.add_fields_in_table(name_tables='vetv,node,Generator', fields='staRes', type_fields=3)
+        rm.rastr.tables('vetv').cols.item("staRes").calc('sta')
+        rm.rastr.tables('node').cols.item("staRes").calc('sta')
+        rm.rastr.tables('Generator').cols.item("staRes").calc('sta')
+        rm.add_fields_in_table(name_tables='node', fields='pnRes,qnRes,pgRes', type_fields=1)
+        rm.rastr.tables('node').cols.item("pnRes").calc('pn')
+        rm.rastr.tables('node').cols.item("qnRes").calc('qn')
+        rm.rastr.tables('node').cols.item("pgRes").calc('pg')
+        rm.add_fields_in_table(name_tables='Generator', fields='PRes', type_fields=1)
+        rm.rastr.tables('Generator').cols.item("PRes").calc('P')
+        rm.add_fields_in_table(name_tables='vetv', fields='ktrRes', type_fields=1)
+        rm.rastr.tables('vetv').cols.item("ktrRes").calc('ktr')
+
+        # Контролируемые элементы сети.
+        if self.task_calc['cb_control']:
+            # all_control для отметки всех контролируемых узлов и ветвей (авто и field)
+            rm.add_fields_in_table(name_tables='vetv,node', fields='all_control', type_fields=3)
+
+            if self.task_calc['cb_auto_control']:
+                # todo заполнить all_control в соответствии с self.task_calc['le_auto_control_choice']
+                pass
+
+            if self.task_calc['cb_control_field']:
+                # Добавит поле отметки отключений если их нет в какой-то таблице
+                rm.add_fields_in_table(name_tables='vetv,node', fields=self.task_calc['le_control_field'],
+                                       type_fields=3)
+                for table_name in 'vetv,node'.split(','):
+                    rm.group_cor(tabl=table_name,
+                                 param="all_control",
+                                 selection=self.task_calc['le_control_field'],
+                                 formula='1')
+
+            # all_control_groupid для отметки всех контролируемых ветвей и ветвей с теми же groupid
+            rm.add_fields_in_table(name_tables='vetv', fields='all_control_groupid', type_fields=3)
+            rm.rastr.tables('vetv').cols.item("all_control_groupid").calc("all_control")
+            tv = rm.rastr.tables('vetv')
+            tv.SetSel('all_control')
+            i = tv.FindNextSel(-1)
+            while i >= 0:
+                if tv.Cols.item("groupid").Z(i):
+                    rm.group_cor(tabl='vetv',
+                                 param="all_control",
+                                 selection="groupid=" + tv.Cols.item("groupid").ZS(i),
+                                 formula='1')
+                i = tv.FindNextSel(i)
+
+            # self.control_index = {'node': self.table_index_list('node', control_field),
+            #                       'line': self.table_index_list('vetv', control_field + '&tip!=1'),
+            #                       'trans': self.table_index_list('vetv', control_field + '&tip=1')}
+            # Узлы
+            tn = rm.rastr.tables('node')
+            tn.SetSel('all_control')
+            i = tn.FindNextSel(-1)
+            while i >= 0:
+                if not tn.Cols.item("dname").ZS(i).strip():
+                    tn.Cols.item("dname").SetZ(i, tn.Cols.item("name").ZS(i))
+                i = tn.FindNextSel(i)
+
+            self.control_df_node = rm.fd_from_table(table_name='node',
+                                                    fields='index,ny,dname,uhom',
+                                                    setsel="all_control")
+            self.control_df_node.sort_values(by=['uhom', 'dname'],  # столбцы сортировки
+                                             ascending=(False, True),  # обратный порядок
+                                             inplace=True)  # изменить df
+            # Ветви
+            tv.SetSel('all_control')
+            i = tv.FindNextSel(-1)
+            while i >= 0:
+                if not tv.Cols.item("dname").ZS(i).strip():
+                    tv.Cols.item("dname").SetZ(i, tv.Cols.item("name").ZS(i))
+                i = tv.FindNextSel(i)
+
+            self.control_df_vetv = rm.fd_from_table(table_name='vetv',
+                                                    fields='index,ip,iq,np,name,dname,groupid,temp,temp1',
+                                                    setsel="all_control")
+            self.control_df_vetv['uhom'] = self.control_df_vetv[['temp', 'temp1']].max(axis=1) * 10000 + \
+                                           self.control_df_vetv[['temp', 'temp1']].min(axis=1)
+            self.control_df_vetv.drop(['temp', 'temp1'], axis=1, inplace=True)
+            self.control_df_vetv.sort_values(by=['uhom', 'name'],  # столбцы сортировки
+                                             ascending=(False, True),  # обратный порядок
+                                             inplace=True)  # изменить df
+
+        # Отключаемые элементы сети.
+        if self.task_calc['cb_disable_comb']:
+            # Выбор количества одновременно отключаемых элементов
+            if self.task_calc['SRS']['n-1']:
+                self.set_comb[1] = 'ДДТН'
+            if self.task_calc['SRS']['n-2']:
+                self.set_comb[2] = 'ДДТН'
+                if 0 < rm.code_name_rg2 < 4 and GeneralSettings.set_save['gost']:
+                    self.set_comb[2] = 'AДТН'
+            if self.task_calc['SRS']['n-3']:
+                if GeneralSettings.set_save['gost']:
+                    if rm.code_name_rg2 > 3:
+                        self.set_comb[3] = 'АДТН'
+                else:
+                    self.set_comb[3] = 'ДДТН'
+            log.info(f'Расчетные СРС: {self.set_comb}.')
+
+            # В поле all_disable складываем элементы авто отмеченные и отмеченные в поле comb_field
+            rm.add_fields_in_table(name_tables='vetv,node,Generator', fields='all_disable', type_fields=3)
+
+            if self.task_calc['cb_auto_disable']:
+                # Выбор отключаемых элементов автоматически из выборки в таблице узлы
+                # Отмечается в таблицах ветви и узлы поле all_disable
+                # todo self.task_calc['auto_disable_choice']
+                pass
+
+            # Выбор отключаемых элементов из отмеченных в поле comb_field
+            if self.task_calc['cb_comb_field']:
+                # Добавит поле отметки отключений если их нет в какой-то таблице
+                rm.add_fields_in_table(name_tables='vetv,node,Generator', fields=self.task_calc['comb_field'],
+                                       type_fields=3)
+                for table_name in 'vetv,node,Generator'.split(','):
+                    rm.group_cor(tabl=table_name,
+                                 param="all_disable",
+                                 selection=self.task_calc['comb_field'],
+                                 formula='1')
+
+            # Создать df отключаемых узлов и ветвей и генераторов. Сортировка.
+            columns_pa = ',repair_scheme,disable_scheme'  # 'automation,automation_sta'
+            # Генераторы
+            self.disable_df_gen = rm.fd_from_table(table_name='Generator',
+                                                   fields='index,Name,dname,key' + columns_pa,   # ,Num,NodeState,Node
+                                                   setsel="all_disable")
+            self.disable_df_gen['table'] = 'Generator'
+            self.disable_df_gen.rename(columns={'Name': 'name'}, inplace=True)  # , 'Node': 'ny'
+            # Узлы
+            self.disable_df_node = rm.fd_from_table(table_name='node',
+                                                    fields='index,name,uhom,dname,key' + columns_pa,  # ny
+                                                    setsel="all_disable")
+            # self.disable_df_node.index = self.disable_df_node['index']
+            self.disable_df_node['table'] = 'node'
+            self.disable_df_node.sort_values(by=['uhom', 'name'],  # столбцы сортировки
+                                             ascending=(False, True),  # обратный порядок
+                                             inplace=True)  # изменить df
+            # Ветви
+            self.disable_df_vetv = rm.fd_from_table(table_name='vetv',
+                                                  fields='index,name,dname,key,temp,temp1' + columns_pa,  # ip,iq,np
+                                                  setsel="all_disable")
+            self.disable_df_vetv['table'] = 'vetv'
+            self.disable_df_vetv['uhom'] = self.disable_df_vetv[['temp', 'temp1']].max(axis=1) * 10000 + \
+                                           self.disable_df_vetv[['temp', 'temp1']].min(axis=1)
+            self.disable_df_vetv.drop(['temp', 'temp1'], axis=1, inplace=True)
+            self.disable_df_vetv.sort_values(by=['uhom', 'name'],  # столбцы сортировки
+                                           ascending=(False, True),  # обратный порядок
+                                           inplace=True)  # изменить df
+
+            log.info(f'Количество отключаемых ветвей: {len(self.disable_df_vetv.axes[0])},'
+                     f' узлов: {len(self.disable_df_node.axes[0])},'
+                     f' генераторов: {len(self.disable_df_gen.axes[0])}.')
+
+            disable_df_all = pd.concat([self.disable_df_vetv, self.disable_df_node, self.disable_df_gen])
+            # удалить пробелы и значения после #
+            disable_df_all.loc[disable_df_all['dname'] == '', 'dname'] = \
+                disable_df_all.loc[disable_df_all['dname'] == '', 'name']
+            disable_df_all['dname'] = disable_df_all['dname'].str.replace('  ', ' ').str.split('(').str[0]
+            disable_df_all['dname'] = disable_df_all['dname'].str.split(',').str[0]
+            disable_df_all['disable_scheme'] = \
+                disable_df_all['disable_scheme'].str.replace(' ', '').str.split('#').str[0]
+            disable_df_all['repair_scheme'] = disable_df_all['repair_scheme'].str.replace(' ', '').str.split('#').str[0]
+
+            # Нормальная схема сети
+            self.info_srs['Наименование режима'] = 'Нормальная схема сети.'
+            self.info_srs['Номер сочетания'] = self.number_comb
+            self.info_srs['Кол. откл. эл.'] = 0
+            self.info_srs['Контроль ДТН'] = 'ДДТН'
+            self.do_control(rm)
+
+            # Цикл по всем возможным сочетаниям отключений
+            for n_, self.info_srs['Контроль ДТН'] in self.set_comb.items():  # Цикл н-1 н-2 н-3.
+                log.info(f"Количество отключаемых элементов в комбинации: {n_} ({self.info_srs['Контроль ДТН']}).")
+                if n_ == 1:
+                    disable_all = disable_df_all
+                else:
+                    disable_all = \
+                        disable_df_all[(disable_df_all['uhom'] > 300) | (disable_df_all['table'] == 'Generator')]
+                name_columns = tuple(disable_all.columns)
+                disable_all = tuple(disable_all.itertuples(index=False, name=None))  # df в tuple построчно
+
+                for comb in combinations(disable_all, r=n_):  # Цикл по комбинациям.
+                    comb_df = pd.DataFrame(data=comb, columns=name_columns)
+
+                    comb_df['status_repair'] = False  # Истина, если элемент в ремонте. Ложь отключен.
+                    comb_df['dif_scheme'] = comb_df['disable_scheme'] != comb_df['repair_scheme']
+                    if n_ < 3:
+                        # Первое подсочетнание.
+                        comb_df.loc[comb_df.index < n_ - 1, 'status_repair'] = True
+                        self.calc_comb(rm, comb_df)
+
+                        # Если хотя бы у одного элемента disable_scheme != repair_scheme, то больше 1 подсочетания.
+                        if any(comb_df['dif_scheme']):
+                            # Второе подсочетнание.
+                            comb_df['status_repair'] = False
+                            comb_df.loc[comb_df.index == n_ - 1, 'status_repair'] = True
+                            self.calc_comb(rm, comb_df)
+                            if n_ == 2 and self.info_srs['Контроль ДТН'] == 'ДДТН' and all(comb_df['dif_scheme']):
+                                comb_df['status_repair'] = True  # Двойной ремонт.
+                                self.calc_comb(rm, comb_df)
+                    elif n_ == 3:
+                        if len(comb_df[comb_df['dif_scheme'] == True]) == 0:
+                            # Одно любое сочетание если все откл = ремонт.
+                            comb_df.loc[comb_df.index < n_ - 1, 'status_repair'] = True
+                            self.calc_comb(rm, comb_df)
+                        elif len(comb_df[comb_df['dif_scheme'] == True]) == 1:
+                            # Два сочетания с одним элементом откл != ремонт.
+                            for i in range(n_):
+                                if comb_df.iloc[i]['dif_scheme']:
+                                    comb_df['status_repair'] = False
+                                    comb_df.loc[comb_df.index != i, 'status_repair'] = True
+                                    self.calc_comb(rm, comb_df)
+                                    ii = 0 if i > 0 else 1
+                                    comb_df['status_repair'] = False
+                                    comb_df.loc[comb_df.index != ii, 'status_repair'] = True
+                                    self.calc_comb(rm, comb_df)
+                                    break
+                        elif len(comb_df[comb_df['dif_scheme'] == True]) > 1:
+                            # Два-три сочетания с откл != ремонт.
+                            for i in range(n_):
+                                if comb_df.iloc[i]['dif_scheme']:
+                                    comb_df['status_repair'] = False
+                                    comb_df.loc[comb_df.index != i, 'status_repair'] = True
+                                    self.calc_comb(rm, comb_df)
+        if self.task_calc['cb_disable_excel']:
+            pass
+            # self.task_calc['srs_XL_path']
+            # self.task_calc['srs_XL_sheets']
+            # todo отключения по списку иксель
+
+        # прибавить info_file к overloads_srs
+        self.overloads_srs.index = self.overloads_srs['Номер сочетания'].astype(str) + '.' + \
+                                   self.overloads_srs.index.astype(str)
+        self.overloads_all = pd.concat([self.overloads_all, self.overloads_srs.apply(lambda x: self.info_file,
+                                                                                     axis=1).join(self.overloads_srs)])
+        self.overloads_srs.drop(self.overloads_srs.index,inplace=True)
+
+        rm.save(full_name_new=self.task_calc['folder_result_calc'] + '\\' + rm.Name)  # todo удалить сохранение rg2
+
+    def calc_comb(self, rm, comb):
+        """
+        Расчет сочетания отключаемых элементов
+        :param rm:
+        :param comb: df
+        :return:
+        """
+        comb.sort_values(by='status_repair', inplace=True)
+        comb['scheme_info'] = ''  # Для добавления в 'Наименование режима' данных о disable_scheme и repair_scheme
+        self.restore_rm(rm=rm)
+        # Отключаем
+        for i in range(len(comb)):
+            if rm.sta(table=comb['table'].iloc[i], index=comb['index'].iloc[i]):  # отключаем элемент
+                log.info(f'Комбинация отклонена, тк элемент {comb["dname"].iloc[i]!r} уже был отключен.')
+                return False
+            if comb['repair_scheme'].iloc[i]:
+                pass  # todo доделать comb['scheme_info'].iloc[i] = ' ()'
+            if comb['disable_scheme'].iloc[i]:
+                pass  # todo доделать comb['scheme_info'].iloc[i] = ' ()'
+
+        # Имя сочетания
+        if comb.iloc[0]["status_repair"]:
+            self.info_srs['Наименование режима'] = 'Ремонт '
+            self.info_srs['Ремонт 1'] = comb["dname"].iloc[0] + comb['scheme_info'].iloc[0]
+            self.info_srs['Ключ рем.1'] = comb["key"].iloc[0]
+        else:
+            self.info_srs['Наименование режима'] = 'Отключение '
+            self.info_srs['Отключение'] = comb["dname"].iloc[0] + comb['scheme_info'].iloc[0]
+            self.info_srs['Ключ откл.'] = comb["key"].iloc[0]
+
+        self.info_srs['Наименование режима'] += comb["dname"].iloc[0] + comb['scheme_info'].iloc[0]
+        if len(comb) > 1:
+            self.info_srs['Наименование режима'] += f' при ремонте {comb["dname"].iloc[1] + comb["scheme_info"].iloc[1]}'
+            self.info_srs['Ремонт 1'] = comb["dname"].iloc[1] + comb["scheme_info"].iloc[1]
+            self.info_srs['Ключ рем.1'] = comb["key"].iloc[1]
+        if len(comb) == 3:
+            self.info_srs['Наименование режима'] += f', {comb["dname"].iloc[2] + comb["scheme_info"].iloc[2]}'
+            self.info_srs['Ремонт 2'] = comb["dname"].iloc[2] + comb["scheme_info"].iloc[2]
+            self.info_srs['Ключ рем.2'] = comb["key"].iloc[2]
+        self.info_srs['Наименование режима'] += '.'
+
+        log.info(f"Сочетание {self.number_comb}: {self.info_srs['Наименование режима']}")
+        # log.info(f'Комбинация {self.number_comb}:\n{comb[["table","name", "status_repair"]]}')
+
+        self.info_srs['Номер сочетания'] = self.number_comb
+        self.info_srs['Кол. откл. эл.'] = comb.shape[0]
+
+        self.do_control(rm)
+
+        # todo Восстановление питания узлов и изменение шунтов
+
+        # rm.save(full_name_new=self.task_calc['folder_result_calc'] + '\\' + self.info_srs['Наименование режима']+'.rg2')
+        # todo удалить сохранение rg2
+
+    def do_control(self, rm):
+        """
+        Проверка параметров режима.
+        :return:
+        """
+        overloads = pd.DataFrame()
+        if not rm.rgm():
+            pass  # todo добавить в перегрузки
+        else:
+            # проверка на наличие перегрузок ветвей (ЛЭП, трансформаторов, выключателей)
+            if self.info_srs['Контроль ДТН'] == 'АДТН':
+                selection_v = 'all_control & i_zag_av > 0.1'
+                selection_n = 'all_control & otv_min_av<0 & !sta'
+            else:
+                selection_v = 'all_control & i_zag > 0.1'
+                selection_n = 'all_control & otv_min<0 & !sta'
+
+            tv = rm.rastr.tables('vetv')
+            tv.SetSel(selection_v)
+            if tv.count:
+                overloads = rm.fd_from_table(table_name='vetv',
+                                             fields='dname,'  # 'Контролируемые элементы,'  # 
+                                                    'key,'  # 'Ключ контроль,'
+                                                    'txt_zag,'  # 'txt_zag,' 
+                                                    'i_max,'  # 'Iрасч.(A),'
+                                                    'i_dop_r,'  # 'Iддтн(A),'
+                                                    'i_zag,'  # 'Iзагр.ддтн(%),'
+                                                    'i_dop_r_av,'  # 'Iадтн(A),'
+                                                    'i_zag_av',  # 'Iзагр.адтн(%),'
+                                             setsel=selection_v)
+            # проверка на наличие недопустимого снижение напряжения
+            tn = rm.rastr.tables('node')
+            tn.SetSel(selection_n)
+            if tn.count:
+                overloads = pd.concat([overloads, rm.fd_from_table(table_name='node',
+                                                                   fields='dname,'  # 'Контролируемые элементы,'
+                                                                          'key,'  # 'Ключ контроль,'
+                                                                          # 'txt_zag,'  # 'txt_zag,'
+                                                                          # todo сделать что бы в txt_zag были значения узлов?
+                                                                          'vras,'  # 'Uрасч.(кВ),'
+                                                                          'umin,'  # 'Uмин.доп.(кВ),'
+                                                                          'umin_av,'  # 'U ав.доп.(кВ),'
+                                                                          'otv_min,'  # отклонение vras от 'Uмин.доп.' (%)
+                                                                          'otv_min_av',  # отклонение vras от 'U ав.доп.' (%)
+                                                                   setsel=selection_n)])
+
+            # проверка на наличие недопустимого повышения напряжения
+            tn.SetSel('umax<vras & umax>0 & !sta')
+            if tn.count:
+                overloads = pd.concat([overloads, rm.fd_from_table(table_name='node',
+                                                                   fields='dname,'  # 'Контролируемые элементы,'
+                                                                          'key,'  # 'Ключ контроль,'
+                                                                          'vras,'  # 'Uрасч.(кВ),'
+                                                                          'umax',  # 'Uнаиб.раб.(кВ)'
+                                                                   setsel='umax<vras & umax>0 & !sta')])
+
+        # прибавить info_srs к overloads_srs
+        if not overloads.empty:
+            overloads.index = range(len(overloads))
+            self.overloads_srs = pd.concat([self.overloads_srs,
+                                            overloads.apply(lambda x: self.info_srs, axis=1).join(other=overloads)])
+        self.number_comb += 1  # код комбинации
 
     @staticmethod
     def import_id_rg2(path_file: str, txt_task):
@@ -1005,8 +1413,7 @@ class CalcModel(GeneralSettings):
         vetv: sta, otkl2
         """
         for row in txt_task.split('\n'):
-            row = row.split('#')[0]  # удалить текст после '#'
-            row = row.replace(' ', '')
+            row = row.replace(' ', '').split('#')[0]  # удалить текст после '#'
             if ':' in row:
                 name_table, name_fields = row.split(':')
                 if name_table and name_fields:
@@ -1021,6 +1428,21 @@ class CalcModel(GeneralSettings):
                         # sel="",
                         calc=2)  # обновить
                     ImportFromModel.set_import_model.append(ifm)
+
+    @staticmethod
+    def restore_rm(rm):
+        """
+        Восстановить поля РМ.
+        """
+        rm.rastr.tables('vetv').cols.item("sta").calc('staRes')
+        rm.rastr.tables('node').cols.item("sta").calc('staRes')
+        rm.rastr.tables('Generator').cols.item("sta").calc('staRes')
+        # меняется после действия изменения схемы или ПА
+        rm.rastr.tables('node').cols.item("pn").calc('pnRes')
+        rm.rastr.tables('node').cols.item("qn").calc('qnRes')
+        rm.rastr.tables('node').cols.item("pg").calc('pgRes')
+        rm.rastr.tables('Generator').cols.item("P").calc('PRes')
+        rm.rastr.tables('vetv').cols.item("ktr").calc('ktrRes')
 
 
 class EditModel(GeneralSettings):
@@ -1107,7 +1529,7 @@ class EditModel(GeneralSettings):
             if self.task["KInFolder"]:
                 if os.path.isdir(self.task["KInFolder"]):
                     rm.save(self.task["KInFolder"] + '\\' + rm.Name)
-                else: # if os.path.isfile(self.task["KInFolder"]):
+                else:  # if os.path.isfile(self.task["KInFolder"]):
                     rm.save(self.task["KInFolder"])
 
         # для нескольких запусков через GUI
@@ -1138,7 +1560,7 @@ class EditModel(GeneralSettings):
             rm = RastrModel(full_name)
             # если включен фильтр файлов и имя стандартизовано
             if self.task["KFilter_file"] and rm.code_name_rg2:
-                if not rm.test_name(condition=self.task["cor_criterion_start"], info='Цикл по файлам KIzFolder: '):
+                if not rm.test_name(condition=self.task["cor_criterion_start"], info='Цикл по файлам.'):
                     continue  # пропускаем если не соответствует фильтру
 
             self.file_count += 1
@@ -1195,7 +1617,7 @@ class EditModel(GeneralSettings):
         # Исправить пробелы, заменить английские буквы на русские.
         if "cor_name" in self.task:
             if self.task["cor_name"]:
-                rm.cor_txt_field(table_field=self.task["cor_name_task"])
+                rm.txt_field_right(table_field=self.task["cor_name_task"])
 
         if 'checking_parameters_rg2' in self.task:
             if self.task['checking_parameters_rg2']:
@@ -1222,151 +1644,92 @@ class RastrModel(RastrMethod):
         self.name_base = self.Name[:-4]  # вернуть имя без расширения "2020 зим макс"
         self.type_file = self.Name[-3:]  # rst или rg2
         self.pattern = GeneralSettings.set_save["шаблон " + self.type_file]
-        self.code_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 лет макс 4 лет мин 5 паводок макс
-        self.temp_a_v_gost = False  # True температуры:  а-в - зима + лето ПЭВТ
+        self.code_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 ПЭВТ 4 лет макс 5 лет мин 6 паводок
         self.all_auto_shunt = {}
-        self.temperature_name = ""
         self.temperature: float = 0
-        self.temperature_str: str = ""
         self.loadRGM = False
         self.additional_name = ""
-        self.additional_name_list = ""
         self.rastr = None
         self.name_list = ["-", "-", "-"]
-        # calc
-        self.control = {}
-        # self.TabRgmCount = 1  # счетчик режимов в каждой таблице
+        self.additional_name_list = ['-', '-', '-']
 
-        pattern_name = re.compile("^(20[1-9][0-9])\s(лет\w?|зим\w?|паводок)\s?(макс|мин)?")
-        match = re.search(pattern_name, self.name_base)
+        # "^(20[1-9][0-9])\s(лет\w?|зим\w?|паводок)\s?(макс|мин)?"
+        match = re.search(re.compile("^(20[1-9][0-9])\s(лет\w*|зим\w*|паводок)\s?(макс\w*|мин\w*)?"), self.name_base)
         if match:
             if match.re.groups == 3:
                 self.name_list = [match[1], match[2], match[3]]
                 if not self.name_list[2]:
                     self.name_list = "-"
                 if self.name_list[1] == "паводок":
-                    self.code_name_rg2 = 5
+                    self.code_name_rg2 = 6
                     self.season_name = "Паводок"
-                if self.name_list[1] == "зим" and self.name_list[2] == "макс":
+                if "зим" in self.name_list[1] and "макс" in self.name_list[2]:
                     self.code_name_rg2 = 1
                     self.season_name = "Зимний максимум нагрузки"
-                if self.name_list[1] == "зим" and self.name_list[2] == "мин":
+                if "зим" in self.name_list[1] and "мин" in self.name_list[2]:
                     self.code_name_rg2 = 2
                     self.season_name = "Зимний минимум нагрузки"
-                if self.name_list[1] == "лет" and self.name_list[2] == "макс":
-                    self.code_name_rg2 = 3
-                    self.season_name = "Летний максимум нагрузки"
-                if self.name_list[1] == "лет" and self.name_list[2] == "мин":
+                if "лет" in self.name_list[1] and "макс" in self.name_list[2]:
                     self.code_name_rg2 = 4
+                    self.season_name = "Летний максимум нагрузки"
+                if "лет" in self.name_list[1] and "мин" in self.name_list[2]:
+                    self.code_name_rg2 = 5
                     self.season_name = "Летний минимум нагрузки"
 
         self.god = self.name_list[0]
-        if self.code_name_rg2 > 0:
-            self.name_standard = self.god + " " + self.name_list[1]
-            if self.code_name_rg2 < 5:
-                self.name_standard += " " + self.name_list[2]
-            if (self.code_name_rg2 in [1, 2]) or ("ПЭВТ" in self.name_base):
-                self.temp_a_v_gost = True  # зима + период экстремально высоких температур -ПЭВТ
-        else:
-            self.name_standard = "не стандарт"  # отсеиваем файлы задание и прочее
+        if self.code_name_rg2:
+            if self.code_name_rg2 in [4, 5] and ("ПЭВТ" in self.name_base):
+                self.code_name_rg2 = 3
+
         # поиск в строке значения в ()
-        pattern_name = re.compile(r"\((.+)\)")
-        match = re.search(pattern_name, self.name_base)
+        match = re.search(re.compile(r"\((.+)\)"), self.name_base)
         if match:
             self.additional_name = match[1]
+            self.additional_name_list = self.additional_name.split(";") + ['-','-']
 
-        if self.additional_name.replace(" ", "") != "":
-            if "," in self.additional_name:
-                self.additional_name_list = self.additional_name.split(",")
-            elif ";" in self.additional_name:
-                self.additional_name_list = self.additional_name.split(";")
-            else:
-                self.additional_name_list = [self.additional_name]
         if "°C" in self.name_base:
-            pattern_name = re.compile("(-?\d+((,|\.)\d*)?)\s?°C")  # -45.,14 °C
-            match = re.search(pattern_name, self.name_base)
+            match = re.search(re.compile("(-?\d+((,|\.)\d*)?)\s?°C"), self.name_base)  # -45.,14 °C
             if match:
-                self.temperature_str = match[1].replace(',', '.')
-                self.temperature = float(self.temperature_str)  # число
-                self.temperature_name = "Расчетная температура " + self.temperature_str + " °C. "
-
-    def init_control(self):
-        """
-
-        :return:
-        """
-        self.voltage_fix_frame()
-        self.control = {'node': self.table_index_list('node', 'Kontrol'),
-                        'line': self.table_index_list('vetv', 'Kontrol&tip!=1'),
-                        'trans': self.table_index_list('vetv', 'Kontrol&tip=1')}
-
-
-
+                self.temperature = float(match[1].replace(',', '.'))  # число
 
     def test_name(self, condition: dict, info: str = "") -> bool:
         """
-        Проверка имени файла на соответствие условию condition.
-        Возвращает True, если имя режима соответствует условию condition:
-        нр, год("2020,2023-2025"), зим/лет/паводок("лет,зим"), макс/мин("макс"), доп имя("-41С;МДП:ТЭ-У")
-        condition = {"years":"","season":"","max_min":"","add_name":""}-всегда истина
-        str = для вывода в протокол
+         Проверка имени файла на соответствие условию condition.
+        :param condition:
+        {"years":"2020,2023-2025","season": "лет,зим,паводок","max_min":"макс","add_name":"-41С;МДП:ТЭ-У"}
+        :param info: для вывода в протокол
+        :return: True если удовлетворяет
         """
-        if not self.code_name_rg2:
-            return True
         if not condition:
             return True
         if not (any(condition.values())):  # условие пустое
             return True
-
+        # Проверка года
         if 'years' in condition:
             if condition['years']:
-                fff = False
-                for us in str_yeas_in_list(str(condition['years'])):
-                    if int(self.god) == us:
-                        fff = True
-                if not fff:
-                    log.debug(info + self.Name + f" Год '{self.god}' не проходит по условию: "
-                              + str(condition['years']))
+                if not int(self.god) in str_yeas_in_list(str(condition['years'])):
+                    log.info(f"{info} {self.Name!r}. Год не проходит по условию: {condition['years']!r}")
                     return False
-
+        # Проверка "зим" "лет" "паводок"
         if 'season' in condition:
             if condition['season']:
-                if condition['season'].strip():  # ПРОВЕРКА "зим" "лет" "паводок"
-                    fff = False
-                    _ = condition['season'].replace(' ', '')
-                    for us in _.split(","):
-                        if self.name_list[1] == us:
-                            fff = True
-                    if not fff:
-                        log.debug(info + self.Name + f" Сезон '{self.name_list[1]}' не проходит по условию: "
-                                  + condition['season'])
-                        return False
-
+                if not self.name_list[1] in condition['season'].replace(' ', '').split(","):
+                    log.info(f'{info} {self.Name!r}. Сезон не проходит по условию: {condition["season"]!r}')
+                    return False
+        # Проверка "макс" "мин"
         if 'max_min' in condition:
             if condition['max_min']:
-                if condition['max_min'].strip():  # ПРОВЕРКА "макс" "мин"
-                    if self.name_list[2] != condition['max_min'].replace(' ', ''):
-                        log.debug(info + self.Name + f" '{self.name_list[2]}' не проходит по условию: "
-                                  + condition['max_min'])
-                        return False
-
+                if self.name_list[2] in condition['max_min'].replace(' ', '').split(","):
+                    log.info(f'{info} {self.Name!r}. Не проходит по условию: {condition["max_min"]!r}')
+                    return False
+        # Проверка доп имени, например (-41С;МДП:ТЭ-У)
         if 'add_name' in condition:
-            if condition['add_name']:  # ПРОВЕРКА (-41С;МДП:ТЭ-У)
-                if condition['add_name'].strip():  # ПРОВЕРКА (-41С;МДП:ТЭ-У)
-                    if ";" in condition['add_name']:
-                        _ = condition['add_name'].split(";")
-                    else:
-                        _ = condition['add_name'].split(",")
-                    fff = False
-                    for us in _:
-                        for DopName_i in self.additional_name_list:
-                            if DopName_i == us:
-                                fff = True
-                    if not fff:
-                        log.debug(
-                            info + self.Name + f" Доп. имя {self.additional_name} не проходит по условию: " + condition[
-                                'add_name'])
-                        return False
+            if condition['add_name']:
+                if condition['add_name'].strip():
+                    for us in condition['add_name'].split(";"):
+                        if us not in self.additional_name_list:
+                            log.debug(f'{info} {self.Name}. Не проходит по условию: {us!r}')
+                            return False
         return True
 
     def load(self, load_additional: list = None):
@@ -1441,7 +1804,7 @@ class RastrModel(RastrMethod):
         # Токи
         if dict_task['vetv']:
             # Контроль токовой загрузки
-            log.info("\tКонтроль токовой загрузки, расчетная температура: " + self.temperature_str)
+            log.info("\tКонтроль токовой загрузки, расчетная температура: " + str(self.temperature))
             self.rastr.CalcIdop(self.temperature, 0.0, "")
             if dict_task["sel_node"] != "":
                 if node.cols.Find("sel1") < 0:
@@ -1620,17 +1983,17 @@ class RastrModel(RastrMethod):
         """
         name = name.lower()
         if 'уд' in name:
-            self.cor(keys=sel, tasks='del', del_all=('*' in name))
+            self.cor(keys=sel, tasks='del', del_all=('*' in name), print_log=True)
         elif 'изм' in name:
-            self.cor(keys=sel, tasks=value)
+            self.cor(keys=sel, tasks=value, print_log=True)
         elif 'снять' in name:
-            self.cor(keys='(node); (vetv); (Generator)', tasks='sel=0')
+            self.cor(keys='(node); (vetv); (Generator)', tasks='sel=0', print_log=True)
         elif 'расчет' in name:
             self.rgm(txt='txt_task_cor')
         elif 'добавить' in name:
             self.table_add_row(table=sel, tasks=value)
         elif 'текст' in name:
-            self.cor_txt_field(table_field=sel)
+            self.txt_field_right(table_field=sel)
         elif 'схн' in name:
             self.shn(choice=sel)
         elif 'сечение' in name:
@@ -2162,6 +2525,9 @@ class CorSheet:
                     rm.txt_task_cor(name=name_fun, sel=sel, value=value)
 
     def tab_cor(self, rm: RastrModel) -> None:
+        """
+        Корректировка моделей по заданию в табличном виде
+        """
         name_files = ""
         dict_param_column = {}  # {10: "pn"}-столбец: параметр
         # Шаг по колонкам и запись в словарь всех столбцов для коррекции
@@ -2176,7 +2542,7 @@ class CorSheet:
                     if "*" in name_file and len(name_file) > 7:
                         pattern_name = re.compile("\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\]")
                         match = re.search(pattern_name, name_file)
-                        if match.re.groups == 4:
+                        if match.re.groups == 4 and rm.code_name_rg2:
                             if rm.test_name(condition={"years": match[1], "season": match[2],
                                                        "max_min": match[3], "add_name": match[4]},
                                             info=f"\tcor_xl, условие: {name_file}, ") or not rm.code_name_rg2:
@@ -2319,8 +2685,9 @@ class ImportFromModel:
                         if self.import_rm.rastr.Tables(self.tables[index]).Key not in self.param[index]:
                             self.param[index] += ',' + self.import_rm.rastr.Tables(self.tables[index]).Key
 
-                    log.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}\n"
-                             + f"\tПараметры: {self.param[index]}\n\tФайл CSV: {self.file_csv[index]}")
+                    log.info(f"\n\tТаблица: {self.tables[index]!r}, выборка: {self.sel!r}.\n"
+                             f"\tПараметры: {self.param[index]!r}.\n"
+                             f"\tФайл CSV: {self.file_csv[index]!r}.")
 
                     tab = self.import_rm.rastr.Tables(self.tables[index])
                     tab.setsel(self.sel)
@@ -2332,9 +2699,9 @@ class ImportFromModel:
             log.info(f"\tИмпорт из CSV {self.import_file_name} в РМ:")
             if rm.test_name(condition=self.criterion_start, info='\tImportFromModel ') or not rm.code_name_rg2:
                 for index in range(len(self.tables)):
-                    log.info(f"\n\tТаблица: {self.tables[index]}. Выборка: {self.sel}. тип: {self.calc}" +
-                             f"\n\tФайл CSV: {self.file_csv[index]}" +
-                             f"\n\tПараметры: {self.param[index]}")
+                    log.info(f"\n\tТаблица: {self.tables[index]!r}, выборка: {self.sel!r}, тип: {self.calc!r}"
+                             f"\n\tФайл CSV: {self.file_csv[index]!r}"
+                             f"\n\tПараметры: {self.param[index]!r}")
                     """{"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
                     tab = rm.rastr.Tables(self.tables[index])
                     tab.ReadCSV(self.calc, self.file_csv[index], self.param[index], ";", '')
@@ -2355,7 +2722,10 @@ class PrintXL:
 
     #  ...._log  лист протокол для сводной
 
-    def __init__(self, task):  # добавить листы и первая строка с названиями
+    def __init__(self, task):
+        """
+        Добавить листы и первая строка с названиями
+        """
         self.sheet_couple = {}  # имя листа_log: имя листа_сводная
         self.name_xl_file = ''  # Имя файла EXCEL для сохранения
         self.excel = None
@@ -2429,7 +2799,7 @@ class PrintXL:
     def add_val(self, rm: RastrModel):
 
         log.info("\tВывод данных из моделей в XL")
-        if rm.name_standard == "не стандарт" or not rm.additional_name:
+        if not rm.code_name_rg2 or not rm.additional_name:
             dop_name_list = ['-'] * 3
         else:
             dop_name_list = rm.additional_name_list[:3]
@@ -2740,9 +3110,13 @@ class PrintXL:
 
 
 def str_yeas_in_list(id_str: str):
-    """Функция из строки "2021,2023-2025" делает [2021,2023,2024,2025]"""
+    """
+    Преобразует перечень годов.
+    :param id_str: "2021,2023-2025"
+    :return: [2021,2023,2024,2025] или []
+    """
     years_list = id_str.replace(" ", "").split(',')
-    if years_list != "":
+    if years_list:
         years_list_new = np.array([], int)
         for it in years_list:
             if "-" in it:
@@ -2920,7 +3294,6 @@ if __name__ == '__main__':
             """Запуск корректировки моделей"""
             em = EditModel(cor_task)
             em.run_cor()
-
 
 # TODO дописать: перенос параметров из одноименных файлов
 # TODO дописать: сравнение файлов

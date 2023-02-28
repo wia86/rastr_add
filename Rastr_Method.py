@@ -2,7 +2,7 @@ import logging
 import re
 from collections import namedtuple
 from typing import Union
-
+import pandas as pd
 log_r_m = logging.getLogger('__main__.' + __name__)
 
 
@@ -29,7 +29,7 @@ class RastrMethod:
     def __init__(self):
         self.rastr = None
 
-    def cor(self, keys: str = '', tasks: str = '', print_log: bool = True, del_all: bool = False):
+    def cor(self, keys: str = '', tasks: str = '', print_log: bool = False, del_all: bool = False):
         """
         Коррекция значений в таблицах rastrwin;
         Если несколько выборок, то указываются через ; (н.р. na=1|na=2;no=1; npa=1; nga=2; Num=25; g=12).
@@ -297,15 +297,19 @@ class RastrMethod:
             j = node.FindNextSel(j)
 
     def rgm(self, txt: str = "") -> bool:
-        """Расчет режима"""
-        for i in ['', '', '', 'p', 'p', 'p']:
+        """
+        Расчет режима
+        :param txt:
+        :return:
+        """
+        for i in ('', '', '', 'p', 'p', 'p'):
             kod_rgm = self.rastr.rgm(i)  # 0 сошелся, 1 развалился
             if not kod_rgm:  # 0 сошелся
                 if txt:
                     log_r_m.debug(f"\tРасчет режима: {txt}")
                 return True
         # развалился
-        log_r_m.error(f"Расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!")
+        log_r_m.info(f"Расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!")
         return False
 
     def sel0(self, txt=''):
@@ -362,7 +366,7 @@ class RastrMethod:
         log_r_m.info(f'\tВ таблицу <{table}> добавлена строка <{tasks}>, индекс <{index}>')
         return index
 
-    def cor_txt_field(self, table_field: str = 'node:name,dname;vetv:dname;Generator:Name'):
+    def txt_field_right(self, table_field: str = 'node:name,dname;vetv:dname;Generator:Name'):
         """        Исправить пробелы, заменить английские буквы на русские.        """
         log_r_m.info("\tИсправить пробелы, заменить английские буквы на русские.")
         for task in table_field.replace(' ', '').split(';'):
@@ -645,7 +649,7 @@ class RastrMethod:
                 if volt_test < ku.umin:
                     if ku.type == 'БСК':  # включить
                         if sta:
-                            self.enable_node_with_branches(ny)
+                            self.sta_node_with_branches(ny=ny,sta=0)
                             self.rgm()
                             volt_result = round(node.cols.item("vras").Z(i_test), 1)
                             changes_in_rm += (f'\nВключена БСК {ny=} {ku.name!r},'
@@ -667,7 +671,7 @@ class RastrMethod:
                                               f' напряжение снизилось с {volt_test} до {volt_result}.')
                     elif ku.type == 'ШР':  # включить
                         if sta:
-                            self.enable_node_with_branches(ny)
+                            self.sta_node_with_branches(ny=ny,sta=0)
                             self.rgm()
                             volt_result = round(node.cols.item("vras").Z(i_test), 1)
                             changes_in_rm += (f'\nВключен ШР {ny=} {ku.name!r},'
@@ -694,14 +698,14 @@ class RastrMethod:
             log_r_m.error(f'В таблице {name_table=} не найден {key=}')
         return index
 
-    def enable_node_with_branches(self, ny: int):
-        """Включить узел с ветвями."""
+    def sta_node_with_branches(self, ny: int, sta: int):
+        """Включить/отключить узел с ветвями."""
         if not ny:
             raise ValueError(f'Ошибка в задании {ny=}')
-        self.cor(keys=str(ny), tasks='sta=0')
+        self.cor(keys=str(ny), tasks='sta='+str(sta))
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
-        vetv.cols.item("sta").calc('0')
+        vetv.cols.item("sta").calc(sta)
 
     def table_index_list(self, table_name: str, setsel: str):
         """
@@ -718,3 +722,69 @@ class RastrMethod:
             index_list.append(i)
             i = table.FindNextSel(i)
         return index_list
+
+    def add_fields_in_table(self, name_tables: str, fields: str, type_fields: int, property=()):
+        """
+        Добавить поля в таблицу, если они отсутствуют.
+        :param name_tables: можно несколько через запятую.
+        :param fields: можно несколько через запятую.
+        :param type_fields: тип поля: 0 целый, 1 вещ, 2 строка, 3 переключатель(sta sel), 4 перечисление, 6 цвет
+        :param property: ((0-12, значение),()) property=((8, '2'), (0, 'yes'))
+        0 Имя, 1 Тип, 2 Ширина, 3 Точность, 4 Заголовок
+        5 Формула   "str(ip.name)+"+"+str(iq.name)+"_"+str(ip.uhom)"
+        6-, 7-, 8 Перечисление – ссылка, 9 Описание, 10 Минимум, 11 Максимум, 12 Масштаб
+        """
+        for name_table in name_tables.replace(' ', '').split(','):
+            table = self.rastr.tables(name_table)
+            for field in fields.replace(' ', '').split(','):
+                if table.cols.Find(field) < 0:
+                    table.Cols.Add(field, type_fields)
+                    if property != ():
+                        for val in property:
+                            table.Cols(field).SetProp(val[0], val[1])  # (номер свойства,новое значение)
+                            # table.Cols(field).Prop(5)  # Получить значение
+
+    def fd_from_table(self, table_name: str, fields: str = '', setsel: str = ''):
+        """
+        Возвращает DataFrame из таблицы.
+        :param table_name:
+        :param fields: если не указывать то все поля.
+        :param setsel: выборка в таблице
+        :return:
+        """
+        table = self.rastr.tables(table_name)
+        table.setsel(setsel)
+        if not fields:
+            fields = self.all_cols(table_name)
+        part_table = table.writesafearray(fields, "000")
+        return pd.DataFrame(data=part_table, columns=fields.split(','))
+
+    def table_index(self, name_tables: str):
+        """
+        Заполнить поле index таблицы
+        :param name_tables:
+        """
+        for name_table in name_tables.replace(' ', '').split(','):
+            table = self.rastr.tables(name_table)
+            for i in range(table.size):
+                table.cols.Item('index').SetZ(i, i)
+
+    def sta(self, table: str, index: int):
+        """
+        Отключить ветвь(группу ветвей, если groupid!=0), узел (с примыкающими ветвями)
+         или генератор.
+        :param table:
+        :param index:
+        :return: False если элемент отключен в исходном состоянии.
+        """
+        rtable = self.rastr.tables(table)
+        if rtable.cols.item('sta').Z(index) == 1:
+            return False
+        else:
+            if table == 'vetv' and rtable.cols.item('groupid').Z(index):
+                rtable.setsel('groupid=' + rtable.cols.item('groupid').ZS(index))
+                rtable.cols.item('sta').Calc(1)
+            elif table == 'node':
+                self.sta_node_with_branches(ny=rtable.cols.item('ny').Z(index), sta=1)
+            else:
+                rtable.cols.item('sta').SetZ(index, 1)
