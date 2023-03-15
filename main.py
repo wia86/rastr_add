@@ -895,7 +895,6 @@ class CalcModel(GeneralSettings):
         
         self.control_I = None
         self.control_U = None
-        self.control_df_dict = {}  # {(имя файла{I} или {U}, Название РМб):  df}
 
         self.disable_df_gen = None
         self.disable_df_node = None
@@ -910,6 +909,13 @@ class CalcModel(GeneralSettings):
         self.info_action = pd.Series(dtype='object')  # действие ПА
 
         self.book_path: str = ''  # Путь к файлу excel.
+
+        if self.task_calc['cb_tab_KO']:
+            self.name_tab = self.task_calc['le_tab_KO_info'].strip()
+            # Нумерация таблиц К-О
+            self.num_tab = self.name_tab[self.name_tab.find('[') + 1: self.name_tab.find(']')]
+            self.name_tab = self.num_tab.split(f'[{self.num_tab}]')
+            self.num_tab = int(self.num_tab) if self.num_tab.isdigit() else 1
 
     def run_calc(self):
         """
@@ -1055,10 +1061,10 @@ class CalcModel(GeneralSettings):
             self.calc_file(rm=rm)
 
         # Сохранить в Excel.
-        if self.control_df_dict or len(self.overloads_all):
-            name_sheets = {}
+        if len(self.overloads_all):
             # https://www.geeksforgeeks.org/how-to-write-pandas-dataframes-to-multiple-excel-sheets/
-            with pd.ExcelWriter(self.book_path) as writer:
+            mode = 'a' if os.path.exists(self.book_path) else 'w'
+            with pd.ExcelWriter(path=self.book_path, mode=mode) as writer:
                 if len(self.overloads_all):
                     for col in ["Отключение", "Ремонт 1", "Ремонт 2", "Доп. имя"]:
                         for col_df in self.overloads_all.columns:
@@ -1071,66 +1077,6 @@ class CalcModel(GeneralSettings):
                                                 index_label='Номер сочетания.подсочетания',
                                                 freeze_panes=(1, 1),
                                                 sheet_name='Перегрузки')
-                if self.control_df_dict:
-                    for n, file_name in enumerate(self.control_df_dict, 1):
-                        name_sheet = f'{n}_{file_name[0]}'.replace('[', '').replace(']', '')[:31]
-                        name_sheets[name_sheet] = file_name[1]
-                        self.control_df_dict[file_name].to_excel(excel_writer=writer,
-                                                                 sheet_name=name_sheet,
-                                                                 header=False,
-                                                                 startrow=1,
-                                                                 freeze_panes=(2, 2),
-                                                                 index=True)
-                    self.control_df_dict = None
-
-            # Форматирование таблиц Отключение - Контроль
-            if name_sheets:
-                wb = load_workbook(self.book_path)
-                name_tab = self.task_calc['le_tab_KO_info']
-                num_tab = name_tab[name_tab.find('[') + 1: name_tab.find(']')]
-                num_tab = int(num_tab) if num_tab.isdigit() else 1
-                for name_sheet in name_sheets:
-                    ws = wb[name_sheet]
-                    name_tab_i = name_tab[:name_tab.find('[')] + str(num_tab) + name_tab[name_tab.find(']') + 1:]
-                    ws['A1'] = name_tab_i.replace('Результаты', name_sheets[name_sheet] + ' Результаты')
-                    num_tab += 1
-                    ws['A2'] = 'Наименование режима'
-                    ws['B2'] = 'Наименование параметра'
-                    ws.merge_cells('A2:A4')
-                    thins = Side(border_style="thin", color="000000")
-                    max_column_lit = get_column_letter(ws.max_column)
-                    ws.merge_cells(f'A1:{max_column_lit}1')
-
-                    # Данные
-                    for row in range(3, ws.max_row + 1):
-                        for col in range(3, ws.max_column + 1):
-                            ws.cell(row, col).border = Border(thins, thins, thins, thins)
-                            if ws.cell(row, 2).value in ['I, А', 'U, кВ']:
-                                ws.cell(row, col).font = Font(bold=True)
-                            if 'I, %' in ws.cell(row, 2).value:
-                                if ws.cell(row, col).value >= 100:
-                                    ws.cell(row, col).fill = PatternFill(fill_type='solid', fgColor="00FF9900")
-                            if 'U, %' in ws.cell(row, 2).value:
-                                if ws.cell(row, col).value > 0:
-                                    ws.cell(row, col).fill = PatternFill(fill_type='solid', fgColor="00FF9900")
-                    # Колонки
-                    for litter, L in {'A': 35, 'B': 17}.items():
-                        ws.column_dimensions[litter].width = L
-                    for n in range(3, ws.max_column + 1):
-                        ws[f'{get_column_letter(n)}2'].alignment = Alignment(textRotation=90, wrap_text=True,
-                                                                             horizontal="center", vertical="center")
-                        ws.column_dimensions[get_column_letter(n)].width = 9
-                        ws[f'{get_column_letter(n)}2'].font = Font(bold=True)
-                        ws[f'{get_column_letter(n)}2'].border = Border(thins, thins, thins, thins)
-                    # Строки
-                    ws.row_dimensions[5].hidden = True  # Скрыть
-                    ws.row_dimensions[6].hidden = True
-                    for n in range(2, ws.max_row + 1):
-                        ws[f'A{n}'].alignment = Alignment(wrap_text=True, horizontal="left", vertical="center")
-                        ws[f'B{n}'].alignment = Alignment(wrap_text=True, horizontal="center", vertical="center")
-                    ws.row_dimensions[2].height = 145
-
-                wb.save(self.book_path)
 
         # Сводная
         if len(self.overloads_all):
@@ -1610,15 +1556,70 @@ class CalcModel(GeneralSettings):
                                                                      axis=1).join(self.overloads_srs)])
             self.overloads_srs.drop(self.overloads_srs.index, inplace=True)
 
-        # Прибавить control[I] [U] к коллекции таблиц control_df_dict.
+        # Вывод таблиц К-О в excel
 
-        if len(self.control_I):
-            # todo объединить колонки с одинаковыми контр элементами
-            self.control_df_dict[(self.info_file['Имя файла']+'{I}', rm.name_rm,)] = self.control_I
-            self.control_I = None
-        if len(self.control_U):
-            self.control_df_dict[(self.info_file['Имя файла']+'{U}', rm.name_rm,)] = self.control_U
-            self.control_U = None
+        if len(self.control_I) or len(self.control_U):
+            name_sheet = f'{self.file_count}_{self.info_file["Имя файла"] }'.replace('[', '').replace(']', '')[:28]
+            control_df_dict = {}
+            if len(self.control_I):
+                # todo объединить колонки с одинаковыми контр элементами
+                control_df_dict[name_sheet + '{I}'] = self.control_I
+                self.control_I = None
+            if len(self.control_U):
+                control_df_dict[name_sheet + '{U}'] = self.control_U
+                self.control_U = None
+            mode = 'a' if os.path.exists(self.book_path) else 'w'
+            with pd.ExcelWriter(path=self.book_path, mode=mode) as writer:
+                for name_sheet, df_control in control_df_dict:
+                    df_control.to_excel(excel_writer=writer,
+                                        sheet_name=name_sheet,
+                                        header=False,
+                                        startrow=1,
+                                        freeze_panes=(2, 2),
+                                        index=True)
+
+            # Форматирование таблиц Отключение - Контроль
+            wb = load_workbook(self.book_path)
+            for name_sheet in control_df_dict:
+                ws = wb[name_sheet]
+                ws['A1'] = f'{self.name_tab[0]}{self.num_tab}{self.name_tab[1]} {rm.name_rm}'
+                self.num_tab += 1
+                ws['A2'] = 'Наименование режима'
+                ws['B2'] = 'Наименование параметра'
+                ws.merge_cells('A2:A4')
+                thins = Side(border_style="thin", color="000000")
+                max_column_lit = get_column_letter(ws.max_column)
+                ws.merge_cells(f'A1:{max_column_lit}1')
+
+                # Данные
+                for row in range(3, ws.max_row + 1):
+                    for col in range(3, ws.max_column + 1):
+                        ws.cell(row, col).border = Border(thins, thins, thins, thins)
+                        if ws.cell(row, 2).value in ['I, А', 'U, кВ']:
+                            ws.cell(row, col).font = Font(bold=True)
+                        if 'I, %' in ws.cell(row, 2).value:
+                            if ws.cell(row, col).value >= 100:
+                                ws.cell(row, col).fill = PatternFill(fill_type='solid', fgColor="00FF9900")
+                        if 'U, %' in ws.cell(row, 2).value:
+                            if ws.cell(row, col).value > 0:
+                                ws.cell(row, col).fill = PatternFill(fill_type='solid', fgColor="00FF9900")
+                # Колонки
+                for litter, L in {'A': 35, 'B': 17}.items():
+                    ws.column_dimensions[litter].width = L
+                for n in range(3, ws.max_column + 1):
+                    ws[f'{get_column_letter(n)}2'].alignment = Alignment(textRotation=90, wrap_text=True,
+                                                                         horizontal="center", vertical="center")
+                    ws.column_dimensions[get_column_letter(n)].width = 9
+                    ws[f'{get_column_letter(n)}2'].font = Font(bold=True)
+                    ws[f'{get_column_letter(n)}2'].border = Border(thins, thins, thins, thins)
+                # Строки
+                ws.row_dimensions[5].hidden = True  # Скрыть
+                ws.row_dimensions[6].hidden = True
+                for n in range(2, ws.max_row + 1):
+                    ws[f'A{n}'].alignment = Alignment(wrap_text=True, horizontal="left", vertical="center")
+                    ws[f'B{n}'].alignment = Alignment(wrap_text=True, horizontal="center", vertical="center")
+                ws.row_dimensions[2].height = 145
+            wb.save(self.book_path)
 
         # rm.save(full_name_new=self.task_calc['folder_result_calc'] + '\\' + rm.Name)  # todo удалить? сохранение rg2
 
@@ -1797,7 +1798,6 @@ class CalcModel(GeneralSettings):
             self.overloads_srs = pd.concat([self.overloads_srs,
                                             overloads.apply(lambda x: pd.concat([self.info_srs, self.info_action]),
                                                             axis=1).join(other=overloads)])
-
 
     @staticmethod
     def import_id_rg2(path_file: str, txt_task):
@@ -2095,8 +2095,8 @@ class RastrModel(RastrMethod):
         self.rastr = None
         self.name_list = ["-", "-", "-"]
         self.additional_name_list = None
-        self.season_name: str= ''
-        self.god: str= ''
+        self.season_name: str = ''
+        self.god: str = ''
         self.name_rm: str = self.Name
 
         # "^(20[1-9][0-9])\s(лет\w?|зим\w?|паводок)\s?(макс|мин)?"
@@ -2138,7 +2138,6 @@ class RastrModel(RastrMethod):
             if match:
                 self.temperature = float(match[1].replace(',', '.'))  # число
                 self.name_rm += f' Расчетная температура {self.temperature} °C.'
-
 
     def test_name(self, condition: dict, info: str = "") -> bool:
         """

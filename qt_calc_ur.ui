@@ -44,7 +44,7 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>0</y>
+           <y>-72</y>
            <width>729</width>
            <height>1027</height>
           </rect>
@@ -732,7 +732,7 @@
                 <string>Выборка файлов</string>
                </property>
                <property name="checked">
-                <bool>false</bool>
+                <bool>true</bool>
                </property>
               </widget>
              </item>
@@ -811,7 +811,7 @@
                      <number>9999</number>
                     </property>
                     <property name="value">
-                     <number>1</number>
+                     <number>3</number>
                     </property>
                    </widget>
                   </item>
@@ -1129,7 +1129,7 @@
                    <cursorShape>IBeamCursor</cursorShape>
                   </property>
                   <property name="plainText">
-                   <string>Таблица 1.[1] - Результаты расчетов нормального и послеаварийных режимов работы электрических сетей 110 кВ и выше района размещения </string>
+                   <string>Таблица 1.[1] - Результаты расчетов нормального и послеаварийных режимов работы электрических сетей 110 кВ и выше района размещения. </string>
                   </property>
                  </widget>
                 </item>
