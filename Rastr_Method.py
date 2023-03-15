@@ -18,6 +18,7 @@ class RastrMethod:
     # U_LARGEST_WORKING_dict = {6: 7.2, 10: 12, 35: 42, 110: 126,150: 180,220: 252, 330: 363,500: 525,750: 787}
 
     KEY_TABLES = {'ny': 'node',
+                  'ip': 'vetv',
                   'Num': 'Generator',
                   # 'g': 'Generator',
                   'na': 'area',
@@ -206,7 +207,7 @@ class RastrMethod:
     def voltage_normal(self, choice: str = ''):
         """
         Проверка расчетного напряжения: меньше наибольшего рабочего, больше минимального рабочего напряжения.
-        :param choice: выборка в таблице узлы
+        :param choice: Выборка в таблице узлы
         """
         node = self.rastr.tables("node")
         for i in range(len(self.U_NOM)):
@@ -216,7 +217,6 @@ class RastrMethod:
             node.setsel(sel_node)
             j = node.FindNextSel(-1)
             while j > -1:
-                ny = node.cols.item('ny').Z(j)
                 if not self.U_MIN_NORM[i] < node.cols.item("vras").Z(j) < self.U_LARGEST_WORKING[i]:
                     ny = node.cols.item('ny').ZS(j)
                     name = node.cols.item('name').ZS(j)
@@ -231,7 +231,7 @@ class RastrMethod:
     def voltage_deviation(self, choice: str = ''):
         """
         Проверка расчетного напряжения: больше минимально-допустимого.
-        :param choice: выборка в таблице узлы
+        :param choice: Выборка в таблице узлы
         """
         node = self.rastr.tables("node")
         sel_node = "otv_min<0"  # Отклонение напряжения от umin минимально допустимого, в %
@@ -443,7 +443,7 @@ class RastrMethod:
     def cor_pop(self, zone: str, new_pop: Union[int, float]) -> bool:
         """
         Изменить потребление.
-        :param zone: "na=3", "npa=2" или "no=1"
+        :param zone: Например, "na=3", "npa=2" или "no=1"
         :param new_pop: значение потребления
         :return:
         """
@@ -556,11 +556,11 @@ class RastrMethod:
                 return True
         return False
 
-    def auto_shunt_rec(self, selection: str = '', only_AutoBsh: bool = True) -> dict:
+    def auto_shunt_rec(self, selection: str = '', only_auto_bsh: bool = False) -> dict:
         """
         Функция формирует словарь all_auto_shunt с объектами класса AutoShunt для записи СКРМ.
         :param selection: выборка в таблице узлы
-        :param only_AutoBsh: True узлы только с заданным значением в поле AutoBsh. False все узлы с СКРМ
+        :param only_auto_bsh: True узлы только с заданным значением в поле AutoBsh. False все узлы с СКРМ
         :return словарь[ny] = namedtuple('СКРМ')
         """
         all_auto_shunt = {}
@@ -571,7 +571,7 @@ class RastrMethod:
         vetv = self.rastr.tables('vetv')
         if node.cols.Find('AutoBsh') < 0:
             have_AutoBsh = False
-            if only_AutoBsh:
+            if only_auto_bsh:
                 raise ValueError(f"В таблице node нет параметра AutoBsh.")
         selection_result = selection + '&pn=0&qn=0&pg=0&qg=0&bsh!=0' if selection else 'pn=0&qn=0&pg=0&qg=0&bsh!=0'
         node.setsel(selection_result)
@@ -581,7 +581,7 @@ class RastrMethod:
             if have_AutoBsh:
                 AutoBsh = node.cols.item("AutoBsh").ZS(i)
                 AutoBsh = AutoBsh.replace(' ', '')
-                if not AutoBsh and only_AutoBsh:
+                if not AutoBsh and only_auto_bsh:
                     i = node.FindNextSel(i)
                     continue  # если только по полю AutoBsh и оно не заполнено, то к следующему узлу
             ny = node.cols.item("ny").Z(i)
@@ -625,14 +625,14 @@ class RastrMethod:
                     umax = round(uhom * 1.14, 1)
 
             all_auto_shunt[ny] = KU(ny, name, ny_adjacency, ny_control, int(umin), int(umax), type_)
-            log_r_m.debug(f'Найдено СКРМ {ny=} {name=} {ny_adjacency=} {ny_control=} {umin=} {umax=}')
+            log_r_m.debug(f'Обнаружено СКРМ: {ny=} {name=} {ny_adjacency=} {ny_control=} {umin=} {umax=}')
             i = node.FindNextSel(i)
         return all_auto_shunt
 
     def auto_shunt_cor(self, all_auto_shunt: dict) -> str:
         """
         Функция включает или отключает узлы с СКРМ в соответствии с уставкой по напряжению.
-        :param all_auto_shunt: словарь с namedtuple('СКРМ')
+        :param all_auto_shunt: Словарь с namedtuple('СКРМ')
         """
         changes_in_rm = ''
         if not all_auto_shunt:
@@ -649,7 +649,7 @@ class RastrMethod:
                 if volt_test < ku.umin:
                     if ku.type == 'БСК':  # включить
                         if sta:
-                            self.sta_node_with_branches(ny=ny,sta=0)
+                            self.sta_node_with_branches(ny=ny, sta=0)
                             self.rgm()
                             volt_result = round(node.cols.item("vras").Z(i_test), 1)
                             changes_in_rm += (f'\nВключена БСК {ny=} {ku.name!r},'
@@ -671,7 +671,7 @@ class RastrMethod:
                                               f' напряжение снизилось с {volt_test} до {volt_result}.')
                     elif ku.type == 'ШР':  # включить
                         if sta:
-                            self.sta_node_with_branches(ny=ny,sta=0)
+                            self.sta_node_with_branches(ny=ny, sta=0)
                             self.rgm()
                             volt_result = round(node.cols.item("vras").Z(i_test), 1)
                             changes_in_rm += (f'\nВключен ШР {ny=} {ku.name!r},'
@@ -679,10 +679,21 @@ class RastrMethod:
         log_r_m.info(changes_in_rm)
         return changes_in_rm
 
+    def index_table_from_key(self, task_key: str):
+        """
+        По ключу строки (нр ny=1) определяет таблицу и индекс
+        :return: (table:str, index:int) or False если не найдено
+        """
+        for key_tables in RastrMethod.KEY_TABLES:
+            if key_tables in task_key:
+                table = RastrMethod.KEY_TABLES[key_tables]
+                return tuple([table, self.index_in_table(name_table=table, key=task_key)])
+        return tuple([False, False])
+
     def index_in_table(self, name_table: str, key: str) -> int:
         """
         Функция по ключу и имени таблицы возвращает индекс строки.
-        :param name_table: например node
+        :param name_table: Например, 'node'
         :param key: например ny=100
         :return: Индекс строки в таблице. Если не найден key вернет -1. Если не найдена таблица вернет -2.
         """
@@ -710,8 +721,8 @@ class RastrMethod:
     def table_index_list(self, table_name: str, setsel: str):
         """
         Вернуть list из индексов строк таблице в соответствии с выборкой.
-        :param table_name: имя таблицы
-        :param setsel: выборка в таблице
+        :param table_name: Имя таблицы
+        :param setsel: Выборка в таблице
         :return:
         """
         index_list = []
@@ -723,24 +734,27 @@ class RastrMethod:
             i = table.FindNextSel(i)
         return index_list
 
-    def add_fields_in_table(self, name_tables: str, fields: str, type_fields: int, property=()):
+    def add_fields_in_table(self, name_tables: str, fields: str, type_fields: int, prop=(), replace=False):
         """
         Добавить поля в таблицу, если они отсутствуют.
-        :param name_tables: можно несколько через запятую.
-        :param fields: можно несколько через запятую.
-        :param type_fields: тип поля: 0 целый, 1 вещ, 2 строка, 3 переключатель(sta sel), 4 перечисление, 6 цвет
-        :param property: ((0-12, значение),()) property=((8, '2'), (0, 'yes'))
+        :param name_tables: Можно несколько через запятую.
+        :param fields: Можно несколько через запятую.
+        :param type_fields: Тип поля: 0 целый, 1 вещ, 2 строка, 3 переключатель(sta sel), 4 перечисление, 6 цвет
+        :param prop: ((0-12, значение),()) prop=((8, '2'), (0, 'yes')) или ((8, '2'), )
         0 Имя, 1 Тип, 2 Ширина, 3 Точность, 4 Заголовок
         5 Формула   "str(ip.name)+"+"+str(iq.name)+"_"+str(ip.uhom)"
         6-, 7-, 8 Перечисление – ссылка, 9 Описание, 10 Минимум, 11 Максимум, 12 Масштаб
+        :param replace: True предварительно удалить поле если оно существует
         """
         for name_table in name_tables.replace(' ', '').split(','):
             table = self.rastr.tables(name_table)
             for field in fields.replace(' ', '').split(','):
+                if table.cols.Find(field) > -1 and replace:
+                    table.Cols.Remove(field)
                 if table.cols.Find(field) < 0:
                     table.Cols.Add(field, type_fields)
-                    if property != ():
-                        for val in property:
+                    if prop != ():
+                        for val in prop:
                             table.Cols(field).SetProp(val[0], val[1])  # (номер свойства,новое значение)
                             # table.Cols(field).Prop(5)  # Получить значение
 
@@ -748,14 +762,15 @@ class RastrMethod:
         """
         Возвращает DataFrame из таблицы.
         :param table_name:
-        :param fields: если не указывать то все поля.
-        :param setsel: выборка в таблице
+        :param fields: Если не указывать, то все поля.
+        :param setsel: Выборка в таблице
         :return:
         """
         table = self.rastr.tables(table_name)
         table.setsel(setsel)
         if not fields:
             fields = self.all_cols(table_name)
+        fields = fields.replace(' ', '').replace(',,', ',').strip(',')
         part_table = table.writesafearray(fields, "000")
         return pd.DataFrame(data=part_table, columns=fields.split(','))
 

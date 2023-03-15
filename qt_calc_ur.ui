@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1032</width>
+    <width>750</width>
     <height>961</height>
    </rect>
   </property>
@@ -44,9 +44,9 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>-60</y>
-           <width>1011</width>
-           <height>1133</height>
+           <y>0</y>
+           <width>729</width>
+           <height>1027</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
@@ -110,21 +110,27 @@
                </item>
                <item>
                 <widget class="QCheckBox" name="cb_n2">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
                  <property name="text">
                   <string>2,</string>
                  </property>
                  <property name="checked">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                 </widget>
                </item>
                <item>
                 <widget class="QCheckBox" name="cb_n3">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
                  <property name="text">
                   <string>3.</string>
                  </property>
                  <property name="checked">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                 </widget>
                </item>
@@ -252,7 +258,7 @@
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>80</height>
+              <height>60</height>
              </size>
             </property>
             <property name="maximumSize">
@@ -301,7 +307,7 @@
                  </property>
                  <property name="minimumSize">
                   <size>
-                   <width>500</width>
+                   <width>400</width>
                    <height>20</height>
                   </size>
                  </property>
@@ -318,7 +324,7 @@
                   </size>
                  </property>
                  <property name="plainText">
-                  <string>I:\rastr_add\test\пример перечня НВ.xlsx</string>
+                  <string>I:\rastr_add\test\пример задания.xlsx</string>
                  </property>
                 </widget>
                </item>
@@ -335,13 +341,6 @@
                  </property>
                 </widget>
                </item>
-              </layout>
-             </item>
-             <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_9">
-               <property name="spacing">
-                <number>2</number>
-               </property>
                <item>
                 <widget class="QLabel" name="label_10">
                  <property name="minimumSize">
@@ -357,7 +356,7 @@
                   </size>
                  </property>
                  <property name="text">
-                  <string>Имя листов:</string>
+                  <string> Лист:</string>
                  </property>
                 </widget>
                </item>
@@ -365,15 +364,21 @@
                 <widget class="QLineEdit" name="le_XL_sheets">
                  <property name="minimumSize">
                   <size>
-                   <width>400</width>
+                   <width>100</width>
                    <height>22</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>120</width>
+                   <height>16777215</height>
                   </size>
                  </property>
                  <property name="toolTip">
                   <string/>
                  </property>
                  <property name="text">
-                  <string>[НВ][НВ1]</string>
+                  <string>НВ</string>
                  </property>
                 </widget>
                </item>
@@ -414,7 +419,7 @@
                <item>
                 <widget class="QCheckBox" name="cb_auto_control">
                  <property name="enabled">
-                  <bool>true</bool>
+                  <bool>false</bool>
                  </property>
                  <property name="text">
                   <string>Автоматический выбор контролируемых элементов, выборка в таблице узлы:</string>
@@ -447,7 +452,7 @@
                   <bool>true</bool>
                  </property>
                  <property name="text">
-                  <string>Выбор котролируемых ветвей, узлов и генераторов (имя поля):</string>
+                  <string>Выбор котролируемых ветвей и узлов (имя поля):</string>
                  </property>
                  <property name="checked">
                   <bool>true</bool>
@@ -714,7 +719,7 @@
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>15</height>
+                 <height>20</height>
                 </size>
                </property>
                <property name="font">
@@ -727,7 +732,7 @@
                 <string>Выборка файлов</string>
                </property>
                <property name="checked">
-                <bool>true</bool>
+                <bool>false</bool>
                </property>
               </widget>
              </item>
@@ -1050,7 +1055,7 @@
               <number>1</number>
              </property>
              <item>
-              <widget class="QCheckBox" name="cb_results_tab">
+              <widget class="QCheckBox" name="cb_tab_KO">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
@@ -1064,7 +1069,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>в табличном виде</string>
+                <string>Создать таблицы контролируемые - отключаемые элементы</string>
                </property>
                <property name="checked">
                 <bool>true</bool>
@@ -1072,214 +1077,60 @@
               </widget>
              </item>
              <item>
-              <widget class="QGroupBox" name="gb_results_tab">
+              <widget class="QGroupBox" name="gb_tab_KO">
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>0</height>
+                 <height>70</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>160</height>
+                 <height>70</height>
                 </size>
                </property>
                <property name="title">
                 <string>Параметры</string>
                </property>
-               <layout class="QVBoxLayout" name="verticalLayout_4">
+               <layout class="QVBoxLayout" name="verticalLayout_11">
                 <property name="spacing">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <property name="leftMargin">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <property name="topMargin">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <property name="rightMargin">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <property name="bottomMargin">
-                 <number>1</number>
+                 <number>0</number>
                 </property>
                 <item>
-                 <widget class="QCheckBox" name="cb_tab_KO">
+                 <widget class="QPlainTextEdit" name="le_tab_KO_info">
                   <property name="maximumSize">
                    <size>
                     <width>16777215</width>
-                    <height>18</height>
+                    <height>40</height>
                    </size>
                   </property>
-                  <property name="text">
-                   <string>заполнять таблицы контролируемые - отключаемые элементы</string>
+                  <property name="font">
+                   <font>
+                    <pointsize>10</pointsize>
+                    <underline>false</underline>
+                    <strikeout>false</strikeout>
+                    <kerning>true</kerning>
+                   </font>
                   </property>
-                  <property name="checked">
-                   <bool>false</bool>
+                  <property name="cursor" stdset="0">
+                   <cursorShape>IBeamCursor</cursorShape>
                   </property>
-                 </widget>
-                </item>
-                <item>
-                 <widget class="QGroupBox" name="gb_tab_KO">
-                  <property name="minimumSize">
-                   <size>
-                    <width>0</width>
-                    <height>120</height>
-                   </size>
+                  <property name="plainText">
+                   <string>Таблица 1.[1] - Результаты расчетов нормального и послеаварийных режимов работы электрических сетей 110 кВ и выше района размещения </string>
                   </property>
-                  <property name="maximumSize">
-                   <size>
-                    <width>16777215</width>
-                    <height>120</height>
-                   </size>
-                  </property>
-                  <property name="title">
-                   <string>Параметры</string>
-                  </property>
-                  <layout class="QVBoxLayout" name="verticalLayout_11">
-                   <property name="spacing">
-                    <number>0</number>
-                   </property>
-                   <property name="leftMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="topMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="rightMargin">
-                    <number>0</number>
-                   </property>
-                   <property name="bottomMargin">
-                    <number>0</number>
-                   </property>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_15">
-                     <property name="spacing">
-                      <number>0</number>
-                     </property>
-                     <item>
-                      <widget class="QLabel" name="label_11">
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>18</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>Добавлять отключения с загрузкой больше :</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLineEdit" name="le_tab_KO_val_loading_add">
-                       <property name="maximumSize">
-                        <size>
-                         <width>30</width>
-                         <height>18</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>100</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLabel" name="label_12">
-                       <property name="maximumSize">
-                        <size>
-                         <width>16777215</width>
-                         <height>18</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>%</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="horizontalSpacer_2">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <layout class="QHBoxLayout" name="horizontalLayout_16">
-                     <item>
-                      <widget class="QLineEdit" name="le_tab_KO_name">
-                       <property name="maximumSize">
-                        <size>
-                         <width>150</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>Таблица 1.</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <widget class="QLineEdit" name="le_tab_KO_num">
-                       <property name="maximumSize">
-                        <size>
-                         <width>30</width>
-                         <height>16777215</height>
-                        </size>
-                       </property>
-                       <property name="text">
-                        <string>1</string>
-                       </property>
-                      </widget>
-                     </item>
-                     <item>
-                      <spacer name="horizontalSpacer_6">
-                       <property name="orientation">
-                        <enum>Qt::Horizontal</enum>
-                       </property>
-                       <property name="sizeHint" stdset="0">
-                        <size>
-                         <width>40</width>
-                         <height>20</height>
-                        </size>
-                       </property>
-                      </spacer>
-                     </item>
-                    </layout>
-                   </item>
-                   <item>
-                    <widget class="QPlainTextEdit" name="le_tab_KO_info">
-                     <property name="maximumSize">
-                      <size>
-                       <width>16777215</width>
-                       <height>40</height>
-                      </size>
-                     </property>
-                     <property name="font">
-                      <font>
-                       <pointsize>10</pointsize>
-                       <underline>false</underline>
-                       <strikeout>false</strikeout>
-                       <kerning>true</kerning>
-                      </font>
-                     </property>
-                     <property name="cursor" stdset="0">
-                      <cursorShape>IBeamCursor</cursorShape>
-                     </property>
-                     <property name="plainText">
-                      <string> - Результаты расчетов нормального и послеаварийных режимов работы электрических сетей 110 кВ и выше района размещения  с отключением одного электросетевого элемента из нормальной схемы. </string>
-                     </property>
-                    </widget>
-                   </item>
-                  </layout>
                  </widget>
                 </item>
                </layout>
@@ -1642,7 +1493,10 @@
              <string/>
             </property>
             <property name="text">
-             <string>Отключаемые элементы сети. Расчет сочетаний из EXCEL</string>
+             <string>Отключаемые элементы сети. Расчет сочетаний из книги EXCEL</string>
+            </property>
+            <property name="checked">
+             <bool>true</bool>
             </property>
            </widget>
           </item>
@@ -1792,13 +1646,9 @@
                  </property>
                  <property name="plainText">
                   <string># таблица: параметры (обновить)
-node: repair_scheme,disable_scheme,automation
-node: otkl1, otkl2, otkl3,sel, N, umin,umin_av,umax
-
-vetv: repair_scheme,disable_scheme,automation
-vetv: otkl1, otkl2, otkl3, sel, N
-
-Generator: repair_scheme,disable_scheme,automation,sel</string>
+node: repair_scheme,disable_scheme,automation,  sel #  otkl1, otkl2, otkl3,N,umin,umin_av,umax
+vetv:  repair_scheme,disable_scheme,automation,  sel # otkl1, otkl2, otkl3, N
+Generator: repair_scheme,disable_scheme, sel</string>
                  </property>
                 </widget>
                </item>
@@ -1853,7 +1703,7 @@ Generator: repair_scheme,disable_scheme,automation,sel</string>
              <string>Отключаемые элементы сети. Расчет всех возможных сочетаний.</string>
             </property>
             <property name="checked">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
            </widget>
           </item>

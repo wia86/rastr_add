@@ -33,7 +33,7 @@
       <item>
        <widget class="QCheckBox" name="cb_skrm">
         <property name="text">
-         <string>Функция включения/отключения СКРМ  </string>
+         <string>Функция включения/отключения СКРМ во всех узлах РМ</string>
         </property>
         <property name="checked">
          <bool>true</bool>
