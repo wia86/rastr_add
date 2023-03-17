@@ -38,7 +38,7 @@ from qt_set import Ui_Settings  # pyuic5 qt_set.ui -o qt_set.py
 from qt_cor import Ui_cor  # pyuic5 qt_cor.ui -o qt_cor.py
 from qt_calc_ur import Ui_calc_ur  # pyuic5 qt_calc_ur.ui -o qt_calc_ur.py
 from qt_calc_ur_set import Ui_calc_ur_set  # pyuic5 qt_calc_ur_set.ui -o qt_calc_ur_set.py
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 # Если не работает терминал, то в  PowerShell ввести:
 # Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned –Force
 
@@ -844,7 +844,7 @@ class GeneralSettings(ABC):
         else:
             raise LookupError("Отсутствует файл settings.ini")
 
-        self.file_count = 0  # счетчик расчетных файлов
+        self.file_count = 0  # Счетчик расчетных файлов.
         self.number_comb = 1  # счетчик общего количества расчетных комбинаций
         self.now = datetime.now()
         self.time_start = time()
@@ -853,7 +853,7 @@ class GeneralSettings(ABC):
     def the_end(self):  # по завершению
         self.set_info['end_info'] = (
             f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
-            f" \nЗатрачено: {timedelta(seconds=time() - self.time_start)} c (файлов: {self.file_count-1}).")
+            f" \nЗатрачено: {timedelta(seconds=time() - self.time_start)} c (файлов: {self.file_count}).")
         log.info(self.set_info['end_info'])
 
     @staticmethod
@@ -904,7 +904,6 @@ class CalcModel(GeneralSettings):
         self.srs_xl = pd.DataFrame()  # Перечень отключений их excel
         self.overloads_all = pd.DataFrame()  # общий
         self.overloads_srs = pd.DataFrame()  # СРС перегрузки
-        self.info_file = pd.Series(dtype='object')  # имя файла
         self.info_srs = pd.Series(dtype='object')  # СРС
         self.info_action = pd.Series(dtype='object')  # действие ПА
 
@@ -914,7 +913,7 @@ class CalcModel(GeneralSettings):
             self.name_tab = self.task_calc['le_tab_KO_info'].strip()
             # Нумерация таблиц К-О
             self.num_tab = self.name_tab[self.name_tab.find('[') + 1: self.name_tab.find(']')]
-            self.name_tab = self.num_tab.split(f'[{self.num_tab}]')
+            self.name_tab = self.name_tab.split(f'[{self.num_tab}]')
             self.num_tab = int(self.num_tab) if self.num_tab.isdigit() else 1
 
     def run_calc(self):
@@ -967,7 +966,7 @@ class CalcModel(GeneralSettings):
         self.the_end()
         notepad_path = f'{self.task_calc["name_time"]} протокол расчета РМ.log'
         shutil.copyfile(GeneralSettings.log_file, notepad_path)
-        with open(self.task_calc['name_time'] + ' задание на корректировку.yaml', 'w') as f:
+        with open(self.task_calc['name_time'] + ' задание на расчет РМ.yaml', 'w') as f:
             yaml.dump(data=self.task_calc, stream=f, default_flow_style=False, sort_keys=False)
         # webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
         mb.showinfo("Инфо", self.set_info['end_info'])
@@ -1080,6 +1079,7 @@ class CalcModel(GeneralSettings):
 
         # Сводная
         if len(self.overloads_all):
+            log.info('Формируется сводная таблица.')
             xlApp = win32com.client.Dispatch("Excel.Application")
             xlApp.ScreenUpdating = False  # Обновление экрана
             try:
@@ -1155,7 +1155,8 @@ class CalcModel(GeneralSettings):
                 field = list(task.data_field)[2]
                 pt.PivotFields(field).Orientation = 3  # xlPageField = 3
                 pt.PivotFields(field).CurrentPage = "(All)"  #
-                # pt.PivotFields(field).PivotItems("(blank)").Visible = False  # todo ???
+                if len(task_pivot) > 1:
+                    pt.PivotFields(field).PivotItems("(blank)").Visible = False  # todo ???
                 pt.TableStyle2 = ""  # стиль
                 pt.ColumnRange.ColumnWidth = 10  # ширина строк
                 pt.RowRange.ColumnWidth = 20
@@ -1194,6 +1195,8 @@ class CalcModel(GeneralSettings):
         rm_files = list(filter(lambda x: x.endswith('.rg2'), files_calc))
 
         for rastr_file in rm_files:  # цикл по файлам '.rg2' в папке
+            if self.task_calc["Filter_file"] and self.file_count == self.task_calc["file_count_max"]:
+                break  #  если включен фильтр файлов проверяем количество расчетных файлов
             full_name = os.path.join(folder_calc, rastr_file)
             rm = RastrModel(full_name)
             # если включен фильтр файлов и имя стандартизовано
@@ -1204,28 +1207,17 @@ class CalcModel(GeneralSettings):
                 if not rm.test_name(condition=self.task_calc["calc_criterion"],
                                     info=f'Имя файла {full_name} не подходит.'):
                     continue  # пропускаем, если не соответствует фильтру
-            self.file_count += 1
-            #  если включен фильтр файлов проверяем количество расчетных файлов
-            if self.task_calc["Filter_file"] and self.file_count == self.task_calc["file_count_max"] + 1:
-                break
             self.calc_file(rm)
 
     def calc_file(self, rm):
         """
         Рассчитать РМ.
         """
+        self.file_count += 1
         self.book_path = self.task_calc['name_time'] + ' результаты расчетов.xlsx'
-        self.info_file.drop(self.info_file.index, inplace=True)
-        self.info_file['Имя файла'] = rm.name_base
-        self.info_file['Год'] = rm.god
-        self.info_file['Сезон макс/мин'] = rm.season_name
-
-        for i, additional_name in enumerate(rm.additional_name_list):
-            self.info_file['Доп. имя'+str(i)] = additional_name
-
-        self.info_file['Темп.(°C)'] = rm.temperature
-
         rm.load()
+        log.info(f"Расчетная температура: {rm.temperature}")
+        rm.rastr.CalcIdop(rm.temperature, 0.0, "")
         if self.task_calc['cor_rm']['add']:
             log.info("\t*** Внесения изменений в РМ. ***")
             rm.cor_rm_from_txt(self.task_calc['cor_rm']['txt'])
@@ -1266,11 +1258,11 @@ class CalcModel(GeneralSettings):
         rm.add_fields_in_table(name_tables='vetv,node,Generator',
                                fields='repair_scheme,disable_scheme,automation,dname', type_fields=2)
         # Поля с ключами таблиц
-        rm.add_fields_in_table(name_tables='vetv', fields='key', type_fields=1,
+        rm.add_fields_in_table(name_tables='vetv', fields='key', type_fields=2,
                                prop=((5, '"ip="+str(ip)+"&iq="+str(iq)+"&np="+str(np)'),))
-        rm.add_fields_in_table(name_tables='node', fields='key', type_fields=1,
+        rm.add_fields_in_table(name_tables='node', fields='key', type_fields=2,
                                prop=((5, '"ny="+str(ny)'),))
-        rm.add_fields_in_table(name_tables='Generator', fields='key', type_fields=1,
+        rm.add_fields_in_table(name_tables='Generator', fields='key', type_fields=2,
                                prop=((5, '"Num="+str(Num)'),))
 
         # Сохранить текущее состояние РМ
@@ -1296,7 +1288,7 @@ class CalcModel(GeneralSettings):
                 # todo заполнить all_control в соответствии с self.task_calc['le_auto_control_choice']
                 pass
 
-            if self.task_calc['cb_control_field']:
+            if self.task_calc['cb_tab_KO']:
                 # Добавит поле отметки отключений если их нет в какой-то таблице
                 if '*' in self.task_calc['le_control_field']:
                     rm.rastr.Tables("node").cols.item("all_control").Calc("1")
@@ -1312,19 +1304,19 @@ class CalcModel(GeneralSettings):
                                      formula='1')
 
                     # all_control_groupid для отметки всех контролируемых ветвей и ветвей с теми же groupid
-                    rm.add_fields_in_table(name_tables='vetv', fields='all_control_groupid', type_fields=3)
-                    rm.rastr.tables('vetv').cols.item("all_control_groupid").calc("all_control")
-                    tv = rm.rastr.tables('vetv')
-                    tv.SetSel('all_control')
-                    i = tv.FindNextSel(-1)
-                    while i >= 0:
-                        if tv.Cols.item("groupid").Z(i):
-                            rm.group_cor(tabl='vetv',
-                                         param="all_control",
-                                         selection="groupid=" + tv.Cols.item("groupid").ZS(i),
-                                         formula='1')
-                        i = tv.FindNextSel(i)
-
+                    if not self.task_calc['cb_control_field']:
+                        rm.add_fields_in_table(name_tables='vetv', fields='all_control_groupid', type_fields=3)
+                        rm.rastr.tables('vetv').cols.item("all_control_groupid").calc("all_control")
+                        tv = rm.rastr.tables('vetv')
+                        tv.SetSel('all_control')
+                        i = tv.FindNextSel(-1)
+                        while i >= 0:
+                            if tv.Cols.item("groupid").Z(i):
+                                rm.group_cor(tabl='vetv',
+                                             param="all_control",
+                                             selection="groupid=" + tv.Cols.item("groupid").ZS(i),
+                                             formula='1')
+                            i = tv.FindNextSel(i)
             # Узлы
             tn = rm.rastr.tables('node')
             tn.SetSel('all_control')
@@ -1351,24 +1343,24 @@ class CalcModel(GeneralSettings):
                 rm.rastr.tables('vetv').cols.item("temp").calc('ip.uhom')
                 rm.rastr.tables('vetv').cols.item("temp1").calc('iq.uhom')
                 self.control_I = rm.fd_from_table(table_name='vetv',
-                                                  fields='index,dname,temp,temp1,i_dop_r,i_dop_r_av,groupid,key',
+                                                  fields='index,dname,temp,temp1,i_dop_r,i_dop_r_av,groupid,key,tip',
                                                   # ip, iq, np, name
                                                   setsel="all_control")
                 if len(self.control_I):
                     self.control_I['uhom'] = (self.control_I[['temp', 'temp1']].max(axis=1) * 10000 +
                                               self.control_I[['temp', 'temp1']].min(axis=1))
-                    self.control_I.sort_values(by=['uhom', 'dname'],  # столбцы сортировки
-                                               ascending=(False, True),  # обратный порядок
+                    self.control_I.sort_values(by=['tip', 'uhom', 'dname'],  # столбцы сортировки
+                                               ascending=(False, False, True),  # обратный порядок
                                                inplace=True)  # изменить df
-                    self.control_I.drop(['temp', 'temp1', 'uhom'], axis=1, inplace=True)
+                    self.control_I.drop(['temp', 'temp1', 'uhom', 'tip'], axis=1, inplace=True)
                     self.control_I['i_dop_r'] = self.control_I['i_dop_r'].round(0).astype(int)
                     self.control_I['i_dop_r_av'] = self.control_I['i_dop_r_av'].round(0).astype(int)
-                    self.control_I.rename(columns={'i_dop_r': 'ДДТН ,А',
-                                                   'i_dop_r_av': 'АДТН ,А',
+                    self.control_I.rename(columns={'i_dop_r': 'ДДТН, А',
+                                                   'i_dop_r_av': 'АДТН, А',
                                                    'dname': 'Контролируемый элемент'}, inplace=True)
                     self.control_I.set_index('index', inplace=True)
                     self.control_I = self.control_I.T
-                    self.control_I.index = pd.MultiIndex.from_product([['-'], self.control_I.index])
+                    self.control_I.index = pd.MultiIndex.from_product([['-'], ['-'], self.control_I.index])
 
                 self.control_U = rm.fd_from_table(table_name='node',
                                                   fields='index,dname,umin,umin_av,uhom',  # ,ny,umax
@@ -1385,7 +1377,7 @@ class CalcModel(GeneralSettings):
                                                    'dname': 'Контролируемый элемент'}, inplace=True)
                     self.control_U.set_index('index', inplace=True)
                     self.control_U = self.control_U.T
-                    self.control_U.index = pd.MultiIndex.from_product([['-'], self.control_U.index])
+                    self.control_U.index = pd.MultiIndex.from_product([['-'], ['-'], self.control_U.index])
 
         # Нормальная схема сети
         self.info_srs = pd.Series(dtype='object')  # СРС
@@ -1451,15 +1443,15 @@ class CalcModel(GeneralSettings):
                                              inplace=True)  # изменить df
             # Ветви
             self.disable_df_vetv = rm.fd_from_table(table_name='vetv',
-                                                    fields='index,name,dname,key,temp,temp1' + columns_pa,  # ip,iq,np
+                                                    fields='index,name,dname,key,temp,temp1,tip' + columns_pa,  # ip,iq,np
                                                     setsel="all_disable")
             self.disable_df_vetv['table'] = 'vetv'
             self.disable_df_vetv['uhom'] = self.disable_df_vetv[['temp', 'temp1']].max(axis=1) * 10000 + \
                                            self.disable_df_vetv[['temp', 'temp1']].min(axis=1)
-            self.disable_df_vetv.drop(['temp', 'temp1'], axis=1, inplace=True)
-            self.disable_df_vetv.sort_values(by=['uhom', 'name'],  # столбцы сортировки
-                                             ascending=(False, True),  # обратный порядок
+            self.disable_df_vetv.sort_values(by=['tip', 'uhom', 'name'],  # столбцы сортировки
+                                             ascending=(False,False, True),  # обратный порядок
                                              inplace=True)  # изменить df
+            self.disable_df_vetv.drop(['temp', 'temp1', 'tip'], axis=1, inplace=True)
 
             log.info(f'Количество отключаемых ветвей: {len(self.disable_df_vetv.axes[0])},'
                      f' узлов: {len(self.disable_df_node.axes[0])},'
@@ -1470,9 +1462,9 @@ class CalcModel(GeneralSettings):
             disable_df_all.loc[disable_df_all['dname'] == '', 'dname'] = \
                 disable_df_all.loc[disable_df_all['dname'] == '', 'name']
             disable_df_all['dname'] = disable_df_all['dname'].str.replace('  ', ' ').str.split('(').str[0]
-            disable_df_all['dname'] = disable_df_all['dname'].str.split(',').str[0]
+            disable_df_all['dname'] = disable_df_all['dname'].str.split(',').str[0].str.strip()
             for col in ['disable_scheme', 'repair_scheme']:
-                disable_df_all[col] = disable_df_all[col].str.split('#').str[0]
+                disable_df_all[col] = disable_df_all[col].str.replace(' ', '').str.split('#').str[0]
 
             # Цикл по всем возможным сочетаниям отключений
             for n_, self.info_srs['Контроль ДТН'] in self.set_comb.items():  # Цикл н-1 н-2 н-3.
@@ -1552,14 +1544,13 @@ class CalcModel(GeneralSettings):
                                        self.overloads_srs['Номер подсочетания'].astype(str) + '_' + \
                                        self.overloads_srs.index.astype(str)
             self.overloads_all = pd.concat([self.overloads_all,
-                                            self.overloads_srs.apply(lambda x: self.info_file,
+                                            self.overloads_srs.apply(lambda x: rm.info_file,
                                                                      axis=1).join(self.overloads_srs)])
             self.overloads_srs.drop(self.overloads_srs.index, inplace=True)
 
         # Вывод таблиц К-О в excel
-
-        if len(self.control_I) or len(self.control_U):
-            name_sheet = f'{self.file_count}_{self.info_file["Имя файла"] }'.replace('[', '').replace(']', '')[:28]
+        if self.task_calc['cb_tab_KO'] and (len(self.control_I) or len(self.control_U)):
+            name_sheet = f'{self.file_count}_{rm.info_file["Имя файла"] }'.replace('[', '').replace(']', '')[:28]
             control_df_dict = {}
             if len(self.control_I):
                 # todo объединить колонки с одинаковыми контр элементами
@@ -1568,14 +1559,38 @@ class CalcModel(GeneralSettings):
             if len(self.control_U):
                 control_df_dict[name_sheet + '{U}'] = self.control_U
                 self.control_U = None
+            # https://www.geeksforgeeks.org/how-to-write-pandas-dataframes-to-multiple-excel-sheets/
+
             mode = 'a' if os.path.exists(self.book_path) else 'w'
-            with pd.ExcelWriter(path=self.book_path, mode=mode) as writer:
-                for name_sheet, df_control in control_df_dict:
+            with pd.ExcelWriter(path=self.book_path, mode=mode, engine="openpyxl") as writer:
+                for name_sheet, df_control in control_df_dict.items():
+                    # Поиск столбцов с одинаковыми dname; ДДТН, А; АДТН, А; groupid
+                    # https/www.geeksforgeeks.org/how-to-find-drop-duplicate-columns-in-a-pandas-dataframe/
+                    df_control_head = df_control.iloc[:4].T  # включая groupid
+                    duplicated_true = df_control_head.duplicated(keep=False)
+                    groupid_true = df_control.loc['-', '-', 'groupid'] > 0
+                    selection_columns = duplicated_true & groupid_true  # выборка в столбцах df_control для проверки
+                    if selection_columns.any():
+                        dict_equals = defaultdict(list)  # {номер:[перечень индексов столбцов с одинаковыми колонками]}
+                        df_control_head = df_control_head[selection_columns]
+                        duplicated_unique = df_control_head.drop_duplicates()
+                        for i in range(len(duplicated_unique)):
+                            col_unique = duplicated_unique.iloc[i, :]
+                            for ii in range(len(df_control_head)):
+                                control_col = df_control_head.iloc[ii, :]
+                                if col_unique.equals(control_col):
+                                    dict_equals[i].append(int(control_col.name))
+                    # Объединить столбцы с одинаковыми dname; ДДТН, А; АДТН, А; groupid
+                    if dict_equals:
+                        for cols in dict_equals.values():
+                            df_control[cols[0]] = df_control[cols].max(axis=1)
+                            df_control.drop(columns=cols[1:], inplace=True)
+
                     df_control.to_excel(excel_writer=writer,
                                         sheet_name=name_sheet,
                                         header=False,
                                         startrow=1,
-                                        freeze_panes=(2, 2),
+                                        freeze_panes=(2, 3),
                                         index=True)
 
             # Форматирование таблиц Отключение - Контроль
@@ -1585,28 +1600,29 @@ class CalcModel(GeneralSettings):
                 ws['A1'] = f'{self.name_tab[0]}{self.num_tab}{self.name_tab[1]} {rm.name_rm}'
                 self.num_tab += 1
                 ws['A2'] = 'Наименование режима'
-                ws['B2'] = 'Наименование параметра'
-                ws.merge_cells('A2:A4')
+                ws['B2'] = 'Номер режима'
+                ws['C2'] = 'Наименование параметра'
+                # ws.merge_cells('A2:B4')
                 thins = Side(border_style="thin", color="000000")
                 max_column_lit = get_column_letter(ws.max_column)
                 ws.merge_cells(f'A1:{max_column_lit}1')
 
                 # Данные
                 for row in range(3, ws.max_row + 1):
-                    for col in range(3, ws.max_column + 1):
+                    for col in range(4, ws.max_column + 1):
                         ws.cell(row, col).border = Border(thins, thins, thins, thins)
-                        if ws.cell(row, 2).value in ['I, А', 'U, кВ']:
+                        if ws.cell(row, 3).value in ['I, А', 'U, кВ']:
                             ws.cell(row, col).font = Font(bold=True)
-                        if 'I, %' in ws.cell(row, 2).value:
+                        if 'I, %' in ws.cell(row, 3).value:
                             if ws.cell(row, col).value >= 100:
                                 ws.cell(row, col).fill = PatternFill(fill_type='solid', fgColor="00FF9900")
-                        if 'U, %' in ws.cell(row, 2).value:
+                        if 'U, %' in ws.cell(row, 3).value:
                             if ws.cell(row, col).value > 0:
                                 ws.cell(row, col).fill = PatternFill(fill_type='solid', fgColor="00FF9900")
                 # Колонки
-                for litter, L in {'A': 35, 'B': 17}.items():
+                for litter, L in {'A': 35, 'B': 6, 'C': 17}.items():
                     ws.column_dimensions[litter].width = L
-                for n in range(3, ws.max_column + 1):
+                for n in range(4, ws.max_column + 1):
                     ws[f'{get_column_letter(n)}2'].alignment = Alignment(textRotation=90, wrap_text=True,
                                                                          horizontal="center", vertical="center")
                     ws.column_dimensions[get_column_letter(n)].width = 9
@@ -1615,9 +1631,10 @@ class CalcModel(GeneralSettings):
                 # Строки
                 ws.row_dimensions[5].hidden = True  # Скрыть
                 ws.row_dimensions[6].hidden = True
-                for n in range(2, ws.max_row + 1):
+                for n in range(1, ws.max_row + 1):
                     ws[f'A{n}'].alignment = Alignment(wrap_text=True, horizontal="left", vertical="center")
                     ws[f'B{n}'].alignment = Alignment(wrap_text=True, horizontal="center", vertical="center")
+                    ws[f'C{n}'].alignment = Alignment(wrap_text=True, horizontal="center", vertical="center")
                 ws.row_dimensions[2].height = 145
             wb.save(self.book_path)
 
@@ -1777,6 +1794,7 @@ class CalcModel(GeneralSettings):
                     ci['i_zag_av'] = ci['i_zag_av'].round(0)
                     ci = ci.T
                     ci.index = pd.MultiIndex.from_product([[self.info_srs['Наименование СРС']],
+                                                           [f'{self.number_comb}.{self.info_action["Номер подсочетания"]}'],
                                                            ['I, А', 'I, % от ДДТН', 'I, % от АДТН']])
                     self.control_I = pd.concat([self.control_I, ci], axis=0)
 
@@ -1790,6 +1808,7 @@ class CalcModel(GeneralSettings):
                     cu['otv_min_av'] = cu['otv_min_av'].round(2)
                     cu = cu.T
                     cu.index = pd.MultiIndex.from_product([[self.info_srs['Наименование СРС']],
+                                                           [f'{self.number_comb}.{self.info_action["Номер подсочетания"]}'],
                                                            ['U, кВ', 'U, % от МДН', 'I, % от АДН']])
                     self.control_U = pd.concat([self.control_U, cu], axis=0)
 
@@ -2000,6 +2019,8 @@ class EditModel(GeneralSettings):
         self.rastr_files = list(filter(lambda x: x.endswith('.rg2') | x.endswith('.rst'), files))
 
         for rastr_file in self.rastr_files:  # цикл по файлам .rg2 .rst в папке KIzFolder
+            if self.task["KFilter_file"] and self.file_count == self.task["max_file_count"]:
+                break  #  если включен фильтр файлов проверяем количество расчетных файлов
             full_name = os.path.join(from_dir, rastr_file)
             full_name_new = os.path.join(in_dir, rastr_file)
             rm = RastrModel(full_name)
@@ -2007,11 +2028,6 @@ class EditModel(GeneralSettings):
             if self.task["KFilter_file"] and rm.code_name_rg2:
                 if not rm.test_name(condition=self.task["cor_criterion_start"], info='Цикл по файлам.'):
                     continue  # пропускаем если не соответствует фильтру
-
-            self.file_count += 1
-            #  если включен фильтр файлов проверяем количество расчетных файлов
-            if self.task["KFilter_file"] and self.file_count == self.task["max_file_count"] + 1:
-                break
             rm.load()
             if self.load_additional:
                 rm.downloading_additional_files(self.load_additional)
@@ -2022,6 +2038,7 @@ class EditModel(GeneralSettings):
 
     def cor_file(self, rm):
         """Корректировать файл rm"""
+        self.file_count += 1
         try:
             if self.task['cor_beginning_qt']['add']:
                 log.info("\t*** Начало корректировку модели 'до импорта' ***")
@@ -2086,8 +2103,7 @@ class RastrModel(RastrMethod):
         self.full_name = full_name
         self.dir = os.path.dirname(full_name)
         self.Name = os.path.basename(full_name)  # вернуть имя с расширением "2020 зим макс.rg2"
-        self.name_base = self.Name[:-4]  # вернуть имя без расширения "2020 зим макс"
-        self.type_file = self.Name[-3:]  # rst или rg2
+        self.name_base, self.type_file = self.Name.split('.')  # имя без расширения "2020 зим макс" # без rst или rg2
         self.pattern = GeneralSettings.set_save["шаблон " + self.type_file]
         self.code_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 ПЭВТ 4 лет макс 5 лет мин 6 паводок
         self.all_auto_shunt = {}
@@ -2098,6 +2114,7 @@ class RastrModel(RastrMethod):
         self.season_name: str = ''
         self.god: str = ''
         self.name_rm: str = self.Name
+        self.info_file = pd.Series(dtype='object')  # имя файла
 
         # "^(20[1-9][0-9])\s(лет\w?|зим\w?|паводок)\s?(макс|мин)?"
         match = re.search(re.compile(r"^(20[1-9][0-9])\s(лет\w*|зим\w*|паводок)\s?(макс\w*|мин\w*)?"), self.name_base)
@@ -2138,6 +2155,14 @@ class RastrModel(RastrMethod):
             if match:
                 self.temperature = float(match[1].replace(',', '.'))  # число
                 self.name_rm += f' Расчетная температура {self.temperature} °C.'
+
+        self.info_file['Имя файла'] = self.name_base
+        self.info_file['Год'] = self.god
+        self.info_file['Сезон макс/мин'] = self.season_name
+        self.info_file['Темп.(°C)'] = self.temperature
+        if self.additional_name_list:
+            for i, additional_name in enumerate(self.additional_name_list, 1):
+                self.info_file['Доп. имя' + str(i)] = additional_name
 
     def test_name(self, condition: dict, info: str = "") -> bool:
         """
@@ -2251,9 +2276,9 @@ class RastrModel(RastrMethod):
         # Токи
         if dict_task['vetv']:
             # Контроль токовой загрузки
-            log.info("\tКонтроль токовой загрузки, расчетная температура: " + str(self.temperature))
+            log.info(f"Контроль токовой загрузки, расчетная температура: {self.temperature}")
             self.rastr.CalcIdop(self.temperature, 0.0, "")
-            if dict_task["sel_node"] != "":
+            if dict_task["sel_node"]:
                 if node.cols.Find("sel1") < 0:
                     node.Cols.Add("sel1", 3)  # добавить столбцы sel1
                 node.cols.item("sel1").calc(0)
@@ -2799,8 +2824,9 @@ class CorSheet:
     """
     Клас лист для хранения листов книги excel и работы с ними.
     """
-    SHAPE = {"Параметры импорта из файлов RastrWin": 'import_model',
-             'Выполнить изменение модели по строкам': 'list_cor'}
+    SHAPE = {"Параметры импорта из файлов RastrWin": 'import_model',  # Импорт из моделей(ИМ)
+             'Выполнить изменение модели по строкам': 'list_cor',  # Cтроковая форма(СФ)
+             'Имя таблицы:': 'table_import'}  # Импорт таблиц(ИТ)
 
     def __init__(self, name: str, obj):
         """
@@ -2808,9 +2834,10 @@ class CorSheet:
         :param obj: Объект лист
         """
         # type:
-        # 'tab_cor' - сводная таблица корректировок, нр корр потребления или нагрузка узлов / имя файла;
-        # 'list_cor' - таблица корректировок по списку, нр изм, удалить, снять отметку;
-        # 'import_model' - импорт моделей;
+        # 'tab_cor' - сводная таблица корректировок, нр корр потребления или нагрузка узлов / имя файла.
+        # 'list_cor' - таблица корректировок по списку, нр изм, удалить, снять отметку.
+        # 'import_model' - импорт моделей.
+        # 'table_import' - Импорт таблиц(ИТ)
         self.name = name
         self.xls = obj  # xls.cell(1,1).value [строки][столбцы] xls.max_row xls.max_column
         self.import_model_all = []  # Для хранения объектов ImportFromModel
@@ -2831,6 +2858,8 @@ class CorSheet:
             self.list_cor(rm)
         elif self.type == 'tab_cor':
             self.tab_cor(rm)
+        elif self.type == 'table_import':
+            self.tab_import(rm)
         log.info(f'\tКонец выполнения задания листа {self.name!r}\n')
 
     def export_model(self):
@@ -2848,6 +2877,21 @@ class CorSheet:
                                       sel=self.xls.cell(row, 3).value,
                                       calc=self.xls.cell(row, 5).value)
                 self.import_model_all.append(ifm)
+
+    def tab_import(self, rm: RastrModel) -> None:
+        """Импорт таблицы из XL в Rastr"""
+        tables_name = self.xls.cell(2, 1).value
+        type_import = self.xls.cell(4, 1).value
+        field_import = []
+        field_column = []
+        for column in range(2, self.xls.max_column+1):
+            if self.xls.cell(1, column).value:
+                field_column.append(column)
+                field_import.append(self.xls.cell(1, column).value )
+        field_import = ','.join(field_import)
+        data = [[self.xls.cell(row, col).value for col in field_column] for row in range(2, self.xls.max_row+1)]
+        table = rm.rastr.Tables(tables_name)
+        table.ReadSafeArray(type_import, field_import, data)
 
     def import_model(self, rm: RastrModel) -> None:
         """Импорт в модели"""

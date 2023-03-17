@@ -3646,6 +3646,9 @@
           <property name="text">
            <string>Задание EXCEL</string>
           </property>
+          <property name="checked">
+           <bool>false</bool>
+          </property>
          </widget>
         </item>
         <item>
@@ -3790,7 +3793,7 @@
                 <string/>
                </property>
                <property name="text">
-                <string>[XL-&gt;RastrWin][pop][cor]</string>
+                <string> [XL-&gt;RastrWin][pop][cor]</string>
                </property>
               </widget>
              </item>

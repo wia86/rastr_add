@@ -44,9 +44,9 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>-72</y>
+           <y>-116</y>
            <width>729</width>
-           <height>1027</height>
+           <height>1025</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
@@ -188,7 +188,7 @@
                <item>
                 <widget class="QLineEdit" name="le_comb_field">
                  <property name="text">
-                  <string>sel</string>
+                  <string>otkl1</string>
                  </property>
                 </widget>
                </item>
@@ -452,7 +452,7 @@
                   <bool>true</bool>
                  </property>
                  <property name="text">
-                  <string>Выбор котролируемых ветвей и узлов (имя поля):</string>
+                  <string>Выбор контролируемых ветвей и узлов (имя поля):</string>
                  </property>
                  <property name="checked">
                   <bool>true</bool>
@@ -462,7 +462,7 @@
                <item>
                 <widget class="QLineEdit" name="le_control_field">
                  <property name="text">
-                  <string>sel</string>
+                  <string>Kontrol</string>
                  </property>
                 </widget>
                </item>
@@ -682,7 +682,7 @@
                   </size>
                  </property>
                  <property name="plainText">
-                  <string>I:\rastr_add\test</string>
+                  <string>I:\ОЭС Северо-Запада\Коми\РМ\v2</string>
                  </property>
                 </widget>
                </item>
@@ -732,7 +732,7 @@
                 <string>Выборка файлов</string>
                </property>
                <property name="checked">
-                <bool>true</bool>
+                <bool>false</bool>
                </property>
               </widget>
              </item>
@@ -1059,17 +1059,17 @@
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>18</height>
+                 <height>16</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
                  <width>16777215</width>
-                 <height>18</height>
+                 <height>16</height>
                 </size>
                </property>
                <property name="text">
-                <string>Создать таблицы контролируемые - отключаемые элементы</string>
+                <string>Создать таблицы &quot;контролируемые - отключаемые&quot; элементы</string>
                </property>
                <property name="checked">
                 <bool>true</bool>
@@ -1098,13 +1098,13 @@
                  <number>0</number>
                 </property>
                 <property name="leftMargin">
-                 <number>0</number>
+                 <number>3</number>
                 </property>
                 <property name="topMargin">
                  <number>0</number>
                 </property>
                 <property name="rightMargin">
-                 <number>0</number>
+                 <number>3</number>
                 </property>
                 <property name="bottomMargin">
                  <number>0</number>
@@ -1496,7 +1496,7 @@
              <string>Отключаемые элементы сети. Расчет сочетаний из книги EXCEL</string>
             </property>
             <property name="checked">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -1593,7 +1593,7 @@
                     </size>
                    </property>
                    <property name="plainText">
-                    <string>I:\rastr_add\test\файлы импорта\файл задания на расчет.rg2</string>
+                    <string>I:\ОЭС Северо-Запада\Коми\РМ\zad\2027 зим макс (-39°C).rg2</string>
                    </property>
                   </widget>
                  </item>
@@ -1646,9 +1646,9 @@
                  </property>
                  <property name="plainText">
                   <string># таблица: параметры (обновить)
-node: repair_scheme,disable_scheme,automation,  sel #  otkl1, otkl2, otkl3,N,umin,umin_av,umax
-vetv:  repair_scheme,disable_scheme,automation,  sel # otkl1, otkl2, otkl3, N
-Generator: repair_scheme,disable_scheme, sel</string>
+# node: repair_scheme,disable_scheme,automation,  sel #  otkl1, otkl2, otkl3,N,umin,umin_av,umax
+vetv: Kontrol,otkl1 # otkl1, otkl2, otkl3, N
+# Generator: repair_scheme,disable_scheme, sel</string>
                  </property>
                 </widget>
                </item>
@@ -1703,7 +1703,7 @@ Generator: repair_scheme,disable_scheme, sel</string>
              <string>Отключаемые элементы сети. Расчет всех возможных сочетаний.</string>
             </property>
             <property name="checked">
-             <bool>false</bool>
+             <bool>true</bool>
             </property>
            </widget>
           </item>

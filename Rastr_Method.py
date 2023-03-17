@@ -128,7 +128,7 @@ class RastrMethod:
         table = self.rastr.tables(tabl)
         table.setsel(selection)
         if not table.count:
-            log_r_m.warning(f'В таблице {tabl} по выборке {selection} не найдено строк.')
+            log_r_m.warning(f'В таблице {tabl!r} по выборке {selection!r} не найдено строк.')
 
         if formula == 'del':
             table.DelRows()
