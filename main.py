@@ -181,14 +181,11 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
 
     def start(self):
         """
-        Добавить ImportFromModel и запуск
+        Запуск расчета моделей
         """
         GeneralSettings.write_ini(section='save_form_folder_calc', key="path",
                                   value=self.te_path_initial_models.toPlainText())
-
         self.fill_task_calc()
-
-        # """Запуск корректировки моделей"""
         global cm
         cm = CalcModel(self.task_calc)
         # self.gui_import()
@@ -618,13 +615,11 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
 
     def start(self):
         """
-        Добавить ImportFromModel и запуск
+        Запуск корректировки моделей.
         """
         GeneralSettings.write_ini(section='save_form_folder_edit', key="path", value=self.T_IzFolder.toPlainText())
 
         self.fill_task_ui()
-
-        # Запуск корректировки моделей.
         global em
         em = EditModel(self.task_ui)
         self.gui_import()
@@ -853,7 +848,7 @@ class GeneralSettings(ABC):
     def the_end(self):  # по завершению
         self.set_info['end_info'] = (
             f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
-            f" \nЗатрачено: {timedelta(seconds=time() - self.time_start)} c (файлов: {self.file_count}).")
+            f" \nЗатрачено: {timedelta(seconds=round(time() - self.time_start, 1))} c (файлов: {self.file_count}).")
         log.info(self.set_info['end_info'])
 
     @staticmethod
@@ -1041,6 +1036,8 @@ class CalcModel(GeneralSettings):
         Запуск расчета с текущим файлом импорта задания или без него.
         :task_full_name: полный путь к текущему файлу задания
         """
+        xlApp = None
+
         # Экспорт из модели исходных данных для расчетов УР.
         if task_full_name:
             ImportFromModel.set_import_model = []
@@ -1059,7 +1056,7 @@ class CalcModel(GeneralSettings):
                 raise ValueError(f'Имя файла {self.task_calc["calc_folder"]!r} не подходит.')
             self.calc_file(rm=rm)
 
-        # Сохранить в Excel.
+        # Сохранить в Excel таблицу перегрузки.
         if len(self.overloads_all):
             # https://www.geeksforgeeks.org/how-to-write-pandas-dataframes-to-multiple-excel-sheets/
             mode = 'a' if os.path.exists(self.book_path) else 'w'
@@ -1098,6 +1095,7 @@ class CalcModel(GeneralSettings):
             task_pivot = []
             task_pivot_i = namedtuple('task_pivot',
                                       ['sheet_name', 'pivot_table_name', 'data_field'])
+            # todo сводная если только режимы которые не моделируются
             if "i_max" in self.overloads_all.columns:
                 task_pivot.append(task_pivot_i('Сводная_I', "Свод_I",
                                                dict(i_max="Iрасч.,A",
@@ -1156,7 +1154,7 @@ class CalcModel(GeneralSettings):
                 pt.PivotFields(field).Orientation = 3  # xlPageField = 3
                 pt.PivotFields(field).CurrentPage = "(All)"  #
                 if len(task_pivot) > 1:
-                    pt.PivotFields(field).PivotItems("(blank)").Visible = False  # todo ???
+                    pt.PivotFields(field).PivotItems("(blank)").Visible = False
                 pt.TableStyle2 = ""  # стиль
                 pt.ColumnRange.ColumnWidth = 10  # ширина строк
                 pt.RowRange.ColumnWidth = 20
@@ -1170,7 +1168,7 @@ class CalcModel(GeneralSettings):
                     dpz.FormatConditions.AddColorScale(2)  # ColorScaleType:=2
                     dpz.FormatConditions(dpz.FormatConditions.count).SetFirstPriority()
                     dpz.FormatConditions(1).ColorScaleCriteria(1).Type = 0  # xlConditionValueNumber = 0
-                    if list(task.data_field)[2] == '':
+                    if list(task.data_field)[2] == 'i_zag':
                         dpz.FormatConditions(1).ColorScaleCriteria(1).Value = 100
                     else:
                         dpz.FormatConditions(1).ColorScaleCriteria(1).Value = 0
@@ -1183,6 +1181,50 @@ class CalcModel(GeneralSettings):
                     pass
                 pt.ManualUpdate = False  # обновить сводную
             book.Save()
+            book.Close()
+        else:
+            log.info('Отклонений параметров режима от допустимых значений не выявлено.')
+
+        # Вставить таблицы К-О в word.
+        if self.task_calc['cb_tab_KO']:
+            log.info('Вставить таблицы К-О в word.')
+
+            xlApp = win32com.client.Dispatch("Excel.Application")
+            xlApp.Visible = False
+            book = xlApp.Workbooks.Open(self.book_path)
+
+            word = win32com.client.Dispatch("Word.Application")
+            word.Visible = False
+            word.ScreenUpdating = False
+            doc = word.Documents.Add()  # doc = word.Documents.Open(r"I:\file.docx")
+
+            doc.PageSetup.PageWidth = 29.7 * 28.35  # CentimetersToPoints( format_list_i (2) ) 1 см = 28,35
+            doc.PageSetup.PageHeight = 42.0 * 28.35  # CentimetersToPoints( format_list_i (1) )
+            doc.PageSetup.Orientation = 1  # 1 книжная или 0 альбомная
+
+            cursor = word.Selection
+            cursor.Font.Size = 12
+            cursor.Font.Name = "Times New Roman"
+            cursor.EndKey(Unit=6)  # перейти в конец текста
+
+            for i in range(1, book.Worksheets.Count + 1):
+                if book.Worksheets(i).name[:1].isnumeric():
+                    sheet = book.Worksheets(i)
+                    cursor.TypeText(Text=sheet.Cells(1, 1).value)
+                    cursor.TypeParagraph()
+
+                    sheet.Range(sheet.UsedRange.address.replace('$', '').replace('A1', 'A2')).Copy()
+                    # cursor.PasteExcelTable(LinkedToExcel=False, WordFormatting=False, RTF=False)
+                    cursor.PasteAndFormat(Type=13)  # 13 Вставить в виде рисунка.
+                    cursor.InsertBreak(Type=0)
+                    # разрыв:7 страницы с новой строки, 0-в той же строке,1 и 8 колонки,
+                    # 2-5 раздела со след стр,6 и 9-11 перенос на новую стр
+
+            word.ScreenUpdating = True
+            doc.SaveAs2(FileName=self.task_calc['name_time'] + ' таблицы К-О.docx')  # FileFormat=16 .docx
+            doc.Close()
+
+        if xlApp:
             xlApp.Visible = True
             xlApp.ScreenUpdating = True  # обновление экрана
 
@@ -1226,7 +1268,7 @@ class CalcModel(GeneralSettings):
         # Импорт моделей
         if ImportFromModel.set_import_model:
             for im in ImportFromModel.set_import_model:
-                im.import_csv(rm)
+                im.import_data_in_rm(rm)
 
         # Подготовка.
         rm.voltage_fix_frame()
@@ -1288,12 +1330,13 @@ class CalcModel(GeneralSettings):
                 # todo заполнить all_control в соответствии с self.task_calc['le_auto_control_choice']
                 pass
 
-            if self.task_calc['cb_tab_KO']:
-                # Добавит поле отметки отключений если их нет в какой-то таблице
+            if self.task_calc['cb_control_field']:
+
                 if '*' in self.task_calc['le_control_field']:
                     rm.rastr.Tables("node").cols.item("all_control").Calc("1")
                     rm.rastr.Tables("vetv").cols.item("all_control").Calc("1")
                 else:
+                    # Добавит поле отметки отключений если их нет в какой-то таблице.
                     rm.add_fields_in_table(name_tables='vetv,node',
                                            fields=self.task_calc['le_control_field'],
                                            type_fields=3)
@@ -1304,7 +1347,7 @@ class CalcModel(GeneralSettings):
                                      formula='1')
 
                     # all_control_groupid для отметки всех контролируемых ветвей и ветвей с теми же groupid
-                    if not self.task_calc['cb_control_field']:
+                    if not self.task_calc['cb_tab_KO']:
                         rm.add_fields_in_table(name_tables='vetv', fields='all_control_groupid', type_fields=3)
                         rm.rastr.tables('vetv').cols.item("all_control_groupid").calc("all_control")
                         tv = rm.rastr.tables('vetv')
@@ -1473,7 +1516,7 @@ class CalcModel(GeneralSettings):
                     disable_all = disable_df_all
                 else:
                     disable_all = \
-                        disable_df_all[(disable_df_all['uhom'] > 300) | (disable_df_all['table'] == 'Generator')]
+                        disable_df_all[(disable_df_all['uhom'] > 300) | (disable_df_all['table'] != 'node')]
                 name_columns = list(disable_all.columns)
                 disable_all = tuple(disable_all.itertuples(index=False, name=None))  # df в tuple построчно
 
@@ -1724,15 +1767,20 @@ class CalcModel(GeneralSettings):
         Проверка параметров режима.
         :return:  Наполняет overloads_srs
         """
-        if not rm.rgm():
+        test = rm.rgm()
+        if GeneralSettings.set_save['avr']:
+            self.info_action['АРВ'] = self.node_include(rm)
+            if self.info_action['АРВ']:
+                test = rm.rgm()
+        if GeneralSettings.set_save['skrm']:
+            self.info_action['СКРМ'] = rm.auto_shunt_cor(all_auto_shunt=self.auto_shunt)
+            if self.info_action['СКРМ']:
+                test = rm.rgm()
+
+        if not test:
             overloads = pd.DataFrame({'dname': ['Режим не моделируется'], 'i_zag': [-1], 'otv_min': [-1]})
         else:
             overloads = pd.DataFrame()
-            if GeneralSettings.set_save['avr']:
-                self.info_action['АРВ'] = self.node_include(rm)
-            if GeneralSettings.set_save['skrm']:
-                self.info_action['СКРМ'] = rm.auto_shunt_cor(all_auto_shunt=self.auto_shunt)
-
             # проверка на наличие перегрузок ветвей (ЛЭП, трансформаторов, выключателей)
             if self.info_srs['Контроль ДТН'] == 'АДТН':
                 selection_v = 'all_control & i_zag_av > 0.1'
@@ -1927,7 +1975,7 @@ class EditModel(GeneralSettings):
         """
         Запуск корректировки моделей.
         """
-        log.info('Запуск корректировки РМ.')
+        log.info('\n!!! Запуск корректировки РМ !!!\n')
         self.task["KIzFolder"] = self.task["KIzFolder"].strip()
         if "*" in self.task["KIzFolder"]:
             self.task["KIzFolder"] = self.task["KIzFolder"].replace('*', '')
@@ -2056,7 +2104,7 @@ class EditModel(GeneralSettings):
         # Импорт моделей
         if ImportFromModel.set_import_model:
             for im in ImportFromModel.set_import_model:
-                im.import_csv(rm)
+                im.import_data_in_rm(rm)
 
         # Задать параметры по значениям в таблице excel
         if "import_val_XL" in self.task:
@@ -2168,7 +2216,7 @@ class RastrModel(RastrMethod):
         """
          Проверка имени файла на соответствие условию condition.
         :param condition:
-        {"years":"2020,2023-2025","season": "лет,зим,паводок","max_min":"макс","add_name":"-41С;МДП:ТЭ-У"}
+        {"years":"2020,2023...2025","season": "лет,зим,паводок","max_min":"макс","add_name":"-41С;МДП:ТЭ-У"}
         :param info: для вывода в протокол
         :return: True если удовлетворяет
         """
@@ -2191,7 +2239,7 @@ class RastrModel(RastrMethod):
         # Проверка "макс" "мин"
         if 'max_min' in condition:
             if condition['max_min']:
-                if self.name_list[2] in condition['max_min'].replace(' ', '').split(","):
+                if self.name_list[2] not in condition['max_min'].replace(' ', '').split(","):
                     log.info(f'{info} {self.Name!r}. Не проходит по условию: {condition["max_min"]!r}')
                     return False
         # Проверка доп имени, например (-41С;МДП:ТЭ-У)
@@ -2243,15 +2291,12 @@ class RastrModel(RastrMethod):
 
         node = self.rastr.tables("node")
         branch = self.rastr.tables("vetv")
-        generator = self.rastr.tables("Generator")
-        chart_pq = self.rastr.tables("graphik2")
-        graph_it = self.rastr.tables("graphikIT")
         # Также проверяется наличие узлов без ветвей, ветвей без узлов начала или конца, генераторов без узлов.
         all_ny = set([x[0] for x in node.writesafearray("ny", "000")])
         all_ip = set([x[0] for x in branch.writesafearray("ip", "000")])
         all_iq = set([x[0] for x in branch.writesafearray("iq", "000")])
         all_iq_ip = all_ip.union(all_iq)
-        all_gen_ny = set([x[0] for x in generator.writesafearray("Node", "000")])
+
         # Узлы без ветвей.
         all_ny_not_branches = all_ny - all_iq_ip
         if all_ny_not_branches:
@@ -2261,29 +2306,33 @@ class RastrModel(RastrMethod):
         if all_ip_iq_not_node:
             log.error(f'В таблице vetv есть ссылка на узлы которых нет в таблице node: {all_ip_iq_not_node}')
         # Генераторы без узлов.
-        all_gen_not_node = all_gen_ny - all_ny
-        if all_gen_not_node:
-            log.error(f'В таблице Generator есть ссылка на узлы которых нет в таблице node: {all_gen_not_node}')
+        generator = self.rastr.tables("Generator")
+        if generator.size:
+            all_gen_ny = set([x[0] for x in generator.writesafearray("Node", "000")])
+            all_gen_not_node = all_gen_ny - all_ny
+            if all_gen_not_node:
+                log.error(f'В таблице Generator есть ссылка на узлы которых нет в таблице node: {all_gen_not_node}')
+
+        if dict_task["sel_node"]:
+            self.add_fields_in_table(name_tables='node', fields='sel1', type_fields=3)
+            node.cols.item("sel1").calc(0)
+            node.setsel(dict_task["sel_node"])
+            node.cols.item("sel1").calc(1)
 
         # Напряжения
         if dict_task["node"]:
             log.info("\tКонтроль напряжений.")
             self.voltage_nominal(choice=(dict_task["sel_node"] + '&uhom>30'))
-            self.voltage_normal(choice=dict_task["sel_node"])
             self.voltage_deviation(choice=dict_task["sel_node"])
+            self.voltage_fine(choice=dict_task["sel_node"])
             self.voltage_error(choice=dict_task["sel_node"])
 
         # Токи
         if dict_task['vetv']:
             # Контроль токовой загрузки
-            log.info(f"Контроль токовой загрузки, расчетная температура: {self.temperature}")
+            log.info(f"Расчет загрузки ветвей для температуры {self.temperature}.")
             self.rastr.CalcIdop(self.temperature, 0.0, "")
             if dict_task["sel_node"]:
-                if node.cols.Find("sel1") < 0:
-                    node.Cols.Add("sel1", 3)  # добавить столбцы sel1
-                node.cols.item("sel1").calc(0)
-                node.setsel(dict_task["sel_node"])
-                node.cols.item("sel1").calc(1)
                 sel_vetv = "i_zag>=0.1&(ip.sel1|iq.sel1)"
                 presence_n_it = {'n_it': "(ip.sel1|iq.sel1)&n_it>0",
                                  'n_it_av': "(ip.sel1|iq.sel1)&n_it_av>0"}
@@ -2292,60 +2341,51 @@ class RastrModel(RastrMethod):
                 presence_n_it = {'n_it': "n_it>0",
                                  'n_it_av': "n_it_av>0"}
 
+            log.debug('Контроль токовой загрузки.')
             branch.setsel(sel_vetv)
-            if branch.count:  # есть превышений
+            if branch.count:  # есть превышения
                 j = branch.FindNextSel(-1)
                 while j > -1:
                     log.info(f"\t\tВНИМАНИЕ ТОКИ! vetv:{branch.SelString(j)}, "
                              f"{branch.cols.item('name').ZS(j)} - {branch.cols.item('i_zag').ZS(j)} %")
                     j = branch.FindNextSel(j)
 
-            # проверка наличия n_it,n_it_av в таблице График_Iдоп_от_Т(graphikIT)
-            all_graph_it = set(graph_it.writesafearray("Num", "000"))
-            for field, sel_vetv_n_it in presence_n_it.items():
-                branch.setsel(sel_vetv_n_it)
-                if branch.count:
-                    j = branch.FindNextSel(-1)
-                    while j > -1:
-                        n_it = branch.cols.item(field).Z(j)
-                        if (n_it,) not in all_graph_it and n_it > 0:
-                            log.error(f"\t\tВНИМАНИЕ graphikIT! vetv: {branch.SelString(j)!r}, "
-                                      f"{branch.cols.item('name').ZS(j)!r}, "
-                                      f"{field}={n_it} не найден в таблице График_Iдоп_от_Т")
-                        j = branch.FindNextSel(j)
+            log.debug('Проверка наличия n_it,n_it_av в таблице График_Iдоп_от_Т(graphikIT).')
+            graph_it = self.rastr.tables("graphikIT")
+            if graph_it.size:
+                all_graph_it = set([x[0] for x in graph_it.writesafearray("Num", "000")])
+                for field, sel_vetv_n_it in presence_n_it.items():
+                    branch.setsel(sel_vetv_n_it)
+                    for i in branch.writesafearray(field + ",name,ip,iq,np", "000"):
+                        if i[0] > 0 and i[0] not in all_graph_it:
+                            log.error(f"\t\tВНИМАНИЕ graphikIT! vetv: {i[1]} [{i[2]},{i[3]},{i[4]}] "
+                                      f"{field}={i[0]} не найден в таблице График_Iдоп_от_Т")
+
         #  ГЕНЕРАТОРЫ
         if dict_task['Gen']:
             log.info("\tКонтроль генераторов")
-            if dict_task["sel_node"] != "":
-                if node.cols.Find("sel1") < 0:
-                    node.Cols.Add("sel1", 3)  # добавить столбцы
-                node.cols.item("sel1").calc(0)
-                node.setsel(dict_task["sel_node"])
-                node.cols.item("sel1").calc(1)
-                sel_gen = "!sta&Node.sel1"
-            else:
-                sel_gen = "!sta"
-
+            chart_pq = set([x[0] for x in self.rastr.tables("graphik2").writesafearray("Num", "000")])
+            sel_gen = "!sta&Node.sel1" if dict_task["sel_node"] else "!sta"
             generator.setsel(sel_gen)
-            j = generator.FindNextSel(-1)
-            while j != -1:
-                Pmin = generator.cols.item("Pmin").Z(j)
-                Pmax = generator.cols.item("Pmax").Z(j)
-                P = generator.cols.item("P").Z(j)
-                Name = generator.cols.item("Name").ZS(j)
-                Num = generator.cols.item("Num").ZS(j)
-                Node = generator.cols.item("Node").ZS(j)
-                NumPQ = generator.cols.item("NumPQ").Z(j)
-                if P < Pmin and Pmin:
-                    log.info(f"\t\tВНИМАНИЕ! {Name}, Num={Num},ny={Node}, P={str(round(P))} < Pmin={str(Pmin)}")
-                if P > Pmax and Pmax:
-                    log.info(f"\t\tВНИМАНИЕ! {Name}, Num={Num},ny={Node}, P={str(round(P))} > Pmax={str(Pmax)}")
-                if NumPQ:
-                    chart_pq.setsel("Num=" + str(NumPQ))
-                    if chart_pq.count == 0:
-                        log.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},ny={Node}, "
-                                 f"NumPQ={NumPQ} не найден в таблице PQ-диаграммы (graphik2)")
-                j = generator.FindNextSel(j)
+            col = {'Num': 0, 'Node': 1, 'Name': 2, 'Pmin': 3, 'Pmax': 4, 'P': 5, 'NumPQ': 6}
+            if generator.count:
+                for i in generator.writesafearray(','.join(col), "000"):
+                    Pmin = i[col['Pmin']]
+                    Pmax = i[col['Pmax']]
+                    P = i[col['P']]
+                    Name = i[col['Name']]
+                    Num = i[col['Num']]
+                    Node = i[col['Node']]
+                    NumPQ = i[col['NumPQ']]
+                    if P < Pmin and Pmin:
+                        log.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},{Node=}, {P=} < {Pmin=}")
+                    if P > Pmax and Pmax:
+                        log.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},{Node=}, {P=} > {Pmax=}")
+                    if NumPQ and self.rastr.tables("graphik2").size:
+                        chart_pq = set([x[0] for x in self.rastr.tables("graphik2").writesafearray("Num", "000")])
+                        if NumPQ not in chart_pq:
+                            log.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},{Node=}, "
+                                     f"{NumPQ=} не найден в таблице PQ-диаграммы (graphik2)")
         # сечения
         if dict_task['section']:
             if self.rastr.tables.Find("sechen") >= 0:
@@ -2408,58 +2448,73 @@ class RastrModel(RastrMethod):
         task_rows = task_txt.split('\n')
         for task_row in task_rows:
             task_row = task_row.split('#')[0]  # удалить текст после '#'
-            # Имя функции стоит перед "(" и "["
-            name_fun = task_row.split('(', 1)[0]
-            name_fun = name_fun.split('[', 1)[0]
+            name_fun = task_row.split('[', 1)[0]  # Имя функции стоит перед "[".
             name_fun = name_fun.replace(' ', '')
             if not name_fun:
                 continue  # К следующей строке.
 
             # Условие выполнения в фигурных скобках
-            condition_dict = {}
-            statements = ''
             match = re.search(re.compile(r"\{(.+?)}"), task_row)
             if match:
-                conditions = match[1].split('|')
-                for condition in conditions:
-                    condition = condition.strip()
-                    if 'add_name' not in condition:
-                        condition = condition.replace(' ', '')
-                    if ":" not in condition:
-                        raise ValueError(f'Ошибка в задании {condition!r}')
-                    parameter, value = condition.split(':')
-                    if parameter in ['years', 'season', 'max_min', 'add_name']:
-                        condition_dict[parameter] = value
-                    else:
-                        statements += condition + '|'
-            if condition_dict and self.code_name_rg2:
-                if not self.test_name(condition=condition_dict):
+                conditions = match[1].strip()
+                if not self.conditions_test(conditions):
                     continue  # К следующей строке.
-            if statements:
-                if not self.test_parameter_rm_all(statements):
-                    continue
+
             # Параметры функции в квадратных скобках
             function_parameters = []
             match = re.search(re.compile(r"\[(.+?)]"), task_row)
             if match:
-                function_parameters = match[1].split('|')
+                function_parameters = match[1].split(':', maxsplit=1)
             function_parameters += ['', '']
-            self.txt_task_cor(name=name_fun, sel=function_parameters[0], value=function_parameters[1])
+            self.txt_task_cor(name=name_fun,
+                              sel=function_parameters[0],
+                              value=function_parameters[1])
+
+    def conditions_test(self, conditions: str) -> bool:
+        """
+        В строке типа "years : 2026...2029& ny=1: vras>125|(not ny=1: na==2)" проверяет выполнение условий.
+        :param conditions:
+        :return:
+        """
+        conditions_s = conditions
+        conditions = self.replace_links(conditions)
+        conditions_list = re.split('\*|/|\^|\+|-|\(|\)==|!=|&|\||not|>|<|<=|=<|>=|=>', conditions)
+        for condition in conditions_list:
+            if ':' in condition:
+                for key_txt in ['years', 'season', 'max_min', 'add_name']:
+                    if not self.code_name_rg2:  # Если имя не стандартное, то True.
+                        conditions.replace(condition, 'True')
+                        continue
+
+                    if key_txt in condition:
+                        par, value = condition.split(':')
+
+                        if self.test_name(condition={par.replace(' ', ''): value.strip()},
+                                          info=condition):
+                            conditions = conditions.replace(condition, 'True')
+                        else:
+                            conditions = conditions.replace(condition, 'False')
+        if ':' in conditions:
+            raise ValueError("Ошибка в условии: " + conditions)
+        try:
+            return bool(eval(conditions))
+        except Exception:
+            raise ValueError(f'Ошибка у условии: {conditions_s!r}.')
 
     def txt_task_cor(self, name: str, sel: str = '', value: str = ''):
         """
         Функция для выполнения задания в текстовом формате
-        :param name: имя функции
-        :param sel: выборка
-        :param value: значение
+        :param name: Имя функции.
+        :param sel: Выборка, нр, 15145; 12,13.
+        :param value: Значение, нр, name=Промплощадка: изм name; pg=qn*2+10.
         """
         name = name.lower()
         if 'уд' in name:
-            self.cor(keys=sel, tasks='del', del_all=('*' in name), print_log=True)
+            self.cor(keys=sel, values='del', del_all=('*' in name), print_log=True)
         elif 'изм' in name:
-            self.cor(keys=sel, tasks=value, print_log=True)
+            self.cor(keys=sel, values=value, print_log=True)
         elif 'снять' in name:
-            self.cor(keys='(node); (vetv); (Generator)', tasks='sel=0', print_log=True)
+            self.cor(keys='(node); (vetv); (Generator)', values='sel=0', print_log=True)
         elif 'расчет' in name:
             self.rgm(txt='txt_task_cor')
         elif 'добавить' in name:
@@ -2479,8 +2534,9 @@ class RastrModel(RastrMethod):
                 key, val = _.split(':')
                 sd[key] = val
             self.loading_section(ns=sd['ns'], p_new=sd['psech'], type_correction=sd['тип'])
-        elif 'ном' in name:  # номинальные напряжения
+        elif 'напряжения' in name:
             self.voltage_nominal(choice=sel, edit=True)
+            self.voltage_error(choice=sel, edit=True)
         elif 'скрм' in name:
             if 'скрм*' in name:
                 self.all_auto_shunt = self.auto_shunt_rec(selection=sel)
@@ -2897,7 +2953,7 @@ class CorSheet:
         """Импорт в модели"""
         if self.import_model_all:
             for im in self.import_model_all:
-                im.import_csv(rm)
+                im.import_data_in_rm(rm)
 
     def list_cor(self, rm: RastrModel) -> None:
         """
@@ -2925,7 +2981,7 @@ class CorSheet:
                                             info=f'\t\tcor_x:{sel=}, {value=}'):
                             continue
                     if statement:
-                        if not rm.test_parameter_rm_all(statement):
+                        if not rm.conditions_test(statement):
                             continue
                     rm.txt_task_cor(name=name_fun, sel=sel, value=value)
 
@@ -2970,10 +3026,12 @@ class CorSheet:
                         if new_val is not None:
                             if param not in ["pop", "pp"]:
                                 if self.calc_val == 1:
-                                    rm.cor(keys=str(short_key), tasks=f"{param}={new_val}", print_log=True)
+                                    rm.cor(keys=str(short_key),
+                                           values=f"{param}={new_val}",
+                                           print_log=True)
                                 else:
                                     rm.cor(keys=str(short_key),
-                                           tasks=f"{param}={param}{calc_vals[self.calc_val]}{new_val}",
+                                           values=f"{param}={param}{calc_vals[self.calc_val]}{new_val}",
                                            print_log=True)
                             else:
                                 rm.cor_pop(zone=short_key, new_pop=new_val)  # изменить потребление
@@ -3031,38 +3089,44 @@ class ImportFromModel:
     calc_str = {"обновить": 2, "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3, "объединить": 3}
     number = 0  # для создания уникального имени csv файла
 
-    def __init__(self, import_file_name: str, criterion_start: Union[dict, None] = None, tables: str = '',
-                 param='', sel: Union[str, None] = '', calc: Union[int, str] = '2'):
+    def __init__(self,
+                 import_file_name: str,
+                 criterion_start: Union[dict, None] = None,
+                 tables: str = '',
+                 param='',
+                 sel: Union[str, None] = '',
+                 calc: Union[int, str] = '2',
+                 way='array'):
         """
         Импорт данных из файлов '.rg2', '.rst' и др.
-        Создает папку temp в папке с файлом и сохраняет в ней .csv файлы
         :param import_file_name: полное имя файла
         :param criterion_start: {"years": "","season": "","max_min": "", "add_name": ""} условие выполнения
-        :param tables: таблица для импорта, нр "node;vetv"
+        :param tables: таблица для импорта, нр "node,vetv"
         :param param: параметры для импорта: "" все параметры или перечисление, нр 'sel, sta'(ключи необязательно)
         :param sel: выборка нр "sel" или "" - все
         :param calc: число типа int, строка или ключевое слово:
         {"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}
+        :param way: 'csv' или 'array'
+        'csv' - Создает папку temp в папке с файлом и сохраняет в ней .csv файлы
         """
-        self.import_rm = None
+        self.way = way
+        folder_temp = ''
         if not os.path.exists(import_file_name):
             raise ValueError("Ошибка в задании, не найден файл: " + import_file_name)
         else:
-            self.folder_temp = os.path.dirname(import_file_name) + '\\temp'
-            if not os.path.exists(self.folder_temp):
-                log.debug(f'Создана папка {os.path.dirname(import_file_name)!r}\\temp')
-                os.mkdir(self.folder_temp)
-
+            log.info(f'Экспорт данных из файла "{import_file_name}".')
             self.import_file_name = import_file_name
-            self.basename = os.path.basename(import_file_name)
+
+            if way == 'csv':
+                ImportFromModel.number += 1
+                folder_temp = os.path.dirname(import_file_name) + '\\temp'
+                if not os.path.exists(folder_temp):
+                    log.debug(f'Создана папка {folder_temp}.')
+                    os.mkdir(folder_temp)
+
             self.criterion_start = criterion_start
-            self.tables = tables.replace(' ', '').split(";")  # разделить на ["таблицы"]
-            self.param = []
-            if sel:
-                self.sel = sel
-            else:
-                self.sel = ''
-                pass
+            self.sel = sel if sel else ''
+
             if type(calc) == int:
                 self.calc = calc
             elif calc.isdigit():
@@ -3071,45 +3135,53 @@ class ImportFromModel:
                 if calc in self.calc_str:
                     self.calc = self.calc_str[calc]
                 else:
-                    raise ValueError("Ошибка в задании, не распознано задание calc ImportFromModel: " + calc)
-            self.file_csv = []
-            ImportFromModel.number += 1
-            for tabl in self.tables:
-                self.file_csv.append(f"{self.folder_temp}\\{self.basename}_{tabl}_{ImportFromModel.number}.csv")
-                self.param.append(param)
+                    raise ValueError(f"ImportFromModel. Ошибка в задании, не распознано задание '{calc=}'.")
 
-            # Экспорт данных из файла в .csv файлы в папку temp
-            if self.import_file_name:
-                log.info(f'Экспорт из файла {self.import_file_name} в CSV')
-                self.import_rm = RastrModel(full_name=self.import_file_name)
-                self.import_rm.load()
-                for index in range(len(self.tables)):
-                    if not self.param[index]:  # если все параметры
-                        self.param[index] = self.import_rm.all_cols(self.tables[index])
-                    else:  # добавить к строке параметров ключи текущей таблицы
-                        if self.import_rm.rastr.Tables(self.tables[index]).Key not in self.param[index]:
-                            self.param[index] += ',' + self.import_rm.rastr.Tables(self.tables[index]).Key
+            self.param = []
+            self.import_data = []  # if way == 'array': tuple(данных)
+            self.import_csv_file = []  # if way == 'csv': полный путь к CSV
+            self.tables = tables.replace(' ', '').split(",")  # разделить на ["таблицы"]
 
-                    log.info(f"\n\tТаблица: {self.tables[index]!r}, выборка: {self.sel!r}.\n"
-                             f"\tПараметры: {self.param[index]!r}.\n"
-                             f"\tФайл CSV: {self.file_csv[index]!r}.")
+            import_rm = RastrModel(full_name=self.import_file_name)
+            import_rm.load()
 
-                    tab = self.import_rm.rastr.Tables(self.tables[index])
-                    tab.setsel(self.sel)
-                    tab.WriteCSV(1, self.file_csv[index], self.param[index], ";")  # 0 дописать, 1 заменить
+            for i, tabl in enumerate(self.tables):
+                # Параметры
+                if param:  # Добавить к строке параметров ключи текущей таблицы
+                    self.param.append(param + ',' + import_rm.rastr.Tables(tabl).Key)
+                else:  # если все параметры
+                    self.param.append(import_rm.all_cols(tabl))
 
-    def import_csv(self, rm: RastrModel) -> None:
-        """Импорт данных из csv в файла"""
-        if self.import_file_name:
-            log.info(f"\tИмпорт из CSV {self.import_file_name} в РМ:")
-            if rm.test_name(condition=self.criterion_start, info='\tImportFromModel ') or not rm.code_name_rg2:
-                for index in range(len(self.tables)):
-                    log.info(f"\n\tТаблица: {self.tables[index]!r}, выборка: {self.sel!r}, тип: {self.calc!r}"
-                             f"\n\tФайл CSV: {self.file_csv[index]!r}"
-                             f"\n\tПараметры: {self.param[index]!r}")
-                    """{"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}"""
-                    tab = rm.rastr.Tables(self.tables[index])
-                    tab.ReadCSV(self.calc, self.file_csv[index], self.param[index], ";", '')
+                log.info(f"\tТаблица: {tabl}, выборка: {self.sel}, параметры: {self.param[i]!r}.")
+                tab = import_rm.rastr.Tables(tabl)
+                tab.setsel(self.sel)
+                if tab.count:
+                    # Данные
+                    if way == 'csv':
+                        self.import_csv_file.append(f"{folder_temp}\\{os.path.basename(import_file_name)}_{tabl}_"
+                                                    f"{ImportFromModel.number}.csv")
+                        # Экспорт данных из файла в .csv файлы в папку temp
+                        log.info(f"\tФайл CSV: {self.import_csv_file[i]!r}.")
+                        tab.WriteCSV(1, self.import_csv_file[i], self.param[i], ";")  # 0 дописать, 1 заменить
+                    elif way == 'array':
+                        self.import_data.append(tab.writesafearray(self.param[i], "000"))
+                
+    def import_data_in_rm(self, rm: RastrModel) -> None:
+        """
+        Импорт данных в файлы
+        """
+        log.info(f"\tИмпорт из файла {self.import_file_name} в РМ.")
+        if rm.test_name(condition=self.criterion_start, info='\tImportFromModel ') or not rm.code_name_rg2:
+            for i, tab in enumerate(self.tables):
+                log.info(f"\tТаблица: {self.tables[i]}, выборка: {self.sel}, тип: {self.calc}, "
+                         f"параметры: {self.param[i]}.")
+                rm_tab = rm.rastr.Tables(self.tables[i])
+
+                if self.way == 'csv':
+                    log.info(f"\tФайл CSV: {self.import_csv_file[i]}")
+                    rm_tab.ReadCSV(self.calc, self.import_csv_file[i], self.param[i], ";", '')
+                elif self.way == 'array':
+                    rm_tab.ReadSafeArray(self.calc, self.param[i], self.import_data[i])
         ImportFromModel.number = 0
 
 
@@ -3517,15 +3589,15 @@ class PrintXL:
 def str_yeas_in_list(id_str: str):
     """
     Преобразует перечень годов.
-    :param id_str: "2021,2023-2025"
+    :param id_str: "2021,2023...2025"
     :return: [2021,2023,2024,2025] или []
     """
     years_list = id_str.replace(" ", "").split(',')
     if years_list:
         years_list_new = np.array([], int)
         for it in years_list:
-            if "-" in it:
-                i_years = it.split('-')
+            if "..." in it:
+                i_years = it.split('...')
                 years_list_new = np.hstack(
                     [years_list_new, np.array(np.arange(int(i_years[0]), int(i_years[1]) + 1), int)])
             else:

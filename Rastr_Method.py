@@ -30,47 +30,67 @@ class RastrMethod:
     def __init__(self):
         self.rastr = None
 
-    def cor(self, keys: str = '', tasks: str = '', print_log: bool = False, del_all: bool = False):
+    def cor(self, keys: str = '', values: str = '', print_log: bool = False, del_all: bool = False):
         """
         Коррекция значений в таблицах rastrwin;
         Если несколько выборок, то указываются через ; (н.р. na=1|na=2;no=1; npa=1; nga=2; Num=25; g=12).
         В круглых скобках указать имя таблицы (н.р. na=1(node)).
         Если корректировать все строки таблицы, то указать только имя таблицы, н.р. (node).
         Если выборка по ключам, то имя таблицы указывать не нужно (н.р. ny=1 в таблице узлы).
-        Краткая форма выборки по узлам: 12;21 вместо ny=12;ny=21.
-        Краткая форма выборки по узлам: 12,13,0 вместо ip=12&iq=13&np=0.
-        Краткая форма выборки по генераторам: g=12 вместо Num=12.
+        Краткая форма выборки по узлам: 12;12,13,1;g=12 вместо ny=12;ip=12&iq=13&np=1;Num=12.
+        Если np=0, то выборка по ветвям можно записать еще короче: «12,13», вместо «12,13,0».
         При задании краткой формы имя таблицы указывать не нужно.
-        :param keys: "125;ny=25;na=1(node)" для узла, "Num=25;g=12" для генераторов, "1,2,0" для ветви,
+        :param keys: "125;ny=25;na=1(node)" для узлов, "Num=25;g=12" для генераторов, "1,2" для ветви,
         "na=2;no=1;npa=1;nga=2" для районов, объединения, территорий и нагрузочных групп;
-        :param tasks: 'del' удалить строки в таблице, 'pn=10.2;qn=qn*2' изменить значение параметров;
+        :param values: 'del' удалить строки в таблице, 'pn=10.2;qn=qn*2' изменить значение параметров;
+        Использование ссылок на другие значения таблиц rastr: 'pn=10.2;qn=qn*2+30:qn+1,2(vetv):ip'
         :param print_log: выводить в лог;
         :param del_all: удалять узлы с генераторами и отходящими ветвями;
         """
         if print_log:
-            log_r_m.info(f"\t\tФункция cor: {keys=},  {tasks=}")
+            log_r_m.info(f"\t\tФункция cor: {keys=},  {values=}")
         keys = keys.replace(' ', '')
-        tasks = tasks.strip().replace('  ', ' ')
-        if not (keys and tasks.replace(' ', '')):
-            raise ValueError(f'{keys=},{tasks=}')
+        values = values.strip().replace('  ', ' ')
+        if not (keys and values.replace(' ', '')):
+            raise ValueError(f'{keys=},{values=}')
         for key in keys.split(";"):  # например:['na=11(node)','125', 'g=125', '12,13,0']
-
             rastr_table, selection_in_table = self.recognize_key(key)
 
-            for task in tasks.split(";"):  # разделение задания например:['pn=10.2', 'qn=5.4']
+            for value in values.split(";"):  # разделение задания, например:['pn=10.2', 'qn=5.4']
                 param = ''
-                if task == 'del':
+                if value == 'del':
                     formula = 'del'
-                elif task.count('=') == 1:
-                    param, formula = task.split("=")
+                elif '=' in value:
+                    param, formula = value.split("=", maxsplit=1)
                     param = param.replace(' ', '')
-                    if not (formula and param):
-                        raise ValueError(f"Задание не распознано, {key=}, {task=}")
+                    if not (formula.replace(' ', '') and param):
+                        raise ValueError(f"Задание не распознано, {key=}, {value=}")
+
+                    # В значении есть ссылка и поле не текстовое.
+                    if ':' in value and not self.rastr.tables(rastr_table).cols(param).Prop(1) == 2:
+                        formula = self.replace_links(formula)
                 else:
-                    raise ValueError(f"Задание не распознано, {key=}, {task=}")
+                    raise ValueError(f"Задание не распознано, {key=}, {value=}")
 
                 self.group_cor(tabl=rastr_table, param=param, selection=selection_in_table,
                                formula=formula, del_all=del_all)
+
+    def replace_links(self, formula: str) -> str:
+        """
+        Функция заменяет в формуле ссылки на значения в таблицах rastr на соответствующие значения.
+        :param formula: '(10.5+15,16,2:r)*ip.uhom'
+        :return: formula: '(10.5+z)*ip.uhom'
+        """
+        # formula = formula.replace(' ', '')
+        formula_list = re.split('\*|/|\^|\+|-|\(|\)==|!=|&|\||not|>|<|<=|=<|>=|=>', formula)
+        for formula_i in formula_list:
+            if ':' in formula_i:
+                if any([txt in formula_i for txt in ['years', 'season', 'max_min', 'add_name']]):
+                    continue
+                sel_all, field = formula_i.split(':')
+                name_table, sel = self.recognize_key(sel_all)
+                formula = formula.replace(formula_i, str(self.rastr.Calc("val", name_table, field, sel)))
+        return formula
 
     def recognize_key(self, key: str) -> tuple:
         """
@@ -93,10 +113,13 @@ class RastrMethod:
             key_comma = selection_in_table.split(",")  # нр для ветви [,,], прочее []
             key_equally = selection_in_table.split("=")  # есть = [,], нет равно []
             if ',' in selection_in_table:  # vetv
-                if len(key_comma) != 3:
+                if len(key_comma) > 3:
                     raise ValueError(f'Ошибка в задании {key=}')
                 rastr_table = 'vetv'
-                selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np={key_comma[2]}"
+                if len(key_comma) == 3:
+                    selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np={key_comma[2]}"
+                if len(key_comma) == 2:
+                    selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np=0"
             else:
                 if selection_in_table.isdigit():
                     rastr_table = 'node'
@@ -160,27 +183,27 @@ class RastrMethod:
         :param choice: выборка в таблице 'узлы'
         :param edit: Исправить номинальные напряжения в узлах
         """
+        col = {'name': 0, 'ny': 1, 'uhom': 2}
+
+        if edit:
+            self.add_fields_in_table(name_tables='node', fields='index', type_fields=0)
+            self.table_index('node')
+            col['index'] = 3
         node = self.rastr.tables("node")
         node.setsel(choice)
-        j = node.FindNextSel(-1)
-        while j > -1:
-            uhom = node.cols.item("uhom").Z(j)
-
-            if uhom not in self.U_NOM:
-                ny = node.cols.item('ny').ZS(j)
-                name = node.cols.item('name').ZS(j)
-                log_r_m.warning(f"\tНесоответствие номинального напряжения! {ny=}, {name=}, {uhom=}.")
-                if edit:
-                    for x in range(len(self.U_NOM)):
-                        if self.U_MIN_NORM[x] < uhom < self.U_LARGEST_WORKING[x]:
-                            node.cols.item("uhom").SetZ(j, self.U_NOM[x])
-                            log_r_m.info(f"\tВнесены изменения! {ny=}, {name=}, uhom={self.U_NOM[x]}")
-                            break
-                # Если напряжение не исправилось
-                if node.cols.item('uhom').Z(j) not in self.U_NOM:
-                    log_r_m.error(f"\tНоминальное напряжение не исправлено! {ny=}, {name=}, {uhom=}")
-
-            j = node.FindNextSel(j)
+        if node.count:
+            for i in node.writesafearray(','.join(col), "000"):
+                uhom = i[col['uhom']]
+                if uhom not in self.U_NOM:
+                    name = i[col['name']]
+                    ny = i[col['ny']]
+                    log_r_m.warning(f"\tНесоответствие номинального напряжения: {ny=}, {name=}, {uhom=}.")
+                    if edit:
+                        for x in range(len(self.U_NOM)):
+                            if self.U_MIN_NORM[x] < uhom < self.U_LARGEST_WORKING[x]:
+                                node.cols.item("uhom").SetZ(i[col['index']], self.U_NOM[x])
+                                log_r_m.info(f"\tВнесены изменения! {ny=}, {name}, uhom={self.U_NOM[x]}")
+                                break
 
     def voltage_fix_frame(self):
         """
@@ -204,54 +227,58 @@ class RastrMethod:
         node.setsel('umax=0&uhom=750')
         node.cols.item("umax").calc("uhom*1.0493")  # umax
 
-    def voltage_normal(self, choice: str = ''):
+    def voltage_fine(self, choice: str = ''):
         """
         Проверка расчетного напряжения: меньше наибольшего рабочего, больше минимального рабочего напряжения.
         :param choice: Выборка в таблице узлы
         """
+        col = {'name': 0, 'ny': 1, 'vras': 2}
         node = self.rastr.tables("node")
         for i in range(len(self.U_NOM)):
-            sel_node = "!sta&uhom=" + str(self.U_NOM[i])
+            sel_node = f"!sta&uhom={self.U_NOM[i]}"
             if choice:
                 sel_node += "&" + choice
             node.setsel(sel_node)
-            j = node.FindNextSel(-1)
-            while j > -1:
-                if not self.U_MIN_NORM[i] < node.cols.item("vras").Z(j) < self.U_LARGEST_WORKING[i]:
-                    ny = node.cols.item('ny').ZS(j)
-                    name = node.cols.item('name').ZS(j)
-                    vras = node.cols.item('vras').ZS(j)
-                    if self.U_MIN_NORM[i] > node.cols.item("vras").Z(j):
-                        log_r_m.warning(f"\tНизкое напряжение! ny={ny}, имя: {name}, vras={vras}, uhom={self.U_NOM[i]}")
-                    if node.cols.item("vras").Z(j) > self.U_LARGEST_WORKING[i]:
-                        log_r_m.warning(
-                            f"\tВысокое напряжение! ny={ny}, имя: {name}, vras={vras}, uhom={self.U_NOM[i]}")
-                j = node.FindNextSel(j)
+            data_node = node.writesafearray(','.join(col), "000")
+            if data_node:
+                for ii in data_node:
+                    vras = round(ii[col['vras']], 1)
+                    if not self.U_MIN_NORM[i] < vras < self.U_LARGEST_WORKING[i]:
+                        ny = ii[col['ny']]
+                        name = ii[col['name']]
+                        if self.U_MIN_NORM[i] > vras:
+                            log_r_m.warning(f"\tНизкое напряжение: {ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
+                        if vras > self.U_LARGEST_WORKING[i]:
+                            log_r_m.warning(f"\tВысокое напряжение: {ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
 
     def voltage_deviation(self, choice: str = ''):
         """
         Проверка расчетного напряжения: больше минимально-допустимого.
         :param choice: Выборка в таблице узлы
         """
+        col = {'name': 0, 'ny': 1, 'vras': 2, 'umin': 2}
         node = self.rastr.tables("node")
-        sel_node = "otv_min<0"  # Отклонение напряжения от umin минимально допустимого, в %
+        sel_node = "otv_min>0&!sta"  # Отклонение напряжения от umin минимально допустимого, в %
+        self.add_fields_in_table(name_tables='node', fields='otv_min', type_fields=1,
+                                 prop=((5, 'if(sta=0) (-vras+umin)/umin*100:0'),),
+                                 replace=True)
         if choice:
             sel_node += "&" + choice
         node.setsel(sel_node)
-        j = node.FindNextSel(-1)
-        while j > -1:
-            ny = node.cols.item('ny').ZS(j)
-            name = node.cols.item('name').ZS(j)
-            vras = node.cols.item('vras').ZS(j)
-            umin = node.cols.item('umin').ZS(j)
-            log_r_m.warning(f"\tНапряжение ниже минимально-допустимого! ny={ny}, имя: {name}, vras={vras},umin={umin}")
-            j = node.FindNextSel(j)
+        if node.count:
+            for i in node.writesafearray(','.join(col), "000"):
+                ny = i[col['ny']]
+                name = i[col['name']]
+                vras = round(i[col['vras']], 1)
+                umin = round(i[col['umin']], 1)
+                log_r_m.warning(f"\tНапряжение ниже минимально-допустимого: {ny=}, {name=}, {vras=}, {umin=}")
 
-    def voltage_error(self, choice: str = ''):
+    def voltage_error(self, choice: str = '', edit: bool = False):
         """
         - если umax<uhom, то umax удаляется;
         - если umin>uhom, umin_av>uhom, то umin, umin_av удаляется.
         :param choice: выборка в таблице узлы
+        :param edit:
         """
         node = self.rastr.tables("node")
         sel_node = "umax<uhom&umax!=0"
@@ -264,37 +291,28 @@ class RastrMethod:
             name = node.cols.item('name').ZS(j)
             umax = node.cols.item('umax').ZS(j)
             uhom = node.cols.item('uhom').ZS(j)
-            log_r_m.warning(f"\tumax<uhom! {ny=},{name=}, {umax=},{uhom=}. umax удалено.")
-            node.cols.item('umax').SetZ(j, 0)
+            log_r_m.warning(f"\tОшибка: umax<uhom! {ny=},{name=}, {umax=},{uhom=}.")
+            if edit:
+                node.cols.item('umax').SetZ(j, 0)
+                log_r_m.warning(f"\tВнесено исправление: umax=0.")
             j = node.FindNextSel(j)
 
-        sel_node = "umin>uhom"
-        if choice:
-            sel_node += "&" + choice
-        node.setsel(sel_node)
-        j = node.FindNextSel(-1)
-        while j > -1:
-            ny = node.cols.item('ny').ZS(j)
-            name = node.cols.item('name').ZS(j)
-            umin = node.cols.item('umin').ZS(j)
-            uhom = node.cols.item('uhom').ZS(j)
-            log_r_m.warning(f"\tumax<uhom! {ny=},{name=}, {umin=},{uhom=}. umin удалено.")
-            node.cols.item('umin').SetZ(j, 0)
-            j = node.FindNextSel(j)
-
-        sel_node = "umin_av>uhom"
-        if choice:
-            sel_node += "&" + choice
-        node.setsel(sel_node)
-        j = node.FindNextSel(-1)
-        while j > -1:
-            ny = node.cols.item('ny').ZS(j)
-            name = node.cols.item('name').ZS(j)
-            umin_av = node.cols.item('umin_av').ZS(j)
-            uhom = node.cols.item('uhom').ZS(j)
-            log_r_m.warning(f"\tumax<uhom! {ny=},{name=}, {umin_av=},{uhom=}. umin_av удалено.")
-            node.cols.item('umin_av').SetZ(j, 0)
-            j = node.FindNextSel(j)
+        for umini in ['umin', 'umin_av']:
+            sel_node = umini + ">uhom"
+            if choice:
+                sel_node += "&" + choice
+            node.setsel(sel_node)
+            j = node.FindNextSel(-1)
+            while j > -1:
+                ny = node.cols.item('ny').ZS(j)
+                name = node.cols.item('name').ZS(j)
+                umin = node.cols.item(umini).ZS(j)
+                uhom = node.cols.item('uhom').ZS(j)
+                log_r_m.warning(f"\tОшибка: {umini}>uhom! {ny=},{name=}, {umin=},{uhom=}.")
+                if edit:
+                    node.cols.item(umini).SetZ(j, 0)
+                    log_r_m.warning(f"\tВнесено исправление: {umini}=0.")
+                j = node.FindNextSel(j)
 
     def rgm(self, txt: str = "") -> bool:
         """
@@ -326,7 +344,6 @@ class RastrMethod:
         cols_list = []
         for col in range(cls.Count):
             if cls(col).Name[0] != '_':
-                # if cls(col).Name not in ["kkluch", "txt_zag", "txt_adtn_zag", "txt_ddtn", "txt_adtn", "txt_ddtn_zag"]:
                 # print(cls(col).Name)
                 cols_list.append(cls(col).Name)
         return ','.join(cols_list)
@@ -496,13 +513,13 @@ class RastrMethod:
                              f" (задано {new_pop}, отклонение {abs(new_pop - pop):.1f} МВт, {i + 1} ит.)")
                 return True
 
-    def test_parameter_rm_all(self, statement_all: str) -> bool:
+    def test_parameter_rm_all(self, statement_all: str) -> bool:  # todo удалить
         """
         Проверяет все утверждения и возвращает истина если все истина.
-        :param statement_all: Например, 'ny=15302: vras>510|ny=15302: vras<525.5'
+        :param statement_all: Например, 'ny=15302: vras>510&ny=15302: vras<525.5'
         :return:
         """
-        statement_list = statement_all.split('|')
+        statement_list = statement_all.split('&')
         for statement_i in statement_list:
             if statement_i:
                 if ':' not in statement_i:
@@ -513,7 +530,7 @@ class RastrMethod:
                     return False
         return True
 
-    def test_parameter_rm(self, sel: str, statement: str) -> bool:
+    def test_parameter_rm(self, sel: str, statement: str) -> bool:  # todo удалить
         """
         Проверяет верность утверждения.
         :param sel: 'ny=1'
@@ -713,7 +730,7 @@ class RastrMethod:
         """Включить/отключить узел с ветвями."""
         if not ny:
             raise ValueError(f'Ошибка в задании {ny=}')
-        self.cor(keys=str(ny), tasks='sta='+str(sta))
+        self.cor(keys=str(ny), values='sta='+str(sta))
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
         vetv.cols.item("sta").calc(sta)
@@ -725,14 +742,13 @@ class RastrMethod:
         :param setsel: Выборка в таблице
         :return:
         """
-        index_list = []
+        table = self.rastr.tables(table_name)
+        if table.cols.Find("index") < 0:
+            self.add_fields_in_table(name_tables=table_name, fields='index', type_fields=0)
+            self.table_index(table_name)
         table = self.rastr.tables(table_name)
         table.setsel(setsel)
-        i = table.FindNextSel(-1)
-        while i > -1:
-            index_list.append(i)
-            i = table.FindNextSel(i)
-        return index_list
+        return [x[0] for x in table.writesafearray("index", "000")]
 
     def add_fields_in_table(self, name_tables: str, fields: str, type_fields: int, prop=(), replace=False):
         """
@@ -768,6 +784,8 @@ class RastrMethod:
         """
         table = self.rastr.tables(table_name)
         table.setsel(setsel)
+        if not table.count:
+            return False
         if not fields:
             fields = self.all_cols(table_name)
         fields = fields.replace(' ', '').replace(',,', ',').strip(',')

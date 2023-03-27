@@ -44,9 +44,9 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>-116</y>
+           <y>0</y>
            <width>729</width>
-           <height>1025</height>
+           <height>1038</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
@@ -117,7 +117,7 @@
                   <string>2,</string>
                  </property>
                  <property name="checked">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>
@@ -672,7 +672,7 @@
                  <property name="maximumSize">
                   <size>
                    <width>10000</width>
-                   <height>20</height>
+                   <height>35</height>
                   </size>
                  </property>
                  <property name="baseSize">
@@ -682,7 +682,7 @@
                   </size>
                  </property>
                  <property name="plainText">
-                  <string>I:\ОЭС Северо-Запада\Коми\РМ\v2</string>
+                  <string>C:\Users\User\Desktop\YandexDisk\РАБОТА\Омск мой\РМ\14.1 110 Загородная v5 перенос г9\в14 мдп в урал\2028 лет макс (19°C;МДП С-У).rg2</string>
                  </property>
                 </widget>
                </item>
@@ -866,7 +866,7 @@
                      </size>
                     </property>
                     <property name="text">
-                     <string>2026</string>
+                     <string/>
                     </property>
                    </widget>
                   </item>
@@ -1072,7 +1072,7 @@
                 <string>Создать таблицы &quot;контролируемые - отключаемые&quot; элементы</string>
                </property>
                <property name="checked">
-                <bool>true</bool>
+                <bool>false</bool>
                </property>
               </widget>
              </item>
@@ -1129,7 +1129,7 @@
                    <cursorShape>IBeamCursor</cursorShape>
                   </property>
                   <property name="plainText">
-                   <string>Таблица 1.[1] - Результаты расчетов нормального и послеаварийных режимов работы электрических сетей 110 кВ и выше района размещения. </string>
+                   <string>Таблица И.[1] - Результаты расчетов нормального и послеаварийных режимов работы электрических сетей 35 кВ и выше. </string>
                   </property>
                  </widget>
                 </item>
@@ -1467,9 +1467,9 @@
               </property>
               <property name="plainText">
                <string># Ремонтные схемы, Доп имя, температура и прочее
-# В фигурных скобках указывается условие выполнения в формате {years = 2026| season=лет| max_min=min| add_name=0°C}
+# В фигурных скобках указывается условие выполнения в формате {years: 2026| season:лет| max_min:min| add_name:0°C}
 # Примеры:
-удалить*[15504]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
+# удалить*[15504]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
 #изм[(vetv) (area) (area2) (darea)|Tc=0]{years = 2026|season=зим|max_min=макс|add_name=0°C}  # обнулить температуру
 расчет  # расчет режима
 </string>
@@ -1593,7 +1593,7 @@
                     </size>
                    </property>
                    <property name="plainText">
-                    <string>I:\ОЭС Северо-Запада\Коми\РМ\zad\2027 зим макс (-39°C).rg2</string>
+                    <string>C:\Users\User\Desktop\YandexDisk\РАБОТА\Омск мой\РМ\14.1 110 Загородная v5 перенос г9\!zad.rg2</string>
                    </property>
                   </widget>
                  </item>
@@ -1646,7 +1646,7 @@
                  </property>
                  <property name="plainText">
                   <string># таблица: параметры (обновить)
-# node: repair_scheme,disable_scheme,automation,  sel #  otkl1, otkl2, otkl3,N,umin,umin_av,umax
+node:Kontrol,otkl1, repair_scheme,disable_scheme,automation,  sel #  otkl1, otkl2, otkl3,N,umin,umin_av,umax
 vetv: Kontrol,otkl1 # otkl1, otkl2, otkl3, N
 # Generator: repair_scheme,disable_scheme, sel</string>
                  </property>
@@ -1734,6 +1734,62 @@ vetv: Kontrol,otkl1 # otkl1, otkl2, otkl3, N
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
  </widget>
+ <tabstops>
+  <tabstop>cb_n1</tabstop>
+  <tabstop>le_condition_file_years</tabstop>
+  <tabstop>cb_cor_txt</tabstop>
+  <tabstop>cb_n3</tabstop>
+  <tabstop>cb_auto_disable</tabstop>
+  <tabstop>le_auto_disable_choice</tabstop>
+  <tabstop>cb_comb_field</tabstop>
+  <tabstop>le_comb_field</tabstop>
+  <tabstop>cb_filter_comb</tabstop>
+  <tabstop>le_filter_comb_val</tabstop>
+  <tabstop>te_XL_path</tabstop>
+  <tabstop>b_choice_XL</tabstop>
+  <tabstop>le_XL_sheets</tabstop>
+  <tabstop>cb_auto_control</tabstop>
+  <tabstop>le_auto_control_choice</tabstop>
+  <tabstop>cb_control_field</tabstop>
+  <tabstop>le_control_field</tabstop>
+  <tabstop>cb_Imax</tabstop>
+  <tabstop>b_main_choice</tabstop>
+  <tabstop>b_set</tabstop>
+  <tabstop>b_task_save</tabstop>
+  <tabstop>b_task_load</tabstop>
+  <tabstop>te_path_initial_models</tabstop>
+  <tabstop>b_choice_path_folder</tabstop>
+  <tabstop>b_choice_path_file</tabstop>
+  <tabstop>cb_filter</tabstop>
+  <tabstop>sb_count_file</tabstop>
+  <tabstop>scrollArea</tabstop>
+  <tabstop>le_condition_file_season</tabstop>
+  <tabstop>le_condition_file_max_min</tabstop>
+  <tabstop>le_condition_file_add_name</tabstop>
+  <tabstop>cb_tab_KO</tabstop>
+  <tabstop>le_tab_KO_info</tabstop>
+  <tabstop>cb_results_pic</tabstop>
+  <tabstop>cb_pic_nr</tabstop>
+  <tabstop>cb_pic_all_par</tabstop>
+  <tabstop>cb_pic_par</tabstop>
+  <tabstop>sb_format</tabstop>
+  <tabstop>rb_albam</tabstop>
+  <tabstop>rb_book</tabstop>
+  <tabstop>le_pic_name</tabstop>
+  <tabstop>sb_pic_number</tabstop>
+  <tabstop>le_pic_info</tabstop>
+  <tabstop>cb_n2</tabstop>
+  <tabstop>te_cor_txt</tabstop>
+  <tabstop>cb_disable_excel</tabstop>
+  <tabstop>cb_import_model</tabstop>
+  <tabstop>te_path_import_rg2</tabstop>
+  <tabstop>b_choice_path_import_folder</tabstop>
+  <tabstop>b_choice_path_import_file</tabstop>
+  <tabstop>te_import_rg2</tabstop>
+  <tabstop>cb_control</tabstop>
+  <tabstop>cb_disable_comb</tabstop>
+  <tabstop>run_calc_rg2</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

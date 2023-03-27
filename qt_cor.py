@@ -15,7 +15,7 @@ class Ui_cor(object):
     def setupUi(self, cor):
         cor.setObjectName("cor")
         cor.setEnabled(True)
-        cor.resize(1032, 881)
+        cor.resize(899, 881)
         self.centralwidget = QtWidgets.QWidget(cor)
         self.centralwidget.setObjectName("centralwidget")
         self.gridLayout = QtWidgets.QGridLayout(self.centralwidget)
@@ -39,7 +39,7 @@ class Ui_cor(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, -184, 1013, 1360))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 880, 1360))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
@@ -250,6 +250,7 @@ class Ui_cor(object):
         font.setBold(True)
         font.setWeight(75)
         self.CB_ImpRg2.setFont(font)
+        self.CB_ImpRg2.setChecked(False)
         self.CB_ImpRg2.setObjectName("CB_ImpRg2")
         self.verticalLayout_3.addWidget(self.CB_ImpRg2)
         self.sel_import = QtWidgets.QTabWidget(self.scrollAreaWidgetContents)
@@ -269,6 +270,7 @@ class Ui_cor(object):
         self.verticalLayout_16.setObjectName("verticalLayout_16")
         self.CB_N = QtWidgets.QCheckBox(self.node)
         self.CB_N.setMinimumSize(QtCore.QSize(0, 16))
+        self.CB_N.setChecked(False)
         self.CB_N.setObjectName("CB_N")
         self.verticalLayout_16.addWidget(self.CB_N)
         self.horizontalLayout_29 = QtWidgets.QHBoxLayout()
@@ -322,7 +324,6 @@ class Ui_cor(object):
         self.horizontalLayout_43.addWidget(self.label_64)
         self.param_N = QtWidgets.QLineEdit(self.node)
         self.param_N.setMinimumSize(QtCore.QSize(0, 22))
-        self.param_N.setText("")
         self.param_N.setObjectName("param_N")
         self.horizontalLayout_43.addWidget(self.param_N)
         self.verticalLayout_16.addLayout(self.horizontalLayout_43)
@@ -1266,7 +1267,7 @@ class Ui_cor(object):
         font.setStrikeOut(False)
         self.CB_import_val_XL.setFont(font)
         self.CB_import_val_XL.setToolTip("")
-        self.CB_import_val_XL.setChecked(True)
+        self.CB_import_val_XL.setChecked(False)
         self.CB_import_val_XL.setObjectName("CB_import_val_XL")
         self.verticalLayout_2.addWidget(self.CB_import_val_XL)
         self.GB_import_val_XL = QtWidgets.QGroupBox(self.scrollAreaWidgetContents)
@@ -1577,11 +1578,11 @@ class Ui_cor(object):
         self.task_load.setText(_translate("cor", "Загрузить"))
         self.GB_import_val_XL_2.setTitle(_translate("cor", "Выбор моделей"))
         self.label_9.setText(_translate("cor", "Путь к папке с исходными файлами или к файлу:"))
-        self.T_IzFolder.setPlainText(_translate("cor", "I:\\ОЭС Северо-Запада\\Коми\\РМ\\импорт дтн.rg2"))
+        self.T_IzFolder.setPlainText(_translate("cor", "I:\\ОЭС Урала\\Тюм_ЭС\\!КПР ХМАО ЯНАО ТО\\Модели4 - 2023\\v28_14 +Vzd (Согласованные)\\без МДП"))
         self.choice_from_file.setText(_translate("cor", "Выбор файла"))
         self.choice_from_folder.setText(_translate("cor", "Выбор папки"))
         self.label_10.setText(_translate("cor", "Путь к папке с измененными файлами или к файлу:"))
-        self.T_InFolder.setPlainText(_translate("cor", "I:\\ОЭС Северо-Запада\\Коми\\РМ\\импорт дтн2.rg2"))
+        self.T_InFolder.setPlainText(_translate("cor", "I:\\ОЭС Урала\\Тюм_ЭС\\!КПР ХМАО ЯНАО ТО\\Модели4 - 2023\\v28_14 +Vzd (Согласованные)\\без МДП sel"))
         self.choice_in_folder.setText(_translate("cor", "Выбор папки"))
         self.CB_KFilter_file.setText(_translate("cor", "Выборка файлов"))
         self.GB_sel_file.setTitle(_translate("cor", "Параметры"))
@@ -1598,16 +1599,14 @@ class Ui_cor(object):
         self.CB_cor_b.setText(_translate("cor", "Задание на корректировку до импорта"))
         self.TE_cor_b.setPlainText(_translate("cor", "\n"
 "# краткая справка:\n"
-"#удалить*[15145;ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)\n"
-"#изм[15148|name=Промплощадка: изм name]  # \n"
-"#изм[15302|pg=qn*2+10] # задание может быть формулой\n"
-"#изм[na=11(node);(vetv)|sel=1]  # отметить узлы 11 района и все ветви\n"
-"#изм[(vetv);(area);(area2);(darea)|Tc=0]\n"
-"#снять отметку{years: 2026| season:лет| max_min:min| add_name:0°C| ny=2:vras>525.5}\n"
-"#добавить[vetv|ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]\n"
-"#текст[node: name, dname, AutoBsh; vetv:dname; Generator: Name]  \n"
+"#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей\n"
+"#изм[15148:name=Промплощадка: изм name; pg=qn*2+10] \n"
+"#изм[(vetv);(area);(area2);(darea): Tc=0]\n"
+"#снять отметку{years: 2026& season:лет& max_min:min& add_name:0°C& ny=2:vras>525.5}\n"
+"#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]\n"
+"#текст[node: name, dname; vetv:dname; Generator: Name]  \n"
 "#СХН[na=11]\n"
-"#номинальные напряжения[na=11]  \n"
+"#напряжения[na=11]  \n"
 "#СКРМ*[na=11]\n"
 ""))
         self.CB_ImpRg2.setText(_translate("cor", "Импорт из файлa (.rg2)"))
@@ -1618,11 +1617,13 @@ class Ui_cor(object):
         self.label_50.setText(_translate("cor", "Таблица:"))
         self.tab_N.setText(_translate("cor", "node"))
         self.label_51.setText(_translate("cor", "Выборка:"))
+        self.tip_N.setCurrentText(_translate("cor", "обновить"))
         self.tip_N.setItemText(0, _translate("cor", "присоединить"))
         self.tip_N.setItemText(1, _translate("cor", "загрузить"))
         self.tip_N.setItemText(2, _translate("cor", "обновить"))
         self.tip_N.setItemText(3, _translate("cor", "объединить"))
         self.label_64.setText(_translate("cor", "Параметры:"))
+        self.param_N.setText(_translate("cor", "sel"))
         self.CB_Filtr_N.setText(_translate("cor", "условие выполнения"))
         self.label_71.setText(_translate("cor", "Год:"))
         self.label_72.setText(_translate("cor", ", зим/лет:"))
@@ -1641,6 +1642,7 @@ class Ui_cor(object):
         self.label_15.setText(_translate("cor", "Таблица:"))
         self.tab_V.setText(_translate("cor", "vetv"))
         self.label_17.setText(_translate("cor", "Выборка:"))
+        self.tip_V.setCurrentText(_translate("cor", "обновить"))
         self.tip_V.setItemText(0, _translate("cor", "присоединить"))
         self.tip_V.setItemText(1, _translate("cor", "загрузить"))
         self.tip_V.setItemText(2, _translate("cor", "обновить"))
@@ -1664,6 +1666,7 @@ class Ui_cor(object):
         self.label_52.setText(_translate("cor", "Таблица:"))
         self.tab_G.setText(_translate("cor", "Generator"))
         self.label_53.setText(_translate("cor", "Выборка:"))
+        self.tip_G.setCurrentText(_translate("cor", "обновить"))
         self.tip_G.setItemText(0, _translate("cor", "присоединить"))
         self.tip_G.setItemText(1, _translate("cor", "загрузить"))
         self.tip_G.setItemText(2, _translate("cor", "обновить"))
@@ -1687,6 +1690,7 @@ class Ui_cor(object):
         self.label_54.setText(_translate("cor", "Таблица:"))
         self.tab_A.setText(_translate("cor", "area"))
         self.label_55.setText(_translate("cor", "Выборка:"))
+        self.tip_A.setCurrentText(_translate("cor", "обновить"))
         self.tip_A.setItemText(0, _translate("cor", "присоединить"))
         self.tip_A.setItemText(1, _translate("cor", "загрузить"))
         self.tip_A.setItemText(2, _translate("cor", "обновить"))
@@ -1710,6 +1714,7 @@ class Ui_cor(object):
         self.label_56.setText(_translate("cor", "Таблица:"))
         self.tab_A2.setText(_translate("cor", "area2"))
         self.label_57.setText(_translate("cor", "Выборка:"))
+        self.tip_A2.setCurrentText(_translate("cor", "обновить"))
         self.tip_A2.setItemText(0, _translate("cor", "присоединить"))
         self.tip_A2.setItemText(1, _translate("cor", "загрузить"))
         self.tip_A2.setItemText(2, _translate("cor", "обновить"))
@@ -1733,6 +1738,7 @@ class Ui_cor(object):
         self.label_58.setText(_translate("cor", "Таблица:"))
         self.tab_D.setText(_translate("cor", "darea"))
         self.label_59.setText(_translate("cor", "Выборка:"))
+        self.tip_D.setCurrentText(_translate("cor", "обновить"))
         self.tip_D.setItemText(0, _translate("cor", "присоединить"))
         self.tip_D.setItemText(1, _translate("cor", "загрузить"))
         self.tip_D.setItemText(2, _translate("cor", "обновить"))
@@ -1756,6 +1762,7 @@ class Ui_cor(object):
         self.label_60.setText(_translate("cor", "Таблица:"))
         self.tab_PQ.setText(_translate("cor", "graphik2"))
         self.label_61.setText(_translate("cor", "Выборка:"))
+        self.tip_PQ.setCurrentText(_translate("cor", "обновить"))
         self.tip_PQ.setItemText(0, _translate("cor", "присоединить"))
         self.tip_PQ.setItemText(1, _translate("cor", "загрузить"))
         self.tip_PQ.setItemText(2, _translate("cor", "обновить"))
@@ -1779,6 +1786,7 @@ class Ui_cor(object):
         self.label_62.setText(_translate("cor", "Таблица:"))
         self.tab_IT.setText(_translate("cor", "graphikIT"))
         self.label_63.setText(_translate("cor", "Выборка:"))
+        self.tip_IT.setCurrentText(_translate("cor", "обновить"))
         self.tip_IT.setItemText(0, _translate("cor", "присоединить"))
         self.tip_IT.setItemText(1, _translate("cor", "загрузить"))
         self.tip_IT.setItemText(2, _translate("cor", "обновить"))
@@ -1801,9 +1809,9 @@ class Ui_cor(object):
         self.T_PQN_XL_File.setPlainText(_translate("cor", "I:\\rastr_add\\test\\пример задания.xlsx"))
         self.choice_XL.setText(_translate("cor", "Выбор"))
         self.label_8.setText(_translate("cor", "Имя листов:"))
-        self.T_PQN_Sheets.setText(_translate("cor", "[импорт таблиц(ИТ)]"))
+        self.T_PQN_Sheets.setText(_translate("cor", " [XL->RastrWin][pop][cor]"))
         self.CB_cor_e.setText(_translate("cor", "Задание на корректировку после импорта"))
-        self.TE_cor_e.setPlainText(_translate("cor", "#расчет  # расчет режима [XL->RastrWin][pop][cor]"))
+        self.TE_cor_e.setPlainText(_translate("cor", "#расчет  # расчет режима"))
         self.CB_kontrol_rg2.setText(_translate("cor", "Расчет режима и проверка параметров режима (.rg2)"))
         self.GB_control.setTitle(_translate("cor", "Параметры"))
         self.label_26.setText(_translate("cor", "выборка в таблице узлы: "))

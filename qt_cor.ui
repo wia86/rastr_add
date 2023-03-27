@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1032</width>
+    <width>899</width>
     <height>881</height>
    </rect>
   </property>
@@ -75,7 +75,7 @@
         <rect>
          <x>0</x>
          <y>0</y>
-         <width>1013</width>
+         <width>880</width>
          <height>1360</height>
         </rect>
        </property>
@@ -269,7 +269,7 @@
                 </size>
                </property>
                <property name="plainText">
-                <string>I:\rastr_add\test</string>
+                <string>I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v28_14 +Vzd (Согласованные)\без МДП</string>
                </property>
               </widget>
              </item>
@@ -337,7 +337,7 @@
                 </size>
                </property>
                <property name="plainText">
-                <string/>
+                <string>I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v28_14 +Vzd (Согласованные)\без МДП sel</string>
                </property>
               </widget>
              </item>
@@ -632,16 +632,15 @@
             <property name="plainText">
              <string>
 # краткая справка:
-#удалить*[15145;ny=15147]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
-#изм[15148|name=Промплощадка: изм name]  # 
-#изм[15302|pg=qn*2+10] # задание может быть формулой
-#изм[na=11(node);(vetv)|sel=1]  # отметить узлы 11 района и все ветви
-#изм[(vetv);(area);(area2);(darea)|Tc=0]
-#снять отметку{years: 2026| season:лет| max_min:min| add_name:0°C| ny=2:vras&gt;525.5}
-#добавить[vetv|ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]
-#текст[node: name, dname, AutoBsh; vetv:dname; Generator: Name]  
-#СХН[na=11]
-#номинальные напряжения[na=11]  
+#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей
+#изм[15148:name=Промплощадка: изм name; pg=qn*2+10] 
+#изм[(vetv);(area);(area2);(darea): Tc=0]
+изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  
+#снять отметку{years: 2026&amp; season:лет&amp; max_min:min&amp; add_name:0°C&amp; (ny=2:vras&gt;525.5)}
+#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]
+#текст[node: name, dname; vetv:dname; Generator: Name]  
+#СХН[na=11]{years : 2026...2029&amp; (ny=1: vras&gt;125)|(not (ny=1: na)==2)}
+#напряжения[na=11]  
 #СКРМ*[na=11]
 </string>
             </property>
@@ -673,6 +672,9 @@
             </property>
             <property name="text">
              <string>Импорт из файлa (.rg2)</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -720,6 +722,9 @@
                 </property>
                 <property name="text">
                  <string>выполнить</string>
+                </property>
+                <property name="checked">
+                 <bool>false</bool>
                 </property>
                </widget>
               </item>
@@ -831,6 +836,9 @@
                     <height>22</height>
                    </size>
                   </property>
+                  <property name="currentText">
+                   <string>присоединить</string>
+                  </property>
                   <item>
                    <property name="text">
                     <string>присоединить</string>
@@ -879,7 +887,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string/>
+                   <string>sel</string>
                   </property>
                  </widget>
                 </item>
@@ -1195,6 +1203,9 @@
                     <width>0</width>
                     <height>22</height>
                    </size>
+                  </property>
+                  <property name="currentText">
+                   <string>присоединить</string>
                   </property>
                   <item>
                    <property name="text">
@@ -1561,6 +1572,9 @@
                     <height>22</height>
                    </size>
                   </property>
+                  <property name="currentText">
+                   <string>присоединить</string>
+                  </property>
                   <item>
                    <property name="text">
                     <string>присоединить</string>
@@ -1925,6 +1939,9 @@
                     <width>0</width>
                     <height>22</height>
                    </size>
+                  </property>
+                  <property name="currentText">
+                   <string>присоединить</string>
                   </property>
                   <item>
                    <property name="text">
@@ -2291,6 +2308,9 @@
                     <height>22</height>
                    </size>
                   </property>
+                  <property name="currentText">
+                   <string>присоединить</string>
+                  </property>
                   <item>
                    <property name="text">
                     <string>присоединить</string>
@@ -2655,6 +2675,9 @@
                     <width>0</width>
                     <height>22</height>
                    </size>
+                  </property>
+                  <property name="currentText">
+                   <string>присоединить</string>
                   </property>
                   <item>
                    <property name="text">
@@ -3021,6 +3044,9 @@
                     <height>22</height>
                    </size>
                   </property>
+                  <property name="currentText">
+                   <string>присоединить</string>
+                  </property>
                   <item>
                    <property name="text">
                     <string>присоединить</string>
@@ -3385,6 +3411,9 @@
                     <width>0</width>
                     <height>22</height>
                    </size>
+                  </property>
+                  <property name="currentText">
+                   <string>присоединить</string>
                   </property>
                   <item>
                    <property name="text">
@@ -3890,7 +3919,7 @@
              <item>
               <widget class="QLineEdit" name="kontrol_rg2_Sel">
                <property name="text">
-                <string>na&gt;0</string>
+                <string/>
                </property>
               </widget>
              </item>
