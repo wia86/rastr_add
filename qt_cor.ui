@@ -74,7 +74,7 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>0</y>
+         <y>-523</y>
          <width>880</width>
          <height>1360</height>
         </rect>
@@ -337,7 +337,7 @@
                 </size>
                </property>
                <property name="plainText">
-                <string>I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v28_14 +Vzd (Согласованные)\без МДП sel</string>
+                <string/>
                </property>
               </widget>
              </item>
@@ -630,11 +630,11 @@
              <cursorShape>IBeamCursor</cursorShape>
             </property>
             <property name="plainText">
-             <string>
-# краткая справка:
+             <string># краткая справка:
 #удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей
 #изм[15148:name=Промплощадка: изм name; pg=qn*2+10] 
 #изм[(vetv);(area);(area2);(darea): Tc=0]
+#изм[(area);(area2);(darea): set_pop=0]
 изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  
 #снять отметку{years: 2026&amp; season:лет&amp; max_min:min&amp; add_name:0°C&amp; (ny=2:vras&gt;525.5)}
 #добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]
@@ -642,6 +642,7 @@
 #СХН[na=11]{years : 2026...2029&amp; (ny=1: vras&gt;125)|(not (ny=1: na)==2)}
 #напряжения[na=11]  
 #СКРМ*[na=11]
+импорт[папка: (I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v29\без МДП pop); таблица:node; тип:2; поле: pn,qn; выборка:]
 </string>
             </property>
            </widget>
@@ -3948,16 +3949,6 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="1">
-            <widget class="QCheckBox" name="CB_na">
-             <property name="text">
-              <string>район: pop_zad~pop</string>
-             </property>
-             <property name="checked">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
            <item row="2" column="0">
             <widget class="QCheckBox" name="CB_I">
              <property name="text">
@@ -3968,30 +3959,10 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
-            <widget class="QCheckBox" name="CB_npa">
-             <property name="text">
-              <string>территории: pop_zad~pop</string>
-             </property>
-             <property name="checked">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
            <item row="3" column="0">
             <widget class="QCheckBox" name="CB_gen">
              <property name="text">
               <string>генераторы: Pmin &lt; P &lt; Pmax, NumPQ (наличие)</string>
-             </property>
-             <property name="checked">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QCheckBox" name="CB_no">
-             <property name="text">
-              <string>объединения: pop_zad~pp</string>
              </property>
              <property name="checked">
               <bool>false</bool>
@@ -4057,63 +4028,32 @@
             <number>0</number>
            </property>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_21">
-             <property name="spacing">
-              <number>0</number>
+            <widget class="QCheckBox" name="CB_print_sech">
+             <property name="text">
+              <string>сечения</string>
              </property>
-             <item>
-              <widget class="QCheckBox" name="CB_print_sech">
-               <property name="text">
-                <string>сечения, выборка в таблице sechen:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLineEdit" name="setsel_sech"/>
-             </item>
-            </layout>
+            </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_18">
-             <item>
-              <widget class="QCheckBox" name="CB_print_area">
-               <property name="text">
-                <string>районы, выборка в таблице area:</string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLineEdit" name="setsel_area"/>
-             </item>
-            </layout>
+            <widget class="QCheckBox" name="CB_print_area">
+             <property name="text">
+              <string>районы</string>
+             </property>
+            </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_19">
-             <item>
-              <widget class="QCheckBox" name="CB_print_area2">
-               <property name="text">
-                <string>территории, выборка в таблице area2: </string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLineEdit" name="setsel_area2"/>
-             </item>
-            </layout>
+            <widget class="QCheckBox" name="CB_print_area2">
+             <property name="text">
+              <string>территории</string>
+             </property>
+            </widget>
            </item>
            <item>
-            <layout class="QHBoxLayout" name="horizontalLayout_20">
-             <item>
-              <widget class="QCheckBox" name="CB_print_darea">
-               <property name="text">
-                <string>обединения, выборка в таблице darea: </string>
-               </property>
-              </widget>
-             </item>
-             <item>
-              <widget class="QLineEdit" name="setsel_darea"/>
-             </item>
-            </layout>
+            <widget class="QCheckBox" name="CB_print_darea">
+             <property name="text">
+              <string>обединения</string>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QCheckBox" name="CB_print_tab_log">

@@ -63,7 +63,7 @@ class RastrMethod:
                 elif '=' in value:
                     param, formula = value.split("=", maxsplit=1)
                     param = param.replace(' ', '')
-                    if not (formula.replace(' ', '') and param):
+                    if not param:
                         raise ValueError(f"Задание не распознано, {key=}, {value=}")
 
                     # В значении есть ссылка и поле не текстовое.
@@ -479,8 +479,8 @@ class RastrMethod:
         t_area = self.rastr.tables("area")
         if zone_id == "no":
             t_area.setsel(zone)
-        if t_zone.cols.Find("pop_zad") > 0:
-            t_zone.cols.Item("pop_zad").SetZ(ndx_z, new_pop)
+        if t_zone.cols.Find("set_pop") > 0:
+            t_zone.cols.Item("set_pop").SetZ(ndx_z, new_pop)
         name_z = t_zone.cols.item('name').ZS(ndx_z)
         pop_beginning = self.rastr.Calc("val", name_zone[zone_id], name_zone[f'p_{zone_id}'], zone)
         for i in range(10):  # максимальное число итераций
