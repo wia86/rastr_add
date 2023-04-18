@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>899</width>
-    <height>881</height>
+    <width>950</width>
+    <height>875</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -58,6 +58,20 @@
         <height>0</height>
        </size>
       </property>
+      <property name="baseSize">
+       <size>
+        <width>700</width>
+        <height>700</height>
+       </size>
+      </property>
+      <property name="font">
+       <font>
+        <pointsize>9</pointsize>
+       </font>
+      </property>
+      <property name="mouseTracking">
+       <bool>false</bool>
+      </property>
       <property name="frameShape">
        <enum>QFrame::StyledPanel</enum>
       </property>
@@ -74,9 +88,9 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-523</y>
-         <width>880</width>
-         <height>1360</height>
+         <y>-606</y>
+         <width>931</width>
+         <height>1437</height>
         </rect>
        </property>
        <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -134,9 +148,15 @@
              </item>
              <item>
               <widget class="QLabel" name="label">
+               <property name="minimumSize">
+                <size>
+                 <width>100</width>
+                 <height>0</height>
+                </size>
+               </property>
                <property name="maximumSize">
                 <size>
-                 <width>95</width>
+                 <width>100</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -269,7 +289,7 @@
                 </size>
                </property>
                <property name="plainText">
-                <string>I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v28_14 +Vzd (Согласованные)\без МДП</string>
+                <string>I:\rastr_add\test</string>
                </property>
               </widget>
              </item>
@@ -277,7 +297,7 @@
               <widget class="QPushButton" name="choice_from_file">
                <property name="maximumSize">
                 <size>
-                 <width>75</width>
+                 <width>85</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -290,7 +310,7 @@
               <widget class="QPushButton" name="choice_from_folder">
                <property name="maximumSize">
                 <size>
-                 <width>75</width>
+                 <width>85</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -305,18 +325,18 @@
             <widget class="QLabel" name="label_10">
              <property name="minimumSize">
               <size>
-               <width>0</width>
-               <height>22</height>
+               <width>300</width>
+               <height>23</height>
               </size>
              </property>
              <property name="maximumSize">
               <size>
-               <width>300</width>
+               <width>400</width>
                <height>20</height>
               </size>
              </property>
              <property name="text">
-              <string>Путь к папке с измененными файлами или к файлу:</string>
+              <string>Путь к папке для сохранения измененных файлов или к файлу:</string>
              </property>
             </widget>
            </item>
@@ -345,7 +365,7 @@
               <widget class="QPushButton" name="choice_in_folder">
                <property name="maximumSize">
                 <size>
-                 <width>75</width>
+                 <width>85</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -385,7 +405,7 @@
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>80</height>
+              <height>90</height>
              </size>
             </property>
             <property name="title">
@@ -562,12 +582,12 @@
                  </property>
                  <property name="maximumSize">
                   <size>
-                   <width>30</width>
+                   <width>90</width>
                    <height>22</height>
                   </size>
                  </property>
                  <property name="text">
-                  <string>, (доп имя):</string>
+                  <string>, доп имя(1;2):</string>
                  </property>
                 </widget>
                </item>
@@ -599,57 +619,6 @@
          </widget>
         </item>
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_18">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QCheckBox" name="CB_cor_b">
-            <property name="font">
-             <font>
-              <weight>75</weight>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>Задание на корректировку до импорта</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPlainTextEdit" name="TE_cor_b">
-            <property name="font">
-             <font>
-              <pointsize>9</pointsize>
-              <underline>false</underline>
-              <strikeout>false</strikeout>
-              <kerning>true</kerning>
-             </font>
-            </property>
-            <property name="cursor" stdset="0">
-             <cursorShape>IBeamCursor</cursorShape>
-            </property>
-            <property name="plainText">
-             <string># краткая справка:
-#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей
-#изм[15148:name=Промплощадка: изм name; pg=qn*2+10] 
-#изм[(vetv);(area);(area2);(darea): Tc=0]
-#изм[(area);(area2);(darea): set_pop=0]
-изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  
-#снять отметку{years: 2026&amp; season:лет&amp; max_min:min&amp; add_name:0°C&amp; (ny=2:vras&gt;525.5)}
-#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]
-#текст[node: name, dname; vetv:dname; Generator: Name]  
-#СХН[na=11]{years : 2026...2029&amp; (ny=1: vras&gt;125)|(not (ny=1: na)==2)}
-#напряжения[na=11]  
-#СКРМ*[na=11]
-импорт[папка: (I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v29\без МДП pop); таблица:node; тип:2; поле: pn,qn; выборка:]
-</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <property name="spacing">
            <number>0</number>
@@ -672,7 +641,7 @@
              </font>
             </property>
             <property name="text">
-             <string>Импорт из файлa (.rg2)</string>
+             <string>Импорт данных из файлa (.rg2)</string>
             </property>
             <property name="checked">
              <bool>false</bool>
@@ -706,7 +675,7 @@
              <set>Qt::ImhNone</set>
             </property>
             <property name="currentIndex">
-             <number>0</number>
+             <number>6</number>
             </property>
             <widget class="QWidget" name="node">
              <attribute name="title">
@@ -722,7 +691,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>выполнить</string>
+                 <string>Выполнить</string>
                 </property>
                 <property name="checked">
                  <bool>false</bool>
@@ -903,7 +872,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>условие выполнения</string>
+                 <string>Условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -1055,7 +1024,7 @@
                       </size>
                      </property>
                      <property name="text">
-                      <string>, (доп имя):</string>
+                      <string>, (доп имя 1;2):</string>
                      </property>
                     </widget>
                    </item>
@@ -1093,7 +1062,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>выполнить</string>
+                 <string>Выполнить</string>
                 </property>
                </widget>
               </item>
@@ -1271,7 +1240,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>условие выполнения</string>
+                 <string>Условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -1423,7 +1392,7 @@
                       </size>
                      </property>
                      <property name="text">
-                      <string>, (доп имя):</string>
+                      <string>, (доп имя 1;2):</string>
                      </property>
                     </widget>
                    </item>
@@ -1461,7 +1430,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>выполнить</string>
+                 <string>Выполнить</string>
                 </property>
                </widget>
               </item>
@@ -1639,7 +1608,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>условие выполнения</string>
+                 <string>Условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -1791,7 +1760,7 @@
                       </size>
                      </property>
                      <property name="text">
-                      <string>, (доп имя):</string>
+                      <string>, (доп имя 1;2):</string>
                      </property>
                     </widget>
                    </item>
@@ -1829,7 +1798,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>выполнить</string>
+                 <string>Выполнить</string>
                 </property>
                </widget>
               </item>
@@ -2007,7 +1976,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>условие выполнения</string>
+                 <string>Условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -2159,7 +2128,7 @@
                       </size>
                      </property>
                      <property name="text">
-                      <string>, (доп имя):</string>
+                      <string>, (доп имя 1;2):</string>
                      </property>
                     </widget>
                    </item>
@@ -2197,7 +2166,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>выполнить</string>
+                 <string>Выполнить</string>
                 </property>
                </widget>
               </item>
@@ -2375,7 +2344,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>условие выполнения</string>
+                 <string>Условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -2527,7 +2496,7 @@
                       </size>
                      </property>
                      <property name="text">
-                      <string>, (доп имя):</string>
+                      <string>, (доп имя 1;2):</string>
                      </property>
                     </widget>
                    </item>
@@ -2565,7 +2534,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>выполнить</string>
+                 <string>Выполнить</string>
                 </property>
                </widget>
               </item>
@@ -2743,7 +2712,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>условие выполнения</string>
+                 <string>Условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -2895,7 +2864,7 @@
                       </size>
                      </property>
                      <property name="text">
-                      <string>, (доп имя):</string>
+                      <string>, (доп имя 1;2):</string>
                      </property>
                     </widget>
                    </item>
@@ -2933,7 +2902,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>выполнить</string>
+                 <string>Выполнить</string>
                 </property>
                </widget>
               </item>
@@ -3111,7 +3080,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>условие выполнения</string>
+                 <string>Условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -3263,7 +3232,7 @@
                       </size>
                      </property>
                      <property name="text">
-                      <string>, (доп имя):</string>
+                      <string>, (доп имя 1;2):</string>
                      </property>
                     </widget>
                    </item>
@@ -3301,7 +3270,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>выполнить</string>
+                 <string>Выполнить</string>
                 </property>
                </widget>
               </item>
@@ -3337,7 +3306,7 @@
                  <widget class="QPushButton" name="choice_IT">
                   <property name="maximumSize">
                    <size>
-                    <width>40</width>
+                    <width>50</width>
                     <height>16777215</height>
                    </size>
                   </property>
@@ -3479,7 +3448,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>условие выполнения</string>
+                 <string>Условие выполнения</string>
                 </property>
                </widget>
               </item>
@@ -3631,7 +3600,7 @@
                       </size>
                      </property>
                      <property name="text">
-                      <string>, (доп имя):</string>
+                      <string>, (доп имя 1;2):</string>
                      </property>
                     </widget>
                    </item>
@@ -3660,6 +3629,64 @@
          </layout>
         </item>
         <item>
+         <layout class="QVBoxLayout" name="verticalLayout_18">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QCheckBox" name="CB_cor_b">
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Задание на корректировку в текстовом формате</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPlainTextEdit" name="TE_cor_b">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>250</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <pointsize>10</pointsize>
+              <underline>false</underline>
+              <strikeout>false</strikeout>
+              <kerning>true</kerning>
+             </font>
+            </property>
+            <property name="cursor" stdset="0">
+             <cursorShape>IBeamCursor</cursorShape>
+            </property>
+            <property name="plainText">
+             <string># краткая справка:
+#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей
+#изм[15148:name=Промплощадка: изм name; pg=qn*2+10] 
+#изм[(vetv);(area);(area2);(darea): Tc=0]
+#изм[(area);(area2);(darea): set_pop=0]
+#изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  
+#снять отметку{years: 2026&amp; season:лет&amp; max_min:min&amp; add_name:0°C&amp; (ny=2:vras&gt;525.5)}
+#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]
+#текст[node: name, dname; vetv:dname; Generator: Name]  
+#СХН[na=11]{years : 2026...2029&amp; (ny=1: vras&gt;125)|(not (ny=1: na)==2)}
+#напряжения[na=11]  
+#СКРМ*[na=11]
+#импорт[папка: (I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v29\без МДП pop); таблица:node; тип:2; поле: pn,qn; выборка:]
+
+</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
          <widget class="QCheckBox" name="CB_import_val_XL">
           <property name="font">
            <font>
@@ -3674,7 +3701,7 @@
            <string/>
           </property>
           <property name="text">
-           <string>Задание EXCEL</string>
+           <string>Задание на корректировку в формате excel</string>
           </property>
           <property name="checked">
            <bool>false</bool>
@@ -3686,7 +3713,7 @@
           <property name="minimumSize">
            <size>
             <width>0</width>
-            <height>90</height>
+            <height>70</height>
            </size>
           </property>
           <property name="maximumSize">
@@ -3704,6 +3731,9 @@
           <layout class="QVBoxLayout" name="verticalLayout_7">
            <property name="spacing">
             <number>0</number>
+           </property>
+           <property name="leftMargin">
+            <number>3</number>
            </property>
            <property name="topMargin">
             <number>0</number>
@@ -3723,13 +3753,13 @@
               <widget class="QLabel" name="label_7">
                <property name="minimumSize">
                 <size>
-                 <width>80</width>
+                 <width>70</width>
                  <height>22</height>
                 </size>
                </property>
                <property name="maximumSize">
                 <size>
-                 <width>80</width>
+                 <width>60</width>
                  <height>22</height>
                 </size>
                </property>
@@ -3758,7 +3788,7 @@
                <property name="maximumSize">
                 <size>
                  <width>500000</width>
-                 <height>35</height>
+                 <height>20</height>
                 </size>
                </property>
                <property name="baseSize">
@@ -3776,7 +3806,7 @@
               <widget class="QPushButton" name="choice_XL">
                <property name="maximumSize">
                 <size>
-                 <width>40</width>
+                 <width>50</width>
                  <height>16777215</height>
                 </size>
                </property>
@@ -3833,38 +3863,6 @@
          </widget>
         </item>
         <item>
-         <layout class="QVBoxLayout" name="verticalLayout_17">
-          <property name="spacing">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QCheckBox" name="CB_cor_e">
-            <property name="font">
-             <font>
-              <weight>75</weight>
-              <bold>true</bold>
-             </font>
-            </property>
-            <property name="text">
-             <string>Задание на корректировку после импорта</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPlainTextEdit" name="TE_cor_e">
-            <property name="font">
-             <font>
-              <pointsize>9</pointsize>
-             </font>
-            </property>
-            <property name="plainText">
-             <string>#расчет  # расчет режима</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </item>
-        <item>
          <widget class="Line" name="line_3">
           <property name="orientation">
            <enum>Qt::Horizontal</enum>
@@ -3880,7 +3878,7 @@
            </font>
           </property>
           <property name="text">
-           <string>Расчет режима и проверка параметров режима (.rg2)</string>
+           <string>Расчет режима и ДТН (I(Тс))</string>
           </property>
          </widget>
         </item>
@@ -3893,9 +3891,9 @@
            </size>
           </property>
           <property name="title">
-           <string>Параметры</string>
+           <string>Проверка параметров режима (.rg2)</string>
           </property>
-          <layout class="QFormLayout" name="formLayout_2">
+          <layout class="QVBoxLayout" name="verticalLayout_17">
            <property name="leftMargin">
             <number>6</number>
            </property>
@@ -3908,12 +3906,45 @@
            <property name="bottomMargin">
             <number>0</number>
            </property>
-           <item row="0" column="0">
+           <item>
+            <widget class="QCheckBox" name="CB_U">
+             <property name="enabled">
+              <bool>true</bool>
+             </property>
+             <property name="text">
+              <string>Узлы: Uном, Umin &lt; Uрасч. &lt;  Uнаиб.раб.</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="CB_I">
+             <property name="text">
+              <string>Ветви: I &lt; ДТН, наличие n_it, n_it_av.</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="CB_gen">
+             <property name="text">
+              <string>Генераторы: Pmin &lt; P &lt; Pmax, наличие NumPQ.</string>
+             </property>
+             <property name="checked">
+              <bool>false</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
             <layout class="QHBoxLayout" name="horizontalLayout_22">
              <item>
               <widget class="QLabel" name="label_26">
                <property name="text">
-                <string>выборка в таблице узлы: </string>
+                <string>Выборка в таблице узлы: </string>
                </property>
               </widget>
              </item>
@@ -3925,49 +3956,6 @@
               </widget>
              </item>
             </layout>
-           </item>
-           <item row="0" column="1">
-            <widget class="QCheckBox" name="CB_s">
-             <property name="text">
-              <string>сечения: pmax &gt; psech</string>
-             </property>
-             <property name="checked">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="1" column="0">
-            <widget class="QCheckBox" name="CB_U">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="text">
-              <string>узлы: Uном, Umin, Uнорм ...</string>
-             </property>
-             <property name="checked">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="0">
-            <widget class="QCheckBox" name="CB_I">
-             <property name="text">
-              <string>ветви: ДТН, n_it, n_it_av (наличие)</string>
-             </property>
-             <property name="checked">
-              <bool>false</bool>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="0">
-            <widget class="QCheckBox" name="CB_gen">
-             <property name="text">
-              <string>генераторы: Pmin &lt; P &lt; Pmax, NumPQ (наличие)</string>
-             </property>
-             <property name="checked">
-              <bool>false</bool>
-             </property>
-            </widget>
            </item>
           </layout>
          </widget>
@@ -4030,35 +4018,35 @@
            <item>
             <widget class="QCheckBox" name="CB_print_sech">
              <property name="text">
-              <string>сечения</string>
+              <string>Сечения</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QCheckBox" name="CB_print_area">
              <property name="text">
-              <string>районы</string>
+              <string>Районы</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QCheckBox" name="CB_print_area2">
              <property name="text">
-              <string>территории</string>
+              <string>Территории</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QCheckBox" name="CB_print_darea">
              <property name="text">
-              <string>обединения</string>
+              <string>Обединения</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QCheckBox" name="CB_print_tab_log">
              <property name="text">
-              <string>таблица на выбор</string>
+              <string>Таблица на выбор</string>
              </property>
             </widget>
            </item>
@@ -4094,7 +4082,7 @@
                 <item>
                  <widget class="QLabel" name="label_19">
                   <property name="text">
-                   <string>таблица:</string>
+                   <string>Таблица:</string>
                   </property>
                  </widget>
                 </item>
@@ -4108,7 +4096,7 @@
                 <item>
                  <widget class="QLabel" name="label_20">
                   <property name="text">
-                   <string>выборка:</string>
+                   <string>Выборка:</string>
                   </property>
                  </widget>
                 </item>
@@ -4126,7 +4114,7 @@
                 <item>
                  <widget class="QLabel" name="label_22">
                   <property name="text">
-                   <string>поля для вывода:</string>
+                   <string>Поля для вывода:</string>
                   </property>
                  </widget>
                 </item>
@@ -4157,7 +4145,7 @@
                 <item>
                  <widget class="QLabel" name="label_23">
                   <property name="text">
-                   <string>строки в сводной:</string>
+                   <string>Строки в сводной:</string>
                   </property>
                  </widget>
                 </item>
@@ -4175,14 +4163,14 @@
                 <item>
                  <widget class="QLabel" name="label_25">
                   <property name="text">
-                   <string>столбцы в сводной:</string>
+                   <string>Столбцы в сводной:</string>
                   </property>
                  </widget>
                 </item>
                 <item>
                  <widget class="QLineEdit" name="print_tab_log_cols">
                   <property name="text">
-                   <string>год,лет/зим,макс/мин,доп_имя1,доп_имя2</string>
+                   <string>Год,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3</string>
                   </property>
                  </widget>
                 </item>
@@ -4193,7 +4181,7 @@
                 <item>
                  <widget class="QLabel" name="label_24">
                   <property name="text">
-                   <string>значения в сводной:</string>
+                   <string>Значения в сводной:</string>
                   </property>
                  </widget>
                 </item>
@@ -4218,7 +4206,7 @@
               </size>
              </property>
              <property name="text">
-              <string>вывод значений следующих параметров из моделей:</string>
+              <string>Вывод значений следующих параметров из моделей:</string>
              </property>
             </widget>
            </item>
@@ -4252,7 +4240,7 @@
               </size>
              </property>
              <property name="plainText">
-              <string>v=15105,15113,0;15038,15037,4|r;x;b / n=15198|pg;qg</string>
+              <string>15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech</string>
              </property>
             </widget>
            </item>
@@ -4264,7 +4252,7 @@
              <item>
               <widget class="QCheckBox" name="CB_print_balance_Q">
                <property name="text">
-                <string>таблица баланс реактивной мощности, выборка:</string>
+                <string>Таблица баланс реактивной мощности, выборка в таблице районы:</string>
                </property>
               </widget>
              </item>

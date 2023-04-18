@@ -37,6 +37,11 @@
         <property name="enabled">
          <bool>true</bool>
         </property>
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
+        </property>
         <property name="widgetResizable">
          <bool>true</bool>
         </property>
@@ -44,9 +49,9 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>0</y>
+           <y>-135</y>
            <width>729</width>
-           <height>1038</height>
+           <height>1044</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
@@ -130,7 +135,7 @@
                   <string>3.</string>
                  </property>
                  <property name="checked">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                 </widget>
                </item>
@@ -188,7 +193,7 @@
                <item>
                 <widget class="QLineEdit" name="le_comb_field">
                  <property name="text">
-                  <string>otkl1</string>
+                  <string>disable</string>
                  </property>
                 </widget>
                </item>
@@ -462,7 +467,7 @@
                <item>
                 <widget class="QLineEdit" name="le_control_field">
                  <property name="text">
-                  <string>Kontrol</string>
+                  <string>control</string>
                  </property>
                 </widget>
                </item>
@@ -682,7 +687,7 @@
                   </size>
                  </property>
                  <property name="plainText">
-                  <string>C:\Users\User\Desktop\YandexDisk\РАБОТА\Омск мой\РМ\14.1 110 Загородная v5 перенос г9\в14 мдп в урал\2028 лет макс (19°C;МДП С-У).rg2</string>
+                  <string>I:\rastr_add\test</string>
                  </property>
                 </widget>
                </item>
@@ -811,7 +816,7 @@
                      <number>9999</number>
                     </property>
                     <property name="value">
-                     <number>3</number>
+                     <number>9999</number>
                     </property>
                    </widget>
                   </item>
@@ -1151,7 +1156,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>рисунки RG2 для  WORD</string>
+                <string>рисунки RG2 для WORD</string>
                </property>
                <property name="checked">
                 <bool>false</bool>
@@ -1268,7 +1273,7 @@
                     </property>
                     <property name="maximumSize">
                      <size>
-                      <width>50</width>
+                      <width>70</width>
                       <height>16777215</height>
                      </size>
                     </property>
@@ -1466,12 +1471,20 @@
                <cursorShape>IBeamCursor</cursorShape>
               </property>
               <property name="plainText">
-               <string># Ремонтные схемы, Доп имя, температура и прочее
-# В фигурных скобках указывается условие выполнения в формате {years: 2026| season:лет| max_min:min| add_name:0°C}
-# Примеры:
-# удалить*[15504]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)
-#изм[(vetv) (area) (area2) (darea)|Tc=0]{years = 2026|season=зим|max_min=макс|add_name=0°C}  # обнулить температуру
-расчет  # расчет режима
+               <string># краткая справка:
+#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей
+#изм[15148:name=Промплощадка: изм name; pg=qn*2+10] 
+#изм[(vetv);(area);(area2);(darea): Tc=0]
+#изм[(area);(area2);(darea): set_pop=0]
+#изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  
+#снять отметку{years: 2026&amp; season:лет&amp; max_min:min&amp; add_name:0°C&amp; (ny=2:vras&gt;525.5)}
+#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]
+#текст[node: name, dname; vetv:dname; Generator: Name]  
+#СХН[na=11]{years : 2026...2029&amp; (ny=1: vras&gt;125)|(not (ny=1: na)==2)}
+#напряжения[na=11]  
+#СКРМ*[na=11]
+#импорт[папка: (I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v29\без МДП pop); таблица:node; тип:2; поле: pn,qn; выборка:]
+
 </string>
               </property>
              </widget>
@@ -1593,7 +1606,7 @@
                     </size>
                    </property>
                    <property name="plainText">
-                    <string>C:\Users\User\Desktop\YandexDisk\РАБОТА\Омск мой\РМ\14.1 110 Загородная v5 перенос г9\!zad.rg2</string>
+                    <string>I:\rastr_add\test\файлы импорта\файл задания на расчет.rg2</string>
                    </property>
                   </widget>
                  </item>
@@ -1645,10 +1658,14 @@
                   <cursorShape>IBeamCursor</cursorShape>
                  </property>
                  <property name="plainText">
-                  <string># таблица: параметры (обновить)
-node:Kontrol,otkl1, repair_scheme,disable_scheme,automation,  sel #  otkl1, otkl2, otkl3,N,umin,umin_av,umax
-vetv: Kontrol,otkl1 # otkl1, otkl2, otkl3, N
-# Generator: repair_scheme,disable_scheme, sel</string>
+                  <string>таблица:node, vetv; тип:2; поле: disable, control, repair_scheme, disable_scheme, double_repair_scheme, automation; выборка:
+таблица: Generator; тип:2; поле: disable, repair_scheme, disable_scheme, double_repair_scheme; выборка:
+
+таблица:automation, automation_pattern; тип:1; поле: ; выборка:
+
+# тип: &quot;обновить&quot;- 2 , &quot;загрузить&quot;- 1, &quot;присоединить&quot;- 0, &quot;присоединить-обновить&quot;- 3
+# поле: если не указано, то все поля
+# выборка: если не указано, то все строки</string>
                  </property>
                 </widget>
                </item>

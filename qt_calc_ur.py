@@ -25,10 +25,13 @@ class Ui_calc_ur(object):
         self.verticalLayout_3.setObjectName("verticalLayout_3")
         self.scrollArea = QtWidgets.QScrollArea(self.centralwidget)
         self.scrollArea.setEnabled(True)
+        font = QtGui.QFont()
+        font.setPointSize(9)
+        self.scrollArea.setFont(font)
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 729, 1025))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 729, 1044))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.gridLayout_3 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_3.setObjectName("gridLayout_3")
@@ -58,7 +61,7 @@ class Ui_calc_ur(object):
         self.horizontalLayout_4.addWidget(self.cb_n2)
         self.cb_n3 = QtWidgets.QCheckBox(self.gb_disable_comb)
         self.cb_n3.setEnabled(True)
-        self.cb_n3.setChecked(False)
+        self.cb_n3.setChecked(True)
         self.cb_n3.setObjectName("cb_n3")
         self.horizontalLayout_4.addWidget(self.cb_n3)
         spacerItem = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -246,7 +249,7 @@ class Ui_calc_ur(object):
         sizePolicy.setHeightForWidth(self.te_path_initial_models.sizePolicy().hasHeightForWidth())
         self.te_path_initial_models.setSizePolicy(sizePolicy)
         self.te_path_initial_models.setMinimumSize(QtCore.QSize(300, 22))
-        self.te_path_initial_models.setMaximumSize(QtCore.QSize(10000, 20))
+        self.te_path_initial_models.setMaximumSize(QtCore.QSize(10000, 35))
         self.te_path_initial_models.setBaseSize(QtCore.QSize(0, 35))
         self.te_path_initial_models.setObjectName("te_path_initial_models")
         self.horizontalLayout_3.addWidget(self.te_path_initial_models)
@@ -289,7 +292,7 @@ class Ui_calc_ur(object):
         self.sb_count_file.setMinimumSize(QtCore.QSize(0, 22))
         self.sb_count_file.setMaximumSize(QtCore.QSize(100, 20))
         self.sb_count_file.setMaximum(9999)
-        self.sb_count_file.setProperty("value", 3)
+        self.sb_count_file.setProperty("value", 9999)
         self.sb_count_file.setObjectName("sb_count_file")
         self.horizontalLayout_23.addWidget(self.sb_count_file)
         spacerItem3 = QtWidgets.QSpacerItem(40, 20, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum)
@@ -305,7 +308,6 @@ class Ui_calc_ur(object):
         self.le_condition_file_years = QtWidgets.QLineEdit(self.gb_filter)
         self.le_condition_file_years.setMinimumSize(QtCore.QSize(0, 22))
         self.le_condition_file_years.setMaximumSize(QtCore.QSize(200, 22))
-        self.le_condition_file_years.setText("")
         self.le_condition_file_years.setObjectName("le_condition_file_years")
         self.horizontalLayout_5.addWidget(self.le_condition_file_years)
         self.label_4 = QtWidgets.QLabel(self.gb_filter)
@@ -423,7 +425,7 @@ class Ui_calc_ur(object):
         self.horizontalLayout_13.setObjectName("horizontalLayout_13")
         self.label_13 = QtWidgets.QLabel(self.gb_results_pic)
         self.label_13.setMinimumSize(QtCore.QSize(50, 0))
-        self.label_13.setMaximumSize(QtCore.QSize(50, 16777215))
+        self.label_13.setMaximumSize(QtCore.QSize(70, 16777215))
         self.label_13.setObjectName("label_13")
         self.horizontalLayout_13.addWidget(self.label_13)
         self.sb_format = QtWidgets.QSpinBox(self.gb_results_pic)
@@ -666,7 +668,7 @@ class Ui_calc_ur(object):
         self.cb_auto_disable.setText(_translate("calc_ur", "Автоматический выбор отключаемых узлов и ветвей, выборка в таблице узлы:"))
         self.le_auto_disable_choice.setText(_translate("calc_ur", "na=1"))
         self.cb_comb_field.setText(_translate("calc_ur", "Выбор отключаемых ветвей, узлов и генераторов (имя поля):"))
-        self.le_comb_field.setText(_translate("calc_ur", "otkl1"))
+        self.le_comb_field.setText(_translate("calc_ur", "disable"))
         self.cb_filter_comb.setText(_translate("calc_ur", "Фильтры для сочетаний РО, PP, PPO:"))
         self.le_filter_comb_val.setText(_translate("calc_ur", "10"))
         self.label_7.setText(_translate("calc_ur", "%"))
@@ -679,7 +681,7 @@ class Ui_calc_ur(object):
         self.cb_auto_control.setText(_translate("calc_ur", "Автоматический выбор контролируемых элементов, выборка в таблице узлы:"))
         self.le_auto_control_choice.setText(_translate("calc_ur", "na=1"))
         self.cb_control_field.setText(_translate("calc_ur", "Выбор контролируемых ветвей и узлов (имя поля):"))
-        self.le_control_field.setText(_translate("calc_ur", "Kontrol"))
+        self.le_control_field.setText(_translate("calc_ur", "control"))
         self.cb_Imax.setText(_translate("calc_ur", "Сохранение максимальных токов по контролиремым ветвям сети."))
         self.groupBox.setTitle(_translate("calc_ur", "Меню"))
         self.b_main_choice.setText(_translate("calc_ur", "Главное меню"))
@@ -688,13 +690,14 @@ class Ui_calc_ur(object):
         self.b_task_save.setText(_translate("calc_ur", "сохранить"))
         self.b_task_load.setText(_translate("calc_ur", "загрузить"))
         self.gb_initial_models.setTitle(_translate("calc_ur", "Путь к папке с расчетными файлами или к файлу:"))
-        self.te_path_initial_models.setPlainText(_translate("calc_ur", "C:\\Users\\User\\Desktop\\YandexDisk\\РАБОТА\\Омск мой\\РМ\\14.1 110 Загородная v5 перенос г9\\в14 мдп в урал\\2028 лет макс (19°C;МДП С-У).rg2"))
+        self.te_path_initial_models.setPlainText(_translate("calc_ur", "I:\\rastr_add\\test"))
         self.b_choice_path_folder.setText(_translate("calc_ur", "Выбор папки"))
         self.b_choice_path_file.setText(_translate("calc_ur", "Выбор файла"))
         self.cb_filter.setText(_translate("calc_ur", "Выборка файлов"))
         self.gb_filter.setTitle(_translate("calc_ur", "Параметры"))
         self.label_27.setText(_translate("calc_ur", "Количество расчетных файлов:"))
         self.label_3.setText(_translate("calc_ur", "Год:"))
+        self.le_condition_file_years.setText(_translate("calc_ur", "2028"))
         self.label_4.setText(_translate("calc_ur", ", зим/лет:"))
         self.le_condition_file_season.setItemText(1, _translate("calc_ur", "зим"))
         self.le_condition_file_season.setItemText(2, _translate("calc_ur", "лет"))
@@ -719,23 +722,35 @@ class Ui_calc_ur(object):
         self.le_pic_name.setText(_translate("calc_ur", "Рисунок К.1."))
         self.le_pic_info.setText(_translate("calc_ur", "10/Южный. "))
         self.cb_cor_txt.setText(_translate("calc_ur", "Внести изменения в модели"))
-        self.te_cor_txt.setPlainText(_translate("calc_ur", "# Ремонтные схемы, Доп имя, температура и прочее\n"
-"# В фигурных скобках указывается условие выполнения в формате {years = 2026| season=лет| max_min=min| add_name=0°C}\n"
-"# Примеры:\n"
-"удалить*[15504]  # удалить узлы ny=15145 и 15147 из всех моделей (* удалить узел с прилегающими ветвями)\n"
-"#изм[(vetv) (area) (area2) (darea)|Tc=0]{years = 2026|season=зим|max_min=макс|add_name=0°C}  # обнулить температуру\n"
-"расчет  # расчет режима\n"
+        self.te_cor_txt.setPlainText(_translate("calc_ur", "# краткая справка:\n"
+"#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей\n"
+"#изм[15148:name=Промплощадка: изм name; pg=qn*2+10] \n"
+"#изм[(vetv);(area);(area2);(darea): Tc=0]\n"
+"#изм[(area);(area2);(darea): set_pop=0]\n"
+"#изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  \n"
+"#снять отметку{years: 2026& season:лет& max_min:min& add_name:0°C& (ny=2:vras>525.5)}\n"
+"#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]\n"
+"#текст[node: name, dname; vetv:dname; Generator: Name]  \n"
+"#СХН[na=11]{years : 2026...2029& (ny=1: vras>125)|(not (ny=1: na)==2)}\n"
+"#напряжения[na=11]  \n"
+"#СКРМ*[na=11]\n"
+"#импорт[папка: (I:\\ОЭС Урала\\Тюм_ЭС\\!КПР ХМАО ЯНАО ТО\\Модели4 - 2023\\v29\\без МДП pop); таблица:node; тип:2; поле: pn,qn; выборка:]\n"
+"\n"
 ""))
         self.cb_disable_excel.setText(_translate("calc_ur", "Отключаемые элементы сети. Расчет сочетаний из книги EXCEL"))
         self.cb_import_model.setText(_translate("calc_ur", "Импорт из модели .rg2"))
         self.gb_import_model.setTitle(_translate("calc_ur", "Параметры"))
-        self.te_path_import_rg2.setPlainText(_translate("calc_ur", "C:\\Users\\User\\Desktop\\YandexDisk\\РАБОТА\\Омск мой\\РМ\\14.1 110 Загородная v5 перенос г9\\!zad.rg2"))
+        self.te_path_import_rg2.setPlainText(_translate("calc_ur", "I:\\rastr_add\\test\\файлы импорта\\файл задания на расчет.rg2"))
         self.b_choice_path_import_folder.setText(_translate("calc_ur", "Выбор папки"))
         self.b_choice_path_import_file.setText(_translate("calc_ur", "Выбор файла"))
-        self.te_import_rg2.setPlainText(_translate("calc_ur", "# таблица: параметры (обновить)\n"
-"node:Kontrol,otkl1, repair_scheme,disable_scheme,automation,  sel #  otkl1, otkl2, otkl3,N,umin,umin_av,umax\n"
-"vetv: Kontrol,otkl1 # otkl1, otkl2, otkl3, N\n"
-"# Generator: repair_scheme,disable_scheme, sel"))
+        self.te_import_rg2.setPlainText(_translate("calc_ur", "таблица:node, vetv; тип:2; поле: disable, control, repair_scheme, disable_scheme, double_repair_scheme, automation; выборка:\n"
+"таблица: Generator; тип:2; поле: disable, repair_scheme, disable_scheme, double_repair_scheme; выборка:\n"
+"\n"
+"таблица:automation, automation_pattern; тип:1; поле: ; выборка:\n"
+"\n"
+"# тип: \"обновить\"- 2 , \"загрузить\"- 1, \"присоединить\"- 0, \"присоединить-обновить\"- 3\n"
+"# поле: если не указано, то все поля\n"
+"# выборка: если не указано, то все строки"))
         self.cb_control.setText(_translate("calc_ur", "Контролируемые элементы сети:"))
         self.cb_disable_comb.setText(_translate("calc_ur", "Отключаемые элементы сети. Расчет всех возможных сочетаний."))
         self.run_calc_rg2.setText(_translate("calc_ur", "Выполнить"))
