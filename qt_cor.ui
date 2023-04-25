@@ -88,7 +88,7 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-606</y>
+         <y>-236</y>
          <width>931</width>
          <height>1437</height>
         </rect>
@@ -3666,7 +3666,8 @@
              <cursorShape>IBeamCursor</cursorShape>
             </property>
             <property name="plainText">
-             <string># краткая справка:
+             <string>анализ
+# краткая справка:
 #удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей
 #изм[15148:name=Промплощадка: изм name; pg=qn*2+10] 
 #изм[(vetv);(area);(area2);(darea): Tc=0]

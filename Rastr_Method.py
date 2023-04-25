@@ -783,6 +783,22 @@ class RastrMethod:
         part_table = table.writesafearray(fields, "000")
         return pd.DataFrame(data=part_table, columns=fields.split(','))
 
+    def table_from_df(self, df: pd.DataFrame, table_name: str, fields: str = '', type_import: int = 2):
+        """
+        Записать в таблицу растр DataFrame.
+        :param table_name:
+        :param df:
+        :param fields: Если не указывать, то все колонки.
+        :param type_import: Обновить: 2, загрузить: 1, дополнить: 0, обновить-добавить: 3.
+        :return:
+        """
+        table = self.rastr.tables(table_name)
+
+        if not fields:
+            fields = ','.join(df.columns)
+
+        table.ReadSafeArray(type_import, fields, tuple(df.itertuples(index=False, name=None)))
+
     def table_index(self, name_tables: str):
         """
         Заполнить поле index таблицы

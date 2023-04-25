@@ -49,9 +49,9 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>-135</y>
+           <y>-111</y>
            <width>729</width>
-           <height>1044</height>
+           <height>1029</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
@@ -1115,7 +1115,7 @@
                  <number>0</number>
                 </property>
                 <item>
-                 <widget class="QPlainTextEdit" name="le_tab_KO_info">
+                 <widget class="QPlainTextEdit" name="te_tab_KO_info">
                   <property name="maximumSize">
                    <size>
                     <width>16777215</width>
@@ -1156,7 +1156,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>рисунки RG2 для WORD</string>
+                <string>Сохранить СРС в формате RG2</string>
                </property>
                <property name="checked">
                 <bool>false</bool>
@@ -1168,7 +1168,7 @@
                <property name="minimumSize">
                 <size>
                  <width>0</width>
-                 <height>90</height>
+                 <height>75</height>
                 </size>
                </property>
                <property name="maximumSize">
@@ -1199,7 +1199,7 @@
                 <item>
                  <layout class="QHBoxLayout" name="horizontalLayout_12">
                   <item>
-                   <widget class="QCheckBox" name="cb_pic_nr">
+                   <widget class="QCheckBox" name="cb_pic_overloads">
                     <property name="maximumSize">
                      <size>
                       <width>16777215</width>
@@ -1207,42 +1207,10 @@
                      </size>
                     </property>
                     <property name="text">
-                     <string>Нормальные режимы</string>
+                     <string>Только СРС с отклонениями от доп. значений</string>
                     </property>
                     <property name="checked">
-                     <bool>false</bool>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QCheckBox" name="cb_pic_all_par">
-                    <property name="maximumSize">
-                     <size>
-                      <width>16777215</width>
-                      <height>18</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Все ПАРы</string>
-                    </property>
-                    <property name="checked">
-                     <bool>false</bool>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QCheckBox" name="cb_pic_par">
-                    <property name="maximumSize">
-                     <size>
-                      <width>16777215</width>
-                      <height>18</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Режимы с отклонениями от доп. значений</string>
-                    </property>
-                    <property name="checked">
-                     <bool>false</bool>
+                     <bool>true</bool>
                     </property>
                    </widget>
                   </item>
@@ -1262,149 +1230,28 @@
                  </layout>
                 </item>
                 <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_13">
-                  <item>
-                   <widget class="QLabel" name="label_13">
-                    <property name="minimumSize">
-                     <size>
-                      <width>50</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>70</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Формат A</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QSpinBox" name="sb_format">
-                    <property name="maximumSize">
-                     <size>
-                      <width>30</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="value">
-                     <number>3</number>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLabel" name="label_14">
-                    <property name="minimumSize">
-                     <size>
-                      <width>80</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>80</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>   Ориентация:</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QRadioButton" name="rb_albam">
-                    <property name="minimumSize">
-                     <size>
-                      <width>80</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>80</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Альбомная</string>
-                    </property>
-                    <property name="checked">
-                     <bool>true</bool>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QRadioButton" name="rb_book">
-                    <property name="minimumSize">
-                     <size>
-                      <width>80</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>999999</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Книжная</string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
-                </item>
-                <item>
-                 <layout class="QHBoxLayout" name="horizontalLayout_14">
-                  <item>
-                   <widget class="QLineEdit" name="le_pic_name">
-                    <property name="minimumSize">
-                     <size>
-                      <width>90</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>90</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="text">
-                     <string>Рисунок К.1.</string>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QSpinBox" name="sb_pic_number">
-                    <property name="minimumSize">
-                     <size>
-                      <width>60</width>
-                      <height>0</height>
-                     </size>
-                    </property>
-                    <property name="maximumSize">
-                     <size>
-                      <width>60</width>
-                      <height>16777215</height>
-                     </size>
-                    </property>
-                    <property name="value">
-                     <number>1</number>
-                    </property>
-                   </widget>
-                  </item>
-                  <item>
-                   <widget class="QLineEdit" name="le_pic_info">
-                    <property name="text">
-                     <string>10/Южный. </string>
-                    </property>
-                   </widget>
-                  </item>
-                 </layout>
+                 <widget class="QPlainTextEdit" name="te_name_pic">
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>10</pointsize>
+                    <underline>false</underline>
+                    <strikeout>false</strikeout>
+                    <kerning>true</kerning>
+                   </font>
+                  </property>
+                  <property name="cursor" stdset="0">
+                   <cursorShape>IBeamCursor</cursorShape>
+                  </property>
+                  <property name="plainText">
+                   <string>Рисунок К.[1] - Южный энергорайон. </string>
+                  </property>
+                 </widget>
                 </item>
                </layout>
               </widget>
@@ -1543,7 +1390,7 @@
                <string>Импорт из модели .rg2</string>
               </property>
               <property name="checked">
-               <bool>true</bool>
+               <bool>false</bool>
               </property>
              </widget>
             </item>
@@ -1692,7 +1539,7 @@
              <string>Контролируемые элементы сети:</string>
             </property>
             <property name="checked">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -1720,7 +1567,7 @@
              <string>Отключаемые элементы сети. Расчет всех возможных сочетаний.</string>
             </property>
             <property name="checked">
-             <bool>true</bool>
+             <bool>false</bool>
             </property>
            </widget>
           </item>
@@ -1784,17 +1631,9 @@
   <tabstop>le_condition_file_max_min</tabstop>
   <tabstop>le_condition_file_add_name</tabstop>
   <tabstop>cb_tab_KO</tabstop>
-  <tabstop>le_tab_KO_info</tabstop>
+  <tabstop>te_tab_KO_info</tabstop>
   <tabstop>cb_results_pic</tabstop>
-  <tabstop>cb_pic_nr</tabstop>
-  <tabstop>cb_pic_all_par</tabstop>
-  <tabstop>cb_pic_par</tabstop>
-  <tabstop>sb_format</tabstop>
-  <tabstop>rb_albam</tabstop>
-  <tabstop>rb_book</tabstop>
-  <tabstop>le_pic_name</tabstop>
-  <tabstop>sb_pic_number</tabstop>
-  <tabstop>le_pic_info</tabstop>
+  <tabstop>cb_pic_overloads</tabstop>
   <tabstop>cb_n2</tabstop>
   <tabstop>te_cor_txt</tabstop>
   <tabstop>cb_disable_excel</tabstop>
