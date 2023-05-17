@@ -49,9 +49,9 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>-111</y>
+           <y>0</y>
            <width>729</width>
-           <height>1029</height>
+           <height>1009</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
@@ -70,7 +70,7 @@
              </size>
             </property>
             <property name="title">
-             <string>Параметры</string>
+             <string>Параметры:</string>
             </property>
             <property name="checkable">
              <bool>false</bool>
@@ -204,10 +204,10 @@
                <item>
                 <widget class="QCheckBox" name="cb_filter_comb">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="text">
-                  <string>Фильтры для сочетаний РО, PP, PPO:</string>
+                  <string>Фильтры для сочетаний н-1, н-2:</string>
                  </property>
                  <property name="checked">
                   <bool>false</bool>
@@ -217,7 +217,7 @@
                <item>
                 <widget class="QLineEdit" name="le_filter_comb_val">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="maximumSize">
                   <size>
@@ -233,7 +233,7 @@
                <item>
                 <widget class="QLabel" name="label_7">
                  <property name="enabled">
-                  <bool>false</bool>
+                  <bool>true</bool>
                  </property>
                  <property name="text">
                   <string>%</string>
@@ -273,7 +273,7 @@
              </size>
             </property>
             <property name="title">
-             <string>Параметры</string>
+             <string>Параметры:</string>
             </property>
             <property name="checkable">
              <bool>false</bool>
@@ -397,11 +397,11 @@
             <property name="minimumSize">
              <size>
               <width>0</width>
-              <height>90</height>
+              <height>70</height>
              </size>
             </property>
             <property name="title">
-             <string>Параметры</string>
+             <string>Параметры:</string>
             </property>
             <layout class="QVBoxLayout" name="verticalLayout_13">
              <property name="spacing">
@@ -419,36 +419,6 @@
              <property name="bottomMargin">
               <number>2</number>
              </property>
-             <item>
-              <layout class="QHBoxLayout" name="horizontalLayout_17">
-               <item>
-                <widget class="QCheckBox" name="cb_auto_control">
-                 <property name="enabled">
-                  <bool>false</bool>
-                 </property>
-                 <property name="text">
-                  <string>Автоматический выбор контролируемых элементов, выборка в таблице узлы:</string>
-                 </property>
-                 <property name="checked">
-                  <bool>false</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="le_auto_control_choice">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>20</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>na=1</string>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </item>
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_11">
                <item>
@@ -756,7 +726,7 @@
                 </size>
                </property>
                <property name="title">
-                <string>Параметры</string>
+                <string>Параметры:</string>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_10">
                 <property name="spacing">
@@ -1096,7 +1066,7 @@
                 </size>
                </property>
                <property name="title">
-                <string>Параметры</string>
+                <string>Параметры:</string>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_11">
                 <property name="spacing">
@@ -1178,7 +1148,7 @@
                 </size>
                </property>
                <property name="title">
-                <string>Параметры</string>
+                <string>Параметры:</string>
                </property>
                <layout class="QVBoxLayout" name="verticalLayout_9">
                 <property name="spacing">
@@ -1403,7 +1373,7 @@
                </size>
               </property>
               <property name="title">
-               <string>Параметры</string>
+               <string>Параметры:</string>
               </property>
               <layout class="QVBoxLayout" name="verticalLayout_8">
                <property name="spacing">
@@ -1612,8 +1582,6 @@
   <tabstop>te_XL_path</tabstop>
   <tabstop>b_choice_XL</tabstop>
   <tabstop>le_XL_sheets</tabstop>
-  <tabstop>cb_auto_control</tabstop>
-  <tabstop>le_auto_control_choice</tabstop>
   <tabstop>cb_control_field</tabstop>
   <tabstop>le_control_field</tabstop>
   <tabstop>cb_Imax</tabstop>

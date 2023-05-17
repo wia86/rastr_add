@@ -68,6 +68,9 @@
       </item>
       <item>
        <widget class="QCheckBox" name="cb_pa">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
         <property name="text">
          <string>Учитывать ПА  (поле automation)</string>
         </property>

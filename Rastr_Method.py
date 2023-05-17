@@ -82,29 +82,6 @@ class RastrMethod:
                                            formula=formula, del_all=del_all))
         return ', '.join(info)
 
-    def replace_links(self, formula: str) -> str:
-        """
-        Функция заменяет в формуле ссылки на значения в таблицах rastr, на соответствующие значения.
-        :param formula: '(10.5+15,16,2:r)*ip.uhom'
-        :return: formula: '(10.5+z)*ip.uhom'
-        """
-        # formula = formula.replace(' ', '')
-        formula_list = re.split('\*|/|\^|\+|-|\(|\)|==|!=|&|\||not|>|<|<=|=<|>=|=>', formula)
-        for formula_i in formula_list:
-            if ':' in formula_i:
-                if any([txt in formula_i for txt in ['years', 'season', 'max_min', 'add_name']]):
-                    continue
-                sel_all, field = formula_i.split(':')
-                name_table, sel = self.recognize_key(sel_all)
-                self.rgm(f'для определения значения {formula}')
-                index = self.index_in_table(name_table, sel)
-                if index > -1:
-                    new_val = self.rastr.tables(name_table).cols.Item(field).ZS(index)
-                    formula = formula.replace(formula_i, new_val)
-                else:
-                    raise ValueError(f'В таблице {name_table} отсутствует {sel}')
-        return formula
-
     def recognize_key(self, key: str) -> tuple:
         """
         Распознать имя таблицы и выборку в таблице по короткой записи.
@@ -148,7 +125,12 @@ class RastrMethod:
             raise ValueError(f"Таблица не определена: {key=}")
         return rastr_table, selection_in_table
 
-    def group_cor(self, tabl: str, param: str, selection: str, formula: str, del_all: bool = False) -> str:
+    def group_cor(self,
+                  tabl: str,
+                  param: str = '',
+                  selection: str = '',
+                  formula: str = '',
+                  del_all: bool = False) -> str:
         """
         Групповая коррекция;
         :param tabl: таблица, нр 'node';
@@ -161,14 +143,16 @@ class RastrMethod:
         """
         if self.rastr.tables.Find(tabl) < 0:
             raise ValueError(f"В rastrwin не загружена таблица {tabl!r}.")
-        info = ''
+
         table = self.rastr.tables(tabl)
         table.setsel(selection)
-        if not table.count:
+        num = table.count
+        if not num:
             log_r_m.debug(f'В таблице {tabl!r} по выборке {selection!r} не найдено строк.')
             return ''
         i = table.FindNextSel(-1)
-        val1 = table.cols.Item(param).ZS(i)
+
+        start_value = table.cols.Item(param).ZS(i) if param else ''
 
         if formula == 'del':
             table.DelRows()
@@ -181,6 +165,7 @@ class RastrMethod:
                     table_gen = self.rastr.tables('Generator')
                     table_gen.setsel("Node=" + ny)
                     table_gen.DelRows()
+            return f'удаление {num} строк(и) в таблице {tabl} по выборке {selection}'
         else:
             if table.cols.Find(param) < 0:
                 raise ValueError(f"В таблице {tabl!r} нет параметра {param!r}.")
@@ -193,26 +178,42 @@ class RastrMethod:
                 if type(formula) == str:
                     formula = formula.replace(' ', '').replace(',', '.')
                 table.cols.item(param).Calc(formula)
-        if table.count == 1:
-            info = 'изменение '
-            if param == 'sta':
-                if str(formula) == '1':
-                    info = 'отключение '
-                elif str(formula) == '0':
-                    info = 'включение '
-            elif param in ['pg', 'P']:
-                info += 'генерации '
-            elif param in ['pn', 'qn']:
-                info += 'нагрузки '
 
-            for n in ['dname', 'name', 'Name']:
-                if table.cols.Find(n) > -1:
-                    if table.cols(n).Z(i).strip():
-                        info += table.cols(n).Z(i).strip()
-                        break
-            if 'изменение' in info:
-                info += f' c {val1} до {table.cols(param).ZS(i)}'
-        return info
+            if num > 1:
+                return f'изменение {selection} параметра {param}, {formula!r}'
+            elif num == 1:
+                # [отключение / включение:]    [имя(ВЛ, 1СШ, ЮЖНАЯ) / выборка]
+                # [имя(ВЛ, 1СШ, ЮЖНАЯ) / выборка]    [: изменение]    [нагрузки / генерации][с до]
+                # [имя(ВЛ, 1СШ, ЮЖНАЯ) / выборка]    [: изменение]    [парам(vzd)][с до]
+                info = ''
+                if param == 'sta':
+                    if str(formula) == '1':
+                        info = 'отключение: '
+                    elif str(formula) == '0':
+                        info = 'включение: '
+
+                name = selection
+                for n in ['dname', 'name', 'Name']:
+                    if table.cols.Find(n) > -1:
+                        name1 = table.cols(n).Z(i).strip()
+                        if name1:
+                            name = name1
+                            break
+
+                info += name
+                if param == 'sta':
+                    return info
+
+                info += ': изменение '
+                if param in ['pg', 'P']:
+                    info += 'генерации '
+                elif param in ['pn', 'qn']:
+                    info += 'нагрузки '
+                else:
+                    info += f'{param} '
+                info += f' c {start_value} до {table.cols(param).ZS(i)}'
+                return info
+
 
     def txt_field_return(self, table_name: str, selection: str, field_name: str) -> str:
         """
@@ -236,7 +237,7 @@ class RastrMethod:
 
         if edit:
             self.add_fields_in_table(name_tables='node', fields='index', type_fields=0)
-            self.table_index('node')
+            self.fill_field_index('node')
             col['index'] = 3
         node = self.rastr.tables("node")
         node.setsel(choice)
@@ -364,13 +365,23 @@ class RastrMethod:
                     log_r_m.warning(f"\tВнесено исправление: {umini}=0.")
                 j = node.FindNextSel(j)
 
-    def rgm(self, txt: str = "") -> bool:
+    def rgm(self, txt: str = "", param: str = '') -> bool:
         """
         Расчет режима
-        :param txt:
-        :return:
+        :param txt: Для вывода в лог
+        :param param: Параметр функции rastr.rgm(param)
+        Параметр функции rastr.rgm():
+        "" – c параметрами по умолчанию; 40 мс
+        "p" – расчет с плоского старта; 93 мс
+        "z" – отключение стартового алгоритма; 39 мс
+        "c" – отключение контроля данных; 38 мс
+        "r" – отключение подготовки данных (можно использовать
+        при повторном расчете режима с измененными значениями узловых мощностей и модулей напряжения). 34 мс
+        "zcr" - 19 мс
+        :return: False если развалился.
         """
-        for i in ('', '', '', 'p', 'p', 'p'):
+
+        for i in (param, '', '', 'p', 'p', 'p'):
             kod_rgm = self.rastr.rgm(i)  # 0 сошелся, 1 развалился
             if not kod_rgm:  # 0 сошелся
                 if txt:
@@ -655,8 +666,8 @@ class RastrMethod:
         for ny in all_auto_shunt:
             ku = all_auto_shunt[ny]
             ny_test = ku.ny_control if ku.ny_control else ku.ny_adjacency
-            i = self.index_in_table(name_table='node', key=f'ny={ny}')
-            i_test = self.index_in_table(name_table='node', key=f'ny={ny_test}')
+            i = self.index(name_table='node', key_str=f'ny={ny}')
+            i_test = self.index(name_table='node', key_str=f'ny={ny_test}')
             node = self.rastr.tables('node')
             sta = node.cols.item("sta").Z(i)  # 1 откл, 0 вкл
             volt_test = round(node.cols.item("vras").Z(i_test), 1)
@@ -695,37 +706,7 @@ class RastrMethod:
             log_r_m.info(changes_in_rm)
         return changes_in_rm
 
-    def index_table_from_key(self, task_key: str):
-        """
-        По ключу строки (нр ny=1) определяет таблицу и индекс
-        :return: (table:str, index:int) or False если не найдено
-        """
-        for key_tables in RastrMethod.KEY_TABLES:
-            if key_tables in task_key:
-                table = RastrMethod.KEY_TABLES[key_tables]
-                return tuple([table, self.index_in_table(name_table=table, key=task_key)])
-        return tuple([False, False])
-
-    def index_in_table(self, name_table: str, key: str) -> int:
-        """
-        Функция по ключу и имени таблицы возвращает индекс строки.
-        :param name_table: Например, 'node'
-        :param key: например ny=1
-        :return: Индекс строки в таблице. Если не найден key вернет -1. Если не найдена таблица вернет -2.
-        """
-        if not (name_table and key):
-            raise ValueError(f'Ошибка в задании {name_table=} {key=}')
-        if self.rastr.Tables.Find(name_table) == -1:
-            raise ValueError(f'Таблица {name_table=} не найдена в rastr')
-
-        table = self.rastr.tables(name_table)
-        table.setsel(key)
-        index = table.FindNextSel(-1)
-        if index < 0:
-            log_r_m.error(f' index_in_table. В таблице {name_table=} не найден {key=}')
-        return index
-
-    def table_index_list(self, table_name: str, setsel: str):
+    def table_index_setsel(self, table_name: str, setsel: str):
         """
         Вернуть list из индексов строк таблице в соответствии с выборкой.
         :param table_name: Имя таблицы
@@ -735,7 +716,7 @@ class RastrMethod:
         table = self.rastr.tables(table_name)
         if table.cols.Find("index") < 0:
             self.add_fields_in_table(name_tables=table_name, fields='index', type_fields=0)
-            self.table_index(table_name)
+            self.fill_field_index(table_name)
         table = self.rastr.tables(table_name)
         table.setsel(setsel)
         return [x[0] for x in table.writesafearray("index", "000")]
@@ -764,6 +745,8 @@ class RastrMethod:
                             table.Cols(field).SetProp(val[0], val[1])  # (номер свойства,новое значение)
                             log_r_m.info(f'В таблицу {name_table} добавлено поле {field}.')
                             # table.Cols(field).Prop(5)  # Получить значение
+                else:
+                    log_r_m.info(f'В таблицу {name_table} поле {field} уже имеется.')
 
     def df_from_table(self, table_name: str, fields: str = '', setsel: str = ''):
         """
@@ -799,39 +782,19 @@ class RastrMethod:
 
         table.ReadSafeArray(type_import, fields, tuple(df.itertuples(index=False, name=None)))
 
-    def table_index(self, name_tables: str):
+    def fill_field_index(self, name_tables: str):
         """
-        Заполнить поле index таблицы
+        Создать и заполнить поле index таблиц
         :param name_tables:
         """
         for name_table in name_tables.replace(' ', '').split(','):
             self.add_fields_in_table(name_tables=name_table, fields='index', type_fields=0)
             table = self.rastr.tables(name_table)
+            # todo ускорить
             df_key = self.df_from_table(table_name=name_table, fields=table.Key, setsel='')
             df_key['index'] = df_key.index
             table.ReadSafeArray(2, table.Key + ',index', tuple(df_key.itertuples(index=False, name=None)))
-            log_r_m.info(f'В таблицу {name_table} заполнено поле index.')
-
-    def sta(self, table: str, index: int) -> bool:
-        """
-        Отключить ветвь(группу ветвей, если groupid!=0), узел (с примыкающими ветвями)
-         или генератор.
-        :param table:
-        :param index:
-        :return: False если элемент отключен в исходном состоянии.
-        """
-        rtable = self.rastr.tables(table)
-        if rtable.cols.item('sta').Z(index) == 1:
-            return False
-        else:
-            if table == 'vetv' and rtable.cols.item('groupid').Z(index):
-                rtable.setsel('groupid=' + rtable.cols.item('groupid').ZS(index))
-                rtable.cols.item('sta').Calc(1)
-            elif table == 'node':
-                self.sta_node_with_branches(ny=rtable.cols.item('ny').Z(index), sta=1)
-            else:
-                rtable.cols.item('sta').SetZ(index, 1)
-            return True
+            log_r_m.debug(f'В таблицу {name_table} заполнено поле index.')
 
     def sta_node_with_branches(self, ny: int, sta: int):
         """Включить/отключить узел с ветвями."""
@@ -841,5 +804,8 @@ class RastrMethod:
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
         vetv.cols.item("sta").calc(sta)
+
+
+
 
 

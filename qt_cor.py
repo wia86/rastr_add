@@ -44,7 +44,7 @@ class Ui_cor(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, -236, 931, 1437))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 931, 1437))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.verticalLayout_2 = QtWidgets.QVBoxLayout(self.scrollAreaWidgetContents)
         self.verticalLayout_2.setObjectName("verticalLayout_2")
@@ -1741,7 +1741,7 @@ class Ui_cor(object):
         self.label_98.setText(_translate("cor", ", (доп имя 1;2):"))
         self.sel_import.setTabText(self.sel_import.indexOf(self.IT), _translate("cor", "I(T)"))
         self.CB_cor_b.setText(_translate("cor", "Задание на корректировку в текстовом формате"))
-        self.TE_cor_b.setPlainText(_translate("cor", "анализ\n"
+        self.TE_cor_b.setPlainText(_translate("cor", "# отключения[na>0] # [-] только анализ\n"
 "# краткая справка:\n"
 "#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей\n"
 "#изм[15148:name=Промплощадка: изм name; pg=qn*2+10] \n"
