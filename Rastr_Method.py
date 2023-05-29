@@ -60,7 +60,7 @@ class RastrMethod:
         if not (keys and values.replace(' ', '')):
             raise ValueError(f'{keys=},{values=}')
         for key in keys.split(";"):  # например:['na=11(node)','125', 'g=125', '12,13,0']
-            rastr_table, selection_in_table = self.recognize_key(key)
+            rastr_table, selection_in_table = self.recognize_key(key, 'tab sel')
 
             for value in values.split(";"):  # разделение задания, например:['pn=10.2', 'qn=5.4']
                 param = ''
@@ -82,48 +82,80 @@ class RastrMethod:
                                            formula=formula, del_all=del_all))
         return ', '.join(info)
 
-    def recognize_key(self, key: str) -> tuple:
+    def recognize_key(self, key: str, back: str = 'all'):
         """
         Распознать имя таблицы и выборку в таблице по короткой записи.
-        :param key: например:['na=11(node)','125', 'g=125', '12,13,0']
-        :return: (имя таблицы: str, выборка: str)
+        :param key: например:['na=11(node)','125', 'g=125', '12,13,0', '12,13']
+        :param back: тип возвращаемого значения
+        :return:'all' (имя таблицы: str, выборка: str, ключ: int|tuple(int,int,int?))
+                'tab' имя таблицы: str
+                's_key'  ключ: int|tuple(int,int,int)
+                'tab s_key'
+                'sel' выборка: str
+                'tab sel'
         """
         key = key.replace(' ', '')
         selection_in_table = key  # выборка в таблице
-        rastr_table = ''  # имя таблицы
-        # проверка наличия явного указания таблицы
-        match = re.search(re.compile(r"\((.+?)\)"), key)
+        if key == '-1':
+            rastr_table = 'vetv'
+            s_key = -1
+        else:
+            rastr_table = ''  # имя таблицы
+            # проверка наличия явного указания таблицы
+            match = re.search(re.compile(r"\((.+?)\)"), key)
+            s_key = 0
+            if match:  # таблица указана
+                rastr_table = match[1]
+                selection_in_table = selection_in_table.split('(', 1)[0]
 
-        if match:  # таблица указана
-            rastr_table = match[1]
-            selection_in_table = selection_in_table.split('(', 1)[0]
-
-        if selection_in_table:
-            # разделение ключей для распознания
-            key_comma = selection_in_table.split(",")  # нр для ветви [,,], прочее []
-            key_equally = selection_in_table.split("=")  # есть = [,], нет равно []
-            if ',' in selection_in_table:  # vetv
-                if len(key_comma) > 3:
-                    raise ValueError(f'Ошибка в задании {key=}')
-                rastr_table = 'vetv'
-                if len(key_comma) == 3:
-                    selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np={key_comma[2]}"
-                if len(key_comma) == 2:
-                    selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np=0"
-            else:
-                if selection_in_table.isdigit():
-                    rastr_table = 'node'
-                    selection_in_table = "ny=" + selection_in_table
-                elif 'g' == key_equally[0]:
-                    rastr_table = 'Generator'
-                    selection_in_table = "Num=" + key_equally[1]
+            if selection_in_table:
+                # разделение ключей для распознания
+                key_comma = selection_in_table.split(",")  # нр для ветви [,,], прочее []
+                key_equally = selection_in_table.split("=")  # есть = [,], нет равно []
+                if ',' in selection_in_table:  # vetv
+                    if len(key_comma) > 3:
+                        raise ValueError(f'Ошибка в задании {key=}')
+                    rastr_table = 'vetv'
+                    if len(key_comma) == 3:
+                        selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np={key_comma[2]}"
+                        s_key = (int(key_comma[0]), int(key_comma[1]), int(key_comma[2]),)
+                    if len(key_comma) == 2:
+                        selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np=0"
+                        s_key = (int(key_comma[0]), int(key_comma[1]), 0)
                 else:
-                    if not rastr_table:
-                        if key_equally[0] in self.KEY_TABLES:
-                            rastr_table = self.KEY_TABLES[key_equally[0]]  # вернет имя таблицы
-        if not rastr_table:
-            raise ValueError(f"Таблица не определена: {key=}")
-        return rastr_table, selection_in_table
+                    if selection_in_table.isdigit():
+                        rastr_table = 'node'
+                        s_key = int(selection_in_table)
+                        selection_in_table = "ny=" + selection_in_table
+                    elif 'g' == key_equally[0]:
+                        rastr_table = 'Generator'
+                        s_key = int(key_equally[1])
+                        selection_in_table = "Num=" + key_equally[1]
+                    elif len(key_equally) == 2:
+                        s_key = int(key_equally[1])
+                        if not rastr_table:
+                            if key_equally[0] in self.KEY_TABLES:
+                                rastr_table = self.KEY_TABLES[key_equally[0]]  # вернет имя таблицы
+                    elif len(key_equally) > 2:  # "ip = 1&iq = 2&np = 0"
+                        rastr_table = 'vetv'
+                        ip = int(key_equally[1].split('&')[0])
+                        iq = int(key_equally[2].split('&')[0])
+                        np_ = 0 if len(key_equally) == 3 else int(key_equally[3])
+                        s_key = (ip, iq, np_)  # if np_ else (ip, iq)
+            if not rastr_table:
+                raise ValueError(f"Таблица не определена: {key=}")
+
+        if back == 's_key':
+            return s_key
+        elif back == 'sel':
+            return selection_in_table
+        elif back == 'tab':
+            return rastr_table
+        elif back == 'tab s_key':
+            return rastr_table, s_key
+        elif back == 'tab sel':
+            return rastr_table, selection_in_table
+        return rastr_table, selection_in_table, s_key
 
     def group_cor(self,
                   tabl: str,
@@ -214,156 +246,128 @@ class RastrMethod:
                 info += f' c {start_value} до {table.cols(param).ZS(i)}'
                 return info
 
-
-    def txt_field_return(self, table_name: str, selection: str, field_name: str) -> str:
+    def txt_field_return(self, table_name: str, selection: str, field_name: str):
         """
-        Считать текстовое поле в таблице rastrwin.
+        Считать поле в таблице rastrwin.
         :param table_name:
         :param field_name:
-        :param selection:
+        :param selection: Выборка в таблице
         :return: Значение поля
         """
         table = self.rastr.tables(table_name)
         table.setsel(selection)
-        return table.cols.Item(field_name).ZS(table.FindNextSel(-1))
-
-    def voltage_nominal(self, choice: str = 'uhom>30', edit: bool = False):
-        """
-        Проверка номинального напряжения на соответствие ряду [6, 10, 35, 110, 220, 330, 500, 750].
-        :param choice: выборка в таблице 'узлы'
-        :param edit: Исправить номинальные напряжения в узлах
-        """
-        col = {'name': 0, 'ny': 1, 'uhom': 2}
-
-        if edit:
-            self.add_fields_in_table(name_tables='node', fields='index', type_fields=0)
-            self.fill_field_index('node')
-            col['index'] = 3
-        node = self.rastr.tables("node")
-        node.setsel(choice)
-        if node.count:
-            for i in node.writesafearray(','.join(col), "000"):
-                uhom = i[col['uhom']]
-                if uhom not in self.U_NOM:
-                    name = i[col['name']]
-                    ny = i[col['ny']]
-                    log_r_m.warning(f"\tНесоответствие номинального напряжения: {ny=}, {name=}, {uhom=}.")
-                    if edit:
-                        for x in range(len(self.U_NOM)):
-                            if self.U_MIN_NORM[x] < uhom < self.U_LARGEST_WORKING[x]:
-                                node.cols.item("uhom").SetZ(i[col['index']], self.U_NOM[x])
-                                log_r_m.info(f"\tВнесены изменения! {ny=}, {name}, uhom={self.U_NOM[x]}")
-                                break
+        return table.cols.Item(field_name).Z(table.FindNextSel(-1))
 
     def voltage_fix_frame(self):
         """
         В таблице узлы задать поля umin(uhom*1.15*0.7), umin_av(uhom*1.1*0.7), если uhom>100
         и и_umax
         """
-        log_r_m.info(f"\t Задать umax и umin")
-        # todo задать umin для менее 100 кВ 5-10 %
+        log_r_m.info(f"\t Заполнение поля umax и umin таблицы node.")
         node = self.rastr.tables("node")
-        node.setsel('umin=0&uhom>100')
-        node.cols.item("umin").calc("uhom*1.15*0.7")  # umin
-        node.setsel('umin_av=0&uhom>100')
-        node.cols.item("umin_av").calc("uhom*1.1*0.7")  # umin_av
-        node.setsel('umax=0&uhom<50')
-        node.cols.item("umax").calc("uhom*1.2")  # umax
-        node.setsel('umax=0&uhom>50&uhom<300')
-        node.cols.item("umax").calc("uhom*1.1455")  # umax
-        node.setsel('umax=0&uhom=330')
-        node.cols.item("umax").calc("uhom*1.1")  # umax
-        node.setsel('umax=0&uhom>400')
-        node.cols.item("umax").calc("uhom*1.05")  # umax
-        node.setsel('umax=0&uhom=750')
-        node.cols.item("umax").calc("uhom*1.0493")  # umax
+        data = []
+        field = 'ny,uhom,umax,umin,umin_av'
+        for ny, uhom, umax, umin, umin_av in node.writesafearray(field, "000"):
+            if umin == 0 and uhom > 100:
+                umin = uhom * 1.15 * 0.7
+            if umin_av == 0 and uhom > 100:
+                umin_av = uhom * 1.1 * 0.7
+            if not umax:
+                if uhom < 50:
+                    umax = uhom * 1.2
+                if 50 < uhom < 300:
+                    umax = uhom * 1.1455
+                if uhom == 330:
+                    umax = uhom * 1.1
+                if uhom > 400:
+                    umax = uhom * 1.05
+                if uhom == 750:
+                    umax = uhom * 1.0493
+
+            data.append((ny, uhom, umax, umin, umin_av,))
+        node.ReadSafeArray(2, field, data)
 
     def voltage_fine(self, choice: str = ''):
         """
-        Проверка расчетного напряжения: меньше наибольшего рабочего, больше минимального рабочего напряжения.
+        Проверка расчетного напряжения:
+        меньше наибольшего рабочего,
+        минимального рабочего напряжения,
+        больше минимально-допустимого.
         :param choice: Выборка в таблице узлы
         """
-        col = {'name': 0, 'ny': 1, 'vras': 2}
+        log_r_m.info('Проверка расчетного напряжения.')
         node = self.rastr.tables("node")
         for i in range(len(self.U_NOM)):
             sel_node = f"!sta&uhom={self.U_NOM[i]}"
             if choice:
-                sel_node += "&" + choice
+                sel_node += f"&{choice}"
             node.setsel(sel_node)
-            data_node = node.writesafearray(','.join(col), "000")
-            if data_node:
-                for ii in data_node:
-                    vras = round(ii[col['vras']], 1)
+            if node.count:
+                for name, ny, vras in node.writesafearray('name,ny,vras', "000"):
+                    vras = round(vras, 1)
                     if not self.U_MIN_NORM[i] < vras < self.U_LARGEST_WORKING[i]:
-                        ny = ii[col['ny']]
-                        name = ii[col['name']]
                         if self.U_MIN_NORM[i] > vras:
                             log_r_m.warning(f"\tНизкое напряжение: {ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
                         if vras > self.U_LARGEST_WORKING[i]:
-                            log_r_m.warning(f"\tВысокое напряжение: {ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
+                            log_r_m.warning(f"\tПревышение наибольшего рабочего напряжения: "
+                                            f"{ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
 
-    def voltage_deviation(self, choice: str = ''):
-        """
-        Проверка расчетного напряжения: больше минимально-допустимого.
-        :param choice: Выборка в таблице узлы
-        """
-        col = {'name': 0, 'ny': 1, 'vras': 2, 'umin': 2}
-        node = self.rastr.tables("node")
-        sel_node = "otv_min>0&!sta"  # Отклонение напряжения от umin минимально допустимого, в %
-        self.add_fields_in_table(name_tables='node', fields='otv_min', type_fields=1,
-                                 prop=((5, 'if(sta=0) (-vras+umin)/umin*100:0'),),
-                                 replace=True)
+        sel_node = "vras>0&vras<umin"  # Отклонение напряжения от umin минимально допустимого, в %
         if choice:
             sel_node += "&" + choice
         node.setsel(sel_node)
         if node.count:
-            for i in node.writesafearray(','.join(col), "000"):
-                ny = i[col['ny']]
-                name = i[col['name']]
-                vras = round(i[col['vras']], 1)
-                umin = round(i[col['umin']], 1)
+            for name, ny, vras, umin in node.writesafearray('name,ny,vras,umin', "000"):
                 log_r_m.warning(f"\tНапряжение ниже минимально-допустимого: {ny=}, {name=}, {vras=}, {umin=}")
 
     def voltage_error(self, choice: str = '', edit: bool = False):
         """
-        - если umax<uhom, то umax удаляется;
-        - если umin>uhom, umin_av>uhom, то umin, umin_av удаляется.
+        Проверка номинального напряжения на соответствие ряду [6, 10, 35, 110, 220, 330, 500, 750].
+        Если umax<uhom, то umax удаляется;
+        Если umin>uhom, umin_av>uhom, то umin, umin_av удаляется.
         :param choice: выборка в таблице узлы
         :param edit:
         """
         node = self.rastr.tables("node")
-        sel_node = "umax<uhom&umax!=0"
-        if choice:
-            sel_node += "&" + choice
-        node.setsel(sel_node)
-        j = node.FindNextSel(-1)
-        while j > -1:
-            ny = node.cols.item('ny').ZS(j)
-            name = node.cols.item('name').ZS(j)
-            umax = node.cols.item('umax').ZS(j)
-            uhom = node.cols.item('uhom').ZS(j)
-            log_r_m.warning(f"\tОшибка: umax<uhom! {ny=},{name=}, {umax=},{uhom=}.")
-            if edit:
-                node.cols.item('umax').SetZ(j, 0)
-                log_r_m.warning(f"\tВнесено исправление: umax=0.")
-            j = node.FindNextSel(j)
+        if edit:
+            self.fill_field_index('node')
+        else:
+            self.add_fields_in_table(name_tables='node', fields='index', type_fields=0)
+        data = []
+        node.setsel(choice)
+        if node.count:
+            data_b = node.writesafearray('name,ny,uhom,index,umax,umin,umin_av', "000")
+            for name, ny, uhom, index, umax, umin, umin_av in data_b:
+                add = False
+                # Номинальное напряжение.
+                if uhom not in self.U_NOM:
+                    for x in range(len(self.U_NOM)):
+                        if self.U_MIN_NORM[x] < uhom < self.U_LARGEST_WORKING[x]:
+                            log_r_m.warning(f"\tНесоответствие номинального напряжения: "
+                                            f"{ny=}, {name=}, {uhom=}->{self.U_NOM[x]}.")
+                            uhom = self.U_NOM[x]
+                            add = True
+                            break
+                # Ошибки
+                if umax and umax < uhom:
+                    log_r_m.warning(f"\tОшибка:{ny=},{name=}, {umax=}<{uhom=}.")
+                    umax = 0
+                    add = True
+                if umin > uhom:
+                    log_r_m.warning(f"\tОшибка: {ny=},{name=}, {umin=}>{uhom=}.")
+                    umin = 0
+                    add = True
+                if umin_av > uhom:
+                    log_r_m.warning(f"\tОшибка: {ny=},{name=}, {umin_av=}>{uhom=}.")
+                    umin_av = 0
+                    add = True
 
-        for umini in ['umin', 'umin_av']:
-            sel_node = umini + ">uhom"
-            if choice:
-                sel_node += "&" + choice
-            node.setsel(sel_node)
-            j = node.FindNextSel(-1)
-            while j > -1:
-                ny = node.cols.item('ny').ZS(j)
-                name = node.cols.item('name').ZS(j)
-                umin = node.cols.item(umini).ZS(j)
-                uhom = node.cols.item('uhom').ZS(j)
-                log_r_m.warning(f"\tОшибка: {umini}>uhom! {ny=},{name=}, {umin=},{uhom=}.")
-                if edit:
-                    node.cols.item(umini).SetZ(j, 0)
-                    log_r_m.warning(f"\tВнесено исправление: {umini}=0.")
-                j = node.FindNextSel(j)
+                if edit and add:
+                    data.append((name, ny, uhom, index, umax, umin, umin_av,))
+
+        if edit:
+            log_r_m.warning(f"\tОшибки исправлены.")
+            node.ReadSafeArray(2, 'name,ny,uhom,index,umax,umin,umin_av', data)
 
     def rgm(self, txt: str = "", param: str = '') -> bool:
         """
@@ -380,30 +384,21 @@ class RastrMethod:
         "zcr" - 19 мс
         :return: False если развалился.
         """
-
+        if txt:
+            log_r_m.debug(f"Расчет режима: {txt}")
         for i in (param, '', '', 'p', 'p', 'p'):
             kod_rgm = self.rastr.rgm(i)  # 0 сошелся, 1 развалился
             if not kod_rgm:  # 0 сошелся
-                if txt:
-                    log_r_m.debug(f"Расчет режима: {txt}")
                 return True
         # развалился
         log_r_m.info(f"Расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!")
         return False
 
-    def sel0(self, txt=''):
-        """ Снять отметку узлов, ветвей и генераторов"""
-        self.rastr.Tables("node").cols.item("sel").Calc("0")
-        self.rastr.Tables("vetv").cols.item("sel").Calc("0")
-        self.rastr.Tables("Generator").cols.item("sel").Calc("0")
-        if txt:
-            log_r_m.info("\tСнять отметку узлов, ветвей и генераторов")
-
     def all_cols(self, tab: str, val_return: str = 'str'):
         """
         Возвращает все поля таблицы, кроме начинающихся с '_'.
         :param tab:
-        :param val_return: 'str' или 'list'
+        :param val_return: Варианты: 'str' или 'list'
         :return:
         """
         cls = self.rastr.Tables(tab).Cols
@@ -452,9 +447,9 @@ class RastrMethod:
         log_r_m.info(f'\tВ таблицу <{table}> добавлена строка <{tasks}>, индекс <{index}>')
         return index
 
-    def txt_field_right(self, table_field: str = 'node:name,dname;vetv:dname;Generator:Name'):
-        """        Исправить пробелы, заменить английские буквы на русские.        """
-        for task in table_field.replace(' ', '').split(';'):
+    def txt_field_right(self, tasks: str = 'node:name,dname;vetv:dname;Generator:Name'):
+        """Исправить пробелы, заменить английские буквы на русские."""
+        for task in tasks.replace(' ', '').split(';'):
             name_table, field_table = task.split(':')
             for field_table_i in field_table.split(','):
                 self.cor_letter_space(table=name_table, field=field_table_i)
@@ -488,32 +483,28 @@ class RastrMethod:
             "x": "х",
             "c": "с",
             "b": "в"}
-        if self.rastr.Tables.Find(table) == -1:
-            raise ValueError(f'В rastr не найдена таблица <{table}>.')
         r_table = self.rastr.tables(table)
-        if r_table.cols.Find(field) == -1:
-            raise ValueError(f'В rastr таблице не найдено поле <{field}>.')
-
-        r_field = r_table.cols.item(field)
-        r_table.setsel("")
-        index = r_table.FindNextSel(-1)
-        while index >= 0:
-            val1 = r_field.ZS(index)
+        data = []
+        fields = f'{field},{r_table.Key}'
+        for i in r_table.writesafearray(fields, "000"):
+            i = list(i)
+            new = i[0]
             # заменить буквы
             for key in matching_letter:
-                while key in r_field.ZS(index):
-                    r_field.SetZ(index, r_field.ZS(index).replace(key, matching_letter[key]))
-            # пробелы
-            while '  ' in r_field.ZS(index):
-                r_field.SetZ(index, r_field.ZS(index).replace('  ', ' '))
-            r_field.SetZ(index, r_field.ZS(index).strip())
-            while ' -' in r_field.ZS(index) and ' - ' not in r_field.ZS(index):
-                r_field.SetZ(index, r_field.ZS(index).replace(' -', ' - '))
-            while '- ' in r_field.ZS(index) and ' - ' not in r_field.ZS(index):
-                r_field.SetZ(index, r_field.ZS(index).replace('- ', ' - '))
-            if not val1 == r_field.ZS(index):
-                log_r_m.info(f'\t\tИсправление текстового поля: {table, field} <{val1}> на <{r_field.ZS(index)}>')
-            index = r_table.FindNextSel(index)
+                while key in new:
+                    new = new.replace(key, matching_letter[key])
+            while '  ' in new:
+                new = new.replace('  ', ' ')
+            while ' -' in new and ' - ' not in new:
+                new = new.replace(' -', ' - ')
+            while '- ' in new and ' - ' not in new:
+                new = new.replace('- ', ' - ')
+            if not i[0] == new:
+                log_r_m.info(f'\t\tИсправление текстового поля: {table, field} <{i[0]}> на <{new}>')
+                i[0] = new
+                data.append(i)
+        if data:
+            r_table.ReadSafeArray(2, fields, data)
 
     def shn(self, choice: str = ''):
         """
@@ -713,9 +704,9 @@ class RastrMethod:
         :param setsel: Выборка в таблице
         :return:
         """
+        # todo удалить
         table = self.rastr.tables(table_name)
         if table.cols.Find("index") < 0:
-            self.add_fields_in_table(name_tables=table_name, fields='index', type_fields=0)
             self.fill_field_index(table_name)
         table = self.rastr.tables(table_name)
         table.setsel(setsel)
@@ -741,8 +732,8 @@ class RastrMethod:
                 if table.cols.Find(field) < 0:
                     table.Cols.Add(field, type_fields)
                     if prop != ():
-                        for val in prop:
-                            table.Cols(field).SetProp(val[0], val[1])  # (номер свойства,новое значение)
+                        for property_number, val in prop:
+                            table.Cols(field).SetProp(property_number, val)  # (номер свойства,новое значение)
                             log_r_m.info(f'В таблицу {name_table} добавлено поле {field}.')
                             # table.Cols(field).Prop(5)  # Получить значение
                 else:
@@ -790,11 +781,9 @@ class RastrMethod:
         for name_table in name_tables.replace(' ', '').split(','):
             self.add_fields_in_table(name_tables=name_table, fields='index', type_fields=0)
             table = self.rastr.tables(name_table)
-            # todo ускорить
-            df_key = self.df_from_table(table_name=name_table, fields=table.Key, setsel='')
-            df_key['index'] = df_key.index
-            table.ReadSafeArray(2, table.Key + ',index', tuple(df_key.itertuples(index=False, name=None)))
-            log_r_m.debug(f'В таблицу {name_table} заполнено поле index.')
+            keys = [(*x, i) for i, x in enumerate(table.writesafearray(table.Key, "000"), 1)]
+            table.ReadSafeArray(2, table.Key + ',index', keys)
+            log_r_m.debug(f'В таблице {name_table} заполнено поле index.')
 
     def sta_node_with_branches(self, ny: int, sta: int):
         """Включить/отключить узел с ветвями."""
@@ -804,8 +793,3 @@ class RastrMethod:
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
         vetv.cols.item("sta").calc(sta)
-
-
-
-
-

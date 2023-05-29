@@ -59,7 +59,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>Учитывать доп. отключения и ремонтные схемы (поле repair_scheme, disable_scheme)</string>
+         <string>Учитывать доп. отключения и ремонтные схемы</string>
         </property>
         <property name="checked">
          <bool>true</bool>
@@ -72,7 +72,7 @@
          <bool>false</bool>
         </property>
         <property name="text">
-         <string>Учитывать ПА  (поле automation)</string>
+         <string>Учитывать ПА</string>
         </property>
         <property name="checked">
          <bool>true</bool>

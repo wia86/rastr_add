@@ -40,7 +40,6 @@ from qt_calc_ur import Ui_calc_ur  # pyuic5 qt_calc_ur.ui -o qt_calc_ur.py
 from qt_calc_ur_set import Ui_calc_ur_set  # pyuic5 qt_calc_ur_set.ui -o qt_calc_ur_set.py
 from collections import namedtuple, defaultdict, Counter
 
-
 # Если не работает терминал, то в  PowerShell ввести:
 # Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned –Force
 
@@ -181,7 +180,7 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         self.run_calc_rg2.clicked.connect(lambda: self.start())
         self.te_path_initial_models.setPlainText(GeneralSettings.read_ini(section='save_form_folder_calc', key="path"))
         # Подсказки
-        self.le_control_field.setToolTip("Например, 'sel'. Если '*' - то контролировать все ветви и узлы")
+        self.le_control_sel.setToolTip("Если поле не заполнено, то контролируются все ветви и узлы РМ")
         self.te_path_initial_models.setToolTip("Для расчета файлов во всех вложенных папках нужно в конце поставить *")
 
     def task_save_yaml(self):
@@ -231,7 +230,7 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         self.le_comb_field.setText(task_yaml['comb_field'])
 
         self.cb_filter_comb.setChecked(task_yaml['filter_comb'])
-        self.le_filter_comb_val.setText(task_yaml['filter_comb_val'])
+        self.sb_filter_comb_val.setValue(task_yaml['filter_comb_val'])
         # Импорт перечня расчетных сочетаний из EXCEL
         self.cb_disable_excel.setChecked(task_yaml['cb_disable_excel'])
         self.te_XL_path.setPlainText(task_yaml['srs_XL_path'])
@@ -239,7 +238,9 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         # Расчет всех возможных сочетаний. Контролируемые элементы.
         self.cb_control.setChecked(task_yaml['cb_control'])
         self.cb_control_field.setChecked(task_yaml['cb_control_field'])
-        self.le_control_field.setText(task_yaml['le_control_field'])
+        self.le_control_field.setText(task_yaml['control_field'])
+        self.cb_control_sel.setChecked(task_yaml['cb_control_sel'])
+        self.le_control_sel.setText(task_yaml['control_sel'])
         self.cb_Imax.setChecked(task_yaml['cb_Imax'])
         # Результаты в EXCEL: таблицы контролируемые - отключаемые элементы
         self.cb_tab_KO.setChecked(task_yaml['cb_tab_KO'])
@@ -248,7 +249,7 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         self.cb_results_pic.setChecked(task_yaml['results_RG2'])
         self.cb_pic_overloads.setChecked(task_yaml['pic_overloads'])
         self.te_name_pic.setPlainText(task_yaml['name_pic'])
-        # TODO настройки
+
         self.check_status(self.check_status_visibility)
 
     def start(self):
@@ -293,7 +294,7 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             "comb_field": self.le_comb_field.text(),
 
             'filter_comb': self.cb_filter_comb.isChecked(),
-            'filter_comb_val': self.le_filter_comb_val.text(),
+            'filter_comb_val': self.sb_filter_comb_val.value(),
             # Импорт перечня расчетных сочетаний из EXCEL
             'cb_disable_excel': self.cb_disable_excel.isChecked(),
             'srs_XL_path': self.te_XL_path.toPlainText(),
@@ -301,7 +302,9 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             # Расчет всех возможных сочетаний. Контролируемые элементы.
             'cb_control': self.cb_control.isChecked(),
             'cb_control_field': self.cb_control_field.isChecked(),
-            'le_control_field': self.le_control_field.text(),
+            'cb_control_sel': self.cb_control_sel.isChecked(),
+            'control_field': self.le_control_field.text(),
+            'control_sel': self.le_control_sel.text(),
             'cb_Imax': self.cb_Imax.isChecked(),
 
             # Результаты в EXCEL: таблицы контролируемые - отключаемые элементы
@@ -312,7 +315,6 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             'results_RG2': self.cb_results_pic.isChecked(),
             'pic_overloads': self.cb_pic_overloads.isChecked(),
             'name_pic': self.te_name_pic.toPlainText(),
-            # TODO настройки
         }
         """
         Заполнить task_calc задание взяв данные с формы QT.
@@ -382,8 +384,6 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
                 self.LE_rg2.setText(config['DEFAULT']["шаблон rg2"])
                 self.LE_rst.setText(config['DEFAULT']["шаблон rst"])
                 self.LE_sch.setText(config['DEFAULT']["шаблон sch"])
-                self.LE_amt.setText(config['DEFAULT']["шаблон amt"])
-                self.LE_trn.setText(config['DEFAULT']["шаблон trn"])
             except LookupError:
                 log.error(f'файл {GeneralSettings.ini} не читается, перезаписан')
                 self.save_ini()
@@ -398,9 +398,7 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
             "folder RastrWin3": self.LE_path.text(),
             "шаблон rg2": self.LE_rg2.text(),
             "шаблон rst": self.LE_rst.text(),
-            "шаблон sch": self.LE_sch.text(),
-            "шаблон amt": self.LE_amt.text(),
-            "шаблон trn": self.LE_trn.text()}
+            "шаблон sch": self.LE_sch.text()}
         with open(GeneralSettings.ini, 'w') as configfile:
             config.write(configfile)
 
@@ -914,8 +912,10 @@ class GeneralSettings(ABC):
     def the_end(self):  # по завершению
         execution_time = time.strftime("%H:%M:%S", time.gmtime(time.time() - self.time_start))
         self.set_info['end_info'] = (
-            f"РАСЧЕТ ЗАКОНЧЕН! \nНачало расчета {self.now_start}, конец {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}"
-            f" \nЗатрачено: {execution_time} (файлов: {self.file_count}).")
+            f"РАСЧЕТ ЗАКОНЧЕН!"
+            f"\nНачало расчета {self.now_start}."
+            f"\nКонец {datetime.now().strftime('%d-%m-%Y %H:%M:%S')}."
+            f"\nЗатрачено: {execution_time} (файлов: {self.file_count}).")
         log.info(self.set_info['end_info'])
 
     @staticmethod
@@ -1003,7 +1003,6 @@ class CalcModel(GeneralSettings):
         self.restore_only_state = True
 
         # DF для хранения токовых перегрузок и недопустимого снижения U
-
         self.srs_xl = pd.DataFrame()  # Перечень отключений их excel
         self.overloads_all = pd.DataFrame()  # общий
         self.overloads_srs = pd.DataFrame()  # СРС перегрузки
@@ -1013,6 +1012,11 @@ class CalcModel(GeneralSettings):
         self.book_path: str = ''  # Путь к файлу excel.
         self.pa = None  # Объект Automation
         self.task_full_name = ''  # Путь к файлу задания rg2.
+
+        self.disable_df_vetv = pd.DataFrame()
+        # {((ip, iq, np), disable_scheme, comb.repair_scheme):list((ip, iq, np), ...)}
+        # отключаемая ветвь: (ветви из списка отключаемых ветвей, загрузка которых изменяется)
+        self.disable_effect = defaultdict(list)
 
         # Для хранения имен файлов с рисунками и имен рисунков
         self.df_picture = pd.DataFrame(dtype='str', columns=['Наименование файла',
@@ -1158,7 +1162,7 @@ class CalcModel(GeneralSettings):
                     self.for_file(folder_calc=address)
             else:  # без вложенных папок
                 self.for_file(folder_calc=self.task_calc["calc_folder"])
-
+        # один файл
         elif os.path.isfile(self.task_calc["calc_folder"]):
             rm = RastrModel(self.task_calc["calc_folder"])
             if not rm.code_name_rg2:
@@ -1176,7 +1180,6 @@ class CalcModel(GeneralSettings):
                         if col in col_df:
                             self.overloads_all.fillna(value={col_df: 0}, inplace=True)
                             self.overloads_all.loc[self.overloads_all[col_df] == 0, col_df] = '-'
-                self.overloads_all.rename(columns={'dname': 'Контролируемые элементы'}, inplace=True)
                 self.overloads_all.to_excel(excel_writer=writer,
                                             float_format="%.2f",
                                             index_label='Номер сочетания.подсочетания',
@@ -1247,16 +1250,16 @@ class CalcModel(GeneralSettings):
                                                     i_zag_av="Iзагр. адтн,%")))
             if "umin" in self.overloads_all.columns:
                 task_pivot.append(task_pivot_i('Сводная_Umin', "Свод_Umin",
-                                               dict(vras="Uрасч.,кВ",
-                                                    umin="Uмдн,кВ",
-                                                    otv_min="Uмдн,%",
-                                                    umin_av="Uaдн,кВ",
-                                                    otv_min_av="Uaдн,%")))
+                                               dict(vras="Uр, кВ",
+                                                    umin="МДН, кВ",
+                                                    otv_min="Uр, % от МДН",
+                                                    umin_av="АДН,кВ",
+                                                    otv_min_av="Uр, % от АДН")))
             if "umax" in self.overloads_all.columns:
                 task_pivot.append(task_pivot_i('Сводная_Umax', "Свод_Umax",
-                                               dict(vras="Uрасч.,кВ",
-                                                    umax="Uнаиб.раб.,кВ",
-                                                    otv_max="Uнаиб.раб.,%")))
+                                               dict(vras="Uр, кВ",
+                                                    umax="Uнр, кВ",
+                                                    otv_max="Uр, % от Uнр")))
 
             RowFields = [col for col in ["Контролируемые элементы", "Отключение", "Ремонт 1", "Ремонт 2"]
                          if col in self.overloads_all.columns]
@@ -1467,34 +1470,42 @@ class CalcModel(GeneralSettings):
             rm.add_fields_in_table(name_tables='vetv,node', fields='all_control', type_fields=3)
 
             if self.task_calc['cb_control_field']:
-
-                if '*' in self.task_calc['le_control_field']:
-                    rm.rastr.Tables("node").cols.item("all_control").Calc("1")
-                    rm.rastr.Tables("vetv").cols.item("all_control").Calc("1")
-                else:
-                    # Добавит поле отметки отключений, если их нет в какой-то таблице.
-                    rm.add_fields_in_table(name_tables='vetv,node',
-                                           fields=self.task_calc['le_control_field'],
-                                           type_fields=3)
+                control_field = self.task_calc['control_field'].replace(' ', '')
+                log.debug(f'Отмеченный в поле {control_field} элементы добавлены в контролируемые.')
+                if control_field:
                     for table_name in ['vetv', 'node']:
                         rm.group_cor(tabl=table_name,
                                      param="all_control",
-                                     selection=self.task_calc['le_control_field'],
+                                     selection=control_field,
                                      formula='1')
 
-                    # all_control_groupid для отметки всех контролируемых ветвей и ветвей с теми же groupid
-                    log.debug('Добавление в контролируемые элементы ветвей по groupid.')
-                    if not self.task_calc['cb_tab_KO']:
-                        rm.add_fields_in_table(name_tables='vetv', fields='all_control_groupid', type_fields=3)
-                        rm.rastr.tables('vetv').cols.item("all_control_groupid").calc("all_control")
+            if self.task_calc['cb_control_sel']:
+                control_sel = self.task_calc['control_sel'].replace(' ', '')
+                log.debug(f'Элементы по выборке {control_sel}  добавлены в контролируемые.')
+                if control_sel:
+                    table = rm.rastr.tables('node')
+                    table.setsel(control_sel)
+                    ny_sel = [x[0] for x in table.writesafearray("ny", "000")]
+                    sel_v = set()
+                    for ny in ny_sel:
+                        for ip, iq, np_ in rm.ny_join_vetv[ny]:
+                            sel_v.add((ip, iq, np_, 1))
+                    rm.rastr.tables('vetv').ReadSafeArray(2, 'ip,iq,np,all_control', list(sel_v))
+                    rm.rastr.tables('node').ReadSafeArray(2, 'ny,all_control', [(ny, 1) for ny in ny_sel])
+                else:
+                    rm.rastr.Tables("node").cols.item("all_control").Calc("1")
+                    rm.rastr.Tables("vetv").cols.item("all_control").Calc("1")
 
-                        for gr in set(rm.df_from_table(table_name='vetv',
-                                                       fields='groupid',
-                                                       setsel='all_control & groupid>0')['groupid']):
-                            rm.group_cor(tabl='vetv',
-                                         param="all_control",
-                                         selection=f"groupid={gr}",
-                                         formula=1)
+            # all_control_groupid для отметки всех контролируемых ветвей и ветвей с теми же groupid
+            if not self.task_calc['cb_tab_KO']:
+                log.info('Добавление в контролируемые элементы ветвей по groupid.')
+                table = rm.rastr.tables('vetv')
+                table.setsel('all_control & groupid>0')
+                for gr in set(table.writesafearray('groupid', "000")):
+                    rm.group_cor(tabl='vetv',
+                                 param="all_control",
+                                 selection=f"groupid={gr[0]}",
+                                 formula=1)
 
             if self.task_calc['cb_tab_KO']:
                 log.debug('Инициализация таблицы "контролируемые - отключаемые" элементы.')
@@ -1505,6 +1516,7 @@ class CalcModel(GeneralSettings):
                                                   # ip, iq, np, name
                                                   setsel="all_control")
                 if len(self.control_I):
+                    # Сортировка
                     self.control_I['uhom'] = (self.control_I[['temp', 'temp1']].max(axis=1) * 10000 +
                                               self.control_I[['temp', 'temp1']].min(axis=1))
                     self.control_I.sort_values(by=['tip', 'uhom', 'dname'],  # столбцы сортировки
@@ -1570,9 +1582,11 @@ class CalcModel(GeneralSettings):
 
             if self.task_calc['cb_auto_disable']:
                 # Выбор отключаемых элементов автоматически из выборки в таблице узлы
-                # Отметка в таблицах ветви и узлы нужное поле
+                # Отметка в таблицах ветви и узлы нужного поля
                 rm.network_analysis(field='all_disable',
                                     selection_node_for_disable=self.task_calc['auto_disable_choice'])
+            else:
+                rm.network_analysis(disable_on=False)
 
             # Выбор отключаемых элементов из отмеченных в поле comb_field
             if self.task_calc['cb_comb_field']:
@@ -1586,16 +1600,16 @@ class CalcModel(GeneralSettings):
                                  formula='1')
 
             # Создать df отключаемых узлов и ветвей и генераторов. Сортировка.
-            columns_pa = ',repair_scheme,disable_scheme,double_repair_scheme'
+            columns_pa = 'repair_scheme,disable_scheme,double_repair_scheme'
             # Генераторы
             disable_df_gen = rm.df_from_table(table_name='Generator',
-                                              fields='index,key,Num' + columns_pa,  # ,Num,NodeState,Node
+                                              fields='index,key,Num,' + columns_pa,  # ,Num,NodeState,Node
                                               setsel="all_disable")
             disable_df_gen['table'] = 'Generator'
             disable_df_gen.rename(columns={'Num': 's_key'}, inplace=True)
             # Узлы
             disable_df_node = rm.df_from_table(table_name='node',
-                                               fields='index,name,uhom,key,ny' + columns_pa,
+                                               fields='index,name,uhom,key,ny,' + columns_pa,
                                                setsel="all_disable")
             # disable_df_node.index = self.disable_df_node['index']
 
@@ -1606,36 +1620,39 @@ class CalcModel(GeneralSettings):
             disable_df_node.drop(['name'], axis=1, inplace=True)
             disable_df_node.rename(columns={'ny': 's_key'}, inplace=True)
             # Ветви
-            disable_df_vetv = rm.df_from_table(table_name='vetv',
-                                               fields='index,name,key,temp,temp1,tip,ip,iq,np' + columns_pa,
-                                               setsel="all_disable")
-            disable_df_vetv['table'] = 'vetv'
-            disable_df_vetv['uhom'] = disable_df_vetv[['temp', 'temp1']].max(axis=1) * 10000 + \
-                                      disable_df_vetv[['temp', 'temp1']].min(axis=1)
-            disable_df_vetv.sort_values(by=['tip', 'uhom', 'name'],  # столбцы сортировки
-                                        ascending=(False, False, True),  # обратный порядок
-                                        inplace=True)  # изменить df
-            disable_df_vetv['s_key'] = None
-            for i in disable_df_vetv.index:
-                ip = disable_df_vetv['ip'].iloc[i]
-                iq = disable_df_vetv['iq'].iloc[i]
-                np_ = disable_df_vetv['np'].iloc[i]
-                disable_df_vetv['s_key'].iloc[i] = (ip, iq, np_) if np_ else (ip, iq)
+            self.disable_df_vetv = rm.df_from_table(table_name='vetv',
+                                                    fields='index,name,key,temp,temp1,tip,ip,iq,np,i_zag,' + columns_pa,
+                                                    setsel="all_disable")
+            self.disable_df_vetv['table'] = 'vetv'
+            self.disable_df_vetv['uhom'] = self.disable_df_vetv[['temp', 'temp1']].max(axis=1) * 10000 + \
+                                           self.disable_df_vetv[['temp', 'temp1']].min(axis=1)
+            self.disable_df_vetv.sort_values(by=['tip', 'uhom', 'name'],  # столбцы сортировки
+                                             ascending=(False, False, True),  # обратный порядок
+                                             inplace=True)  # изменить df
+            self.disable_df_vetv['s_key'] = None
+            for i in self.disable_df_vetv.index:
+                ip = self.disable_df_vetv['ip'].iloc[i]
+                iq = self.disable_df_vetv['iq'].iloc[i]
+                np_ = self.disable_df_vetv['np'].iloc[i]
+                self.disable_df_vetv['s_key'].iloc[i] = (ip, iq, np_)  # if np_ else (ip, iq)
 
-            disable_df_vetv.drop(['temp', 'temp1', 'tip', 'name', 'ip', 'iq', 'np'], axis=1, inplace=True)
+            self.disable_df_vetv.drop(['temp', 'temp1', 'tip', 'name', 'ip', 'iq', 'np'], axis=1, inplace=True)
 
             log.info(f'Количество отключаемых элементов сети:'
-                     f' ветвей - {len(disable_df_vetv.axes[0])},'
+                     f' ветвей - {len(self.disable_df_vetv.axes[0])},'
                      f' узлов - {len(disable_df_node.axes[0])},'
                      f' генераторов - {len(disable_df_gen.axes[0])}.')
 
-            disable_df_all = pd.concat([disable_df_vetv, disable_df_node, disable_df_gen])
+            disable_df_all = pd.concat([self.disable_df_vetv.drop(['i_zag'], axis=1),
+                                        disable_df_node,
+                                        disable_df_gen])
+            # Фильтр комбинаций
+            if not self.task_calc['SRS']['n-1'] or not (self.task_calc['SRS']['n-2'] or self.task_calc['SRS']['n-3']):
+                self.task_calc['filter_comb'] = False
 
-            # удалить пробелы и значения после #
-            # disable_df_all.loc[disable_df_all['dname'] == '', 'dname'] = \
-            #     disable_df_all.loc[disable_df_all['dname'] == '', 'name']
-            # disable_df_all['dname'] = disable_df_all['dname'].str.replace('  ', ' ').str.split('(').str[0]
-            # disable_df_all['dname'] = disable_df_all['dname'].str.split(',').str[0].str.strip()
+            if self.task_calc['filter_comb']:
+                self.disable_df_vetv.set_index('index', inplace=True)
+                self.disable_df_vetv.drop(['table', 'uhom', *columns_pa.split(',')], axis=1, inplace=True)
 
             for col in ['disable_scheme', 'repair_scheme', 'double_repair_scheme']:
                 disable_df_all[col] = disable_df_all[col].str.replace(' ', '').str.split('#').str[0]
@@ -1727,10 +1744,13 @@ class CalcModel(GeneralSettings):
                         log.info(f'Сочетание отклонено по ГОСТ: ')
                         log.info(tabulate(comb, headers='keys', tablefmt='psql'))
                         continue
-                self.calc_comb(rm, comb)
+                self.calc_comb(rm, comb, source='xl')
 
-        # Прибавить info_file к overloads_srs.
+        # Доработка перечня перегрузок файла
         if not self.overloads_srs.empty:
+            self.overloads_srs['Контролируемые элементы'] = \
+                self.overloads_srs.apply(lambda x: rm.t_name[rm.recognize_key(x.key, 'tab')][rm.recognize_key(x.key, 's_key')], axis=1)
+
             self.overloads_srs.index = self.overloads_srs['Номер СРС'].astype(str) + '.' + \
                                        self.overloads_srs['Номер подсочетания'].astype(str) + '_' + \
                                        self.overloads_srs.index.astype(str)
@@ -1832,13 +1852,53 @@ class CalcModel(GeneralSettings):
                 ws.row_dimensions[2].height = 145
             wb.save(self.book_path)
 
-    def calc_comb(self, rm, comb: pd.DataFrame):
+    def calc_comb(self, rm, comb: pd.DataFrame, source: str = 'combinatorics'):
         """
         Смоделировать отключение элементов в комбинации.
         :param rm:
         :param comb:
+        :param source: Варианты: 'combinatorics' или 'xl'
         :return:
         """
+        # Фильтр н-2-3
+        if self.task_calc['filter_comb'] and len(comb) > 1 and source == 'combinatorics':
+            if not len(comb.loc[(comb.table == 'node') | comb.double_repair_scheme]):
+                count_effect = 0  # если 1 элемент из пары влияет на другой, то прибавляем 1
+                s_key0 = comb.s_key[0]
+                s_key1 = comb.s_key[1]
+                el0 = (s_key0, comb.disable_scheme[0], comb.repair_scheme[0],)
+                el1 = (s_key1, comb.disable_scheme[1], comb.repair_scheme[1],)
+                # Если хотя бы 1 оказывает влияние на загрузку второго
+                if ((s_key1 in self.disable_effect.get(el0, [])) or
+                        (s_key0 in self.disable_effect.get(el1, []))):
+                    count_effect += 1
+                    # Если ветви состоят в одном транзите
+                    if rm.v__num_transit.get(s_key0, 0) == rm.v__num_transit.get(s_key1, 1):
+                        log.debug(f'В одном транзите: {tabulate(comb, headers="keys", tablefmt="psql")}')
+                        return False
+
+                elif len(comb) == 3:
+                    s_key2 = comb.s_key[2]
+                    el2 = (s_key2, comb.disable_scheme[2], comb.repair_scheme[2])
+
+                    if ((s_key2 in self.disable_effect.get(el0, [])) or
+                            (s_key0 in self.disable_effect.get(el2, []))):
+                        count_effect += 1
+                        if rm.v__num_transit.get(s_key0, 0) == rm.v__num_transit.get(s_key2, 2):
+                            log.debug(f'В одном транзите: {tabulate(comb, headers="keys", tablefmt="psql")}')
+                            return False
+                    if ((s_key2 in self.disable_effect.get(el1, [])) or
+                            (s_key1 in self.disable_effect.get(el2, []))):
+                        count_effect += 1
+                        if rm.v__num_transit.get(s_key1, 1) == rm.v__num_transit.get(s_key2, 2):
+                            log.debug(f'В одном транзите: {tabulate(comb, headers="keys", tablefmt="psql")}')
+                            return False
+
+                if count_effect < len(comb) - 1:
+                    log.debug(f'Комбинация отклонена фильтром: {tabulate(comb, headers="keys", tablefmt="psql")}')
+                    return False
+
+        # Восстановление схемы
         if self.restore_only_state:
             for name_table in rm.data_save_sta:
                 rm.rastr.tables(name_table).ReadSafeArray(2, rm.data_columns_sta[name_table],
@@ -1852,12 +1912,13 @@ class CalcModel(GeneralSettings):
             log.debug('Состояние элементов сети и параметров восстановлено.')
 
         comb.sort_values(by='status_repair', inplace=True)
+
         # Для добавления в 'Наименование СРС' данных о disable_scheme, double_repair_scheme и repair_scheme
         comb['scheme_info'] = ''
         log.debug(tabulate(comb, headers='keys', tablefmt='psql'))
 
+        # Отключение элементов
         repair2_one = True  # Для выполнения действия с двойным отключением на 2-м элементе.
-
         for i in comb.index:
             if not rm.sta(table_name=comb.loc[i, 'table'],
                           ndx=comb.loc[i, 'index']):  # отключить элемент
@@ -1919,7 +1980,7 @@ class CalcModel(GeneralSettings):
         self.info_srs['Кол. откл. эл.'] = comb.shape[0]
         log.info(f"Сочетание {self.number_comb}: {name_srs}")
 
-        self.do_action(rm)
+        self.do_action(rm, comb)
 
     def perform_action(self, rm, task_action: list) -> str:
         """
@@ -1956,10 +2017,11 @@ class CalcModel(GeneralSettings):
                 self.restore_only_state = False
                 break
 
-    def do_action(self, rm):
+    def do_action(self, rm, comb=pd.DataFrame()):
         """
         Цикл по действиям для ввода режима в область допустимых значений.
         :param rm:
+        :param comb:
         :return:
         """
 
@@ -1972,7 +2034,7 @@ class CalcModel(GeneralSettings):
         while True:
             self.info_action['Конец'] = True
 
-            self.do_control(rm)
+            self.do_control(rm, comb)
 
             # прибавить info_srs и info_action к overloads_srs
             self.info_action['Номер подсочетания'] += 1
@@ -1982,7 +2044,7 @@ class CalcModel(GeneralSettings):
                 break
         self.number_comb += 1  # код комбинации
 
-    def do_control(self, rm):
+    def do_control(self, rm, comb=pd.DataFrame()):
         """
         Проверка параметров режима.
         :return:  Наполняет overloads_srs
@@ -1999,8 +2061,33 @@ class CalcModel(GeneralSettings):
         #         test_rgm = rm.rgm('do_control')
 
         if not test_rgm:
-            overloads = pd.DataFrame({'dname': ['Режим не моделируется'], 'i_zag': [-1], 'otv_min': [-1]})
+            overloads = pd.DataFrame({'i_zag': [-1],
+                                      'otv_min': [-1],
+                                      'key': ['-1']})
         else:
+            # Сохранение загрузки отключаемых элементов в н-1 для фильтра
+            if self.task_calc['filter_comb'] and len(comb) == 1 and comb.table[0] == 'vetv':
+                table = rm.rastr.tables('vetv')
+                table.setsel("all_disable")
+
+                for index, i_zag in table.writesafearray('index,i_zag', "000"):
+                    difference_i_zag = abs(i_zag - self.disable_df_vetv.loc[index, 'i_zag'])
+                    if difference_i_zag > self.task_calc['filter_comb_val']:
+                        self.disable_effect[(comb.s_key[0],
+                                             comb.disable_scheme[0],
+                                             comb.repair_scheme[0])].append(self.disable_df_vetv.loc[index, 's_key'])
+
+                # col_i_zag = rm.df_from_table(table_name='vetv', fields='index,i_zag', setsel="all_disable")
+                # col_i_zag.set_index('index', inplace=True)
+                # col_name = comb['key'][0]
+                # for col in ['repair_scheme', 'disable_scheme']:
+                #     if comb[col][0]:
+                #         col_name += comb[col][0]
+                # col_i_zag.rename(columns={'i_zag': col_name}, inplace=True)
+                # self.disable_df_vetv = pd.concat([self.disable_df_vetv, col_i_zag], axis=1)
+                # self.disable_df_vetv[col_name] = self.disable_df_vetv['i_zag'] - self.disable_df_vetv[col_name]
+
+            # Поиск отклонений от доп. значений среди контролируемых узлов
             overloads = pd.DataFrame()
             # проверка на наличие перегрузок ветвей (ЛЭП, трансформаторов, выключателей)
             if self.info_srs['Контроль ДТН'] == 'АДТН':
@@ -2014,8 +2101,7 @@ class CalcModel(GeneralSettings):
             tv.SetSel(selection_v)
             if tv.count:
                 overloads = rm.df_from_table(table_name='vetv',
-                                             fields='dname,'  # 'Контролируемые элементы,'
-                                                    'key,'  # 'Ключ контроль,'
+                                             fields='key,'  # 'Ключ контроль,'
                                                     'txt_zag,'  # 'txt_zag,' 
                                                     'i_max,'  # 'Iрасч.(A),'
                                                     'i_dop_r,'  # 'Iддтн(A),'
@@ -2029,8 +2115,7 @@ class CalcModel(GeneralSettings):
             tn.SetSel(selection_n)
             if tn.count:
                 overloads = pd.concat([overloads, rm.df_from_table(table_name='node',
-                                                                   fields='dname,'  # 'Контролируемые элементы,'
-                                                                          'key,'  # 'Ключ контроль,'
+                                                                   fields='key,'  # 'Ключ контроль,'
                                                                    # 'txt_zag,'  # 'txt_zag,'
                                                                    # todo сделать что бы в txt_zag были значения узлов?
                                                                           'vras,'  # 'Uрасч.(кВ),'
@@ -2046,8 +2131,7 @@ class CalcModel(GeneralSettings):
             tn.SetSel('all_control & umax<vras & umax>0 & !sta')
             if tn.count:
                 overloads = pd.concat([overloads, rm.df_from_table(table_name='node',
-                                                                   fields='dname,'  # 'Контролируемые элементы,'
-                                                                          'key,'  # 'Ключ контроль,'
+                                                                   fields='key,'  # 'Ключ контроль,'
                                                                           'vras,'  # 'Uрасч.(кВ),'
                                                                           'umax,'  # 'Uнаиб.раб.(кВ)'
                                                                           'otv_max',  # 'Uнаиб.раб.(кВ)'
@@ -2289,6 +2373,7 @@ class RastrModel(RastrMethod):
         self.info_file = pd.Series(dtype='object')  # имя файла
 
         # Для хранения исходной схемы и параметров сети
+        self.v__num_transit = {}  # {(ip, iq, np): номер транзита в тч из 1 ветви}
         self.data_save = None
         self.data_columns = None
         self.data_save_sta = None
@@ -2298,8 +2383,9 @@ class RastrModel(RastrMethod):
         self.t_i = {}  # {имя таблицы: {(ip, iq, np): индекс}}
         for tab_name in ['node', 'vetv', 'Generator']:
             self.t_sta[tab_name] = {}
-            self.t_name[tab_name] = {}
             self.t_i[tab_name] = {}
+            self.t_name[tab_name] = {}
+            self.t_name[tab_name][-1] = 'Режим не моделируется'
         self.ny_join_vetv = defaultdict(list)  # {ny: все присоединенные ветви}
 
         # self.ny_pqng = defaultdict(tuple)  # {ny: (pn, qn, pg, qn)} - все с pn pg > 0 | qn pg > 0 | pg > 0 | qg > 0
@@ -2392,14 +2478,14 @@ class RastrModel(RastrMethod):
 
         # Ветви
         for ip, iq, np_, sta, ktr in self.data_save['vetv']:  # , r, x, b
-            s_key = (ip, iq, np_) if np_ else (ip, iq)
+            s_key = (ip, iq, np_)  # if np_ else (ip, iq)
             self.t_sta['vetv'][s_key] = sta
             self.ny_join_vetv[ip].append(s_key)
             self.ny_join_vetv[iq].append(s_key)
 
         t = self.rastr.tables('vetv').writesafearray("ip,iq,np,dname,groupid,r,x,b,index", "000")
         for ip, iq, np_, dname, groupid, r, x, b, index in t:
-            s_key = (ip, iq, np_) if np_ else (ip, iq)
+            s_key = (ip, iq, np_)  # if np_ else (ip, iq)
             self.t_i['vetv'][s_key] = index
 
             if dname:
@@ -2423,20 +2509,18 @@ class RastrModel(RastrMethod):
             else:
                 self.t_name['Generator'][Num] = f'генератор номер {Num} в узле {self.t_name["node"][Node]}'
 
-    def network_analysis(self, disable_on: bool = True, field: str = 'disable',
+    def network_analysis(self, disable_on: bool = True,
+                         field: str = 'disable',
                          selection_node_for_disable: str = ''):
         """
         Анализ графа сети.
         :param disable_on: Отметить отключаемые элементы в поле field узлов и ветвей.
-        :param field: Поле для отметки.
+        :param field: Поле для отметки отключаемых элементов.
         :param selection_node_for_disable: Выборка в таблице узлы, для выбора отключаемых элементов.
         например, района, территории, нагрузочной группы для расчета или "" - все узлы.
         """
         log.info('Анализ графа сети с заполнением поля transit в таблице узлов и ветвей.')
-        if self.t_sta['node']:
-            self.save_value_fields()
-
-        all_ny = [ny for ny, _ in self.data_save_sta['node']]
+        all_ny = [x[0] for x in self.rastr.tables('node').writesafearray("ny", "000")]
         log.debug(f'В РМ {len(all_ny)} узлов.')
 
         vetv = self.rastr.tables('vetv')
@@ -2557,14 +2641,17 @@ class RastrModel(RastrMethod):
                 num = ny__num_transit[iq]
             if num:
                 all_v_transit.append((ip, iq, np_, num,))
+                self.v__num_transit[(ip, iq, np_)] = num
             else:
+                # Транзит из 1 ветви
                 num_transit += 1
                 all_transit_one.append((ip, iq, np_))
                 all_v_transit.append((ip, iq, np_, num_transit,))
+                self.v__num_transit[(ip, iq, np_)] = num_transit
         vetv.ReadSafeArray(2, 'ip,iq,np,transit', all_v_transit)
 
         if disable_on:
-            # Отключаемы узлы
+            # Отключаемые узлы
             node = self.rastr.tables('node')
             node.setsel(selection_node_for_disable + '&transit<-3')  # 4-х и более отходящих транзитов
             node.cols.item(field).calc(1)
@@ -2637,10 +2724,9 @@ class RastrModel(RastrMethod):
     def index(self, table_name: str, key_int: Union[int | tuple] = 0,  key_str: str = '') -> int:
         """
         Возвращает номер строки в таблице по ключу в одном из форматов.
-        При наличии t_i индекс берется из них.
         :param table_name: 'vetv' ...
-        :param key_int: например  10 или (1, 2, 0)
-        :param key_str: например 'ny=10' или 'ip=1&iq=2&np=3'
+        :param key_int: Например: узел 10 или ветвь (1, 2). При наличии t_i индекс берется из них.
+        :param key_str: Например: 'ny=10' или 'ip=1&iq=2&np=3'
         :return: index
         """
         if not table_name:
@@ -2692,7 +2778,7 @@ class RastrModel(RastrMethod):
                 if any([txt in formula_i for txt in ['years', 'season', 'max_min', 'add_name']]):
                     continue
                 sel_all, field = formula_i.split(':')
-                name_table, sel = self.recognize_key(sel_all)
+                name_table, sel = self.recognize_key(sel_all, 'tab sel')
                 self.rgm(f'для определения значения {formula}')
                 index = self.index(table_name=name_table, key_str=sel)
                 if index > -1:
@@ -2793,8 +2879,8 @@ class RastrModel(RastrMethod):
             except Exception:
                 raise Exception('Com объект Astra.Rastr не найден')
 
-        log.info(f"Загружен файл: {self.full_name}")
         self.rastr.Load(1, self.full_name, self.pattern)  # Загрузить или перезагрузить
+        log.info(f"Загружен файл: {self.full_name}")
 
     def downloading_additional_files(self, load_additional: list = None):
         """
@@ -2829,12 +2915,13 @@ class RastrModel(RastrMethod):
              'area': True, 'area2': True, 'darea': True, 'sel_node': "na>0"}  """
         if not self.rgm("checking_parameters_rg2"):
             return False
-
-        log.info(f"Расчет загрузки ветвей для температуры {self.temperature}.")
+        # self.fill_field_index('node,vetv,Generator')
         self.rastr.CalcIdop(self.temperature, 0.0, "")
+        log.info(f"Выполнен расчет загрузки ветвей для температуры {self.temperature}.")
 
         node = self.rastr.tables("node")
         branch = self.rastr.tables("vetv")
+        generator = self.rastr.tables("Generator")
         # Также проверяется наличие узлов без ветвей, ветвей без узлов начала или конца, генераторов без узлов.
         all_ny = set([x[0] for x in node.writesafearray("ny", "000")])
         all_ip = set([x[0] for x in branch.writesafearray("ip", "000")])
@@ -2850,14 +2937,17 @@ class RastrModel(RastrMethod):
         if all_ip_iq_not_node:
             log.error(f'В таблице vetv есть ссылка на узлы которых нет в таблице node: {all_ip_iq_not_node}')
         # Генераторы без узлов.
-        generator = self.rastr.tables("Generator")
         if generator.size:
+            dict_task['Gen'] = False
             all_gen_ny = set([x[0] for x in generator.writesafearray("Node", "000")])
             all_gen_not_node = all_gen_ny - all_ny
             if all_gen_not_node:
                 log.error(f'В таблице Generator есть ссылка на узлы которых нет в таблице node: {all_gen_not_node}')
 
         if dict_task["sel_node"]:
+            # node.setsel(dict_task["sel_node"])
+            # ny_sel = set([x[0] for x in node.writesafearray("ny", "000")])
+            # todo додумать
             self.add_fields_in_table(name_tables='node', fields='sel1', type_fields=3)
             node.cols.item("sel1").calc(0)
             node.setsel(dict_task["sel_node"])
@@ -2866,10 +2956,8 @@ class RastrModel(RastrMethod):
         # Напряжения
         if dict_task["node"]:
             log.info("\tКонтроль напряжений.")
-            self.voltage_nominal(choice=(dict_task["sel_node"] + '&uhom>30'))
-            self.voltage_deviation(choice=dict_task["sel_node"])
-            self.voltage_fine(choice=dict_task["sel_node"])
             self.voltage_error(choice=dict_task["sel_node"])
+            self.voltage_fine(choice=dict_task["sel_node"])
 
         # Токи
         if dict_task['vetv']:
@@ -2961,14 +3049,22 @@ class RastrModel(RastrMethod):
                     log.debug(f'Условие выполняется: {task_row}')
 
             # Параметры функции в квадратных скобках
-            function_parameters = []
+            param = ''
+            sel = ''
+            value = ''
             match = re.search(re.compile(r"\[(.+?)]"), task_row)
             if match:
-                function_parameters = match[1].split(':', maxsplit=1)
-            function_parameters += ['', '']
+                param = match[1]
+            if param:
+                if ':' in param:
+                    sel, value = param.split(':', maxsplit=1)
+                else:
+                    sel = param
+
             info_i = self.txt_task_cor(name=name_fun,
-                                       sel=function_parameters[0],
-                                       value=function_parameters[1])
+                                       sel=sel,
+                                       value=value,
+                                       all_task=param)
             if info_i:
                 info.append(info_i)
         return ', '.join(info) if info else ''
@@ -2980,6 +3076,7 @@ class RastrModel(RastrMethod):
         :param conditions:
         :return:
         """
+        log.debug(f'Проверка условия: {conditions}')
         if '{' in conditions:
             match = re.search(re.compile(r"\{(.+?)}"), conditions)
             if match:
@@ -3006,15 +3103,16 @@ class RastrModel(RastrMethod):
         if ':' in conditions:
             raise ValueError("Ошибка в условии: " + conditions)
         try:
-            log.debug(f'conditions_test: {conditions}')
+            # log.debug(f'conditions_test: {conditions}')
             return bool(eval(conditions))
         except Exception:
             raise ValueError(f'Ошибка у условии: {conditions_s!r}.')
 
-    def txt_task_cor(self, name: str, sel: str = '', value: str = '') -> str:
+    def txt_task_cor(self, name: str, sel: str = '', value: str = '', all_task: str = '') -> str:
         """
         Функция для выполнения задания в текстовом формате
         :param name: Имя функции.
+        :param all_task: [всё задание]
         :param sel: Выборка, нр, 15145; 12,13.
         :param value: Значение, нр, name=Промплощадка: изм name; pg=qn*2+10.
         :return: информация
@@ -3034,7 +3132,7 @@ class RastrModel(RastrMethod):
         elif 'добавить' in name:
             self.table_add_row(table=sel, tasks=value)
         elif 'текст' in name:
-            self.txt_field_right(table_field=sel)
+            self.txt_field_right(tasks=all_task)
             return "\tИсправить пробелы, заменить английские буквы на русские."
         elif 'схн' in name:
             self.shn(choice=sel)
@@ -3050,7 +3148,6 @@ class RastrModel(RastrMethod):
                 sd[key] = val
             self.loading_section(ns=sd['ns'], p_new=sd['psech'], type_correction=sd['тип'])
         elif 'напряжения' in name:
-            self.voltage_nominal(choice=sel, edit=True)
             self.voltage_error(choice=sel, edit=True)
 
         elif 'отключения' in name:
@@ -3587,7 +3684,7 @@ class CorSheet:
         Корректировка моделей по заданию в табличном виде
         """
         name_files = ""
-        dict_param_column = {}  # {10: "pn"}-столбец: параметр
+        dict_param_column = {}  # {10: "pn"} - столбец: параметр
         # Шаг по колонкам и запись в словарь всех столбцов для коррекции
         for column_name_file in range(2, self.xls.max_column + 1):
             if self.xls.cell(1, column_name_file).value not in ["", None]:
@@ -3617,21 +3714,23 @@ class CorSheet:
             # 1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"
             for row in range(3, self.xls.max_row + 1):
                 for column, param in dict_param_column.items():
-                    short_key = self.xls.cell(row, 1).value
-                    if short_key not in [None, ""]:
+                    short_keys = self.xls.cell(row, 1).value
+                    if short_keys not in [None, ""]:
+                        short_keys = str(short_keys)
                         new_val = self.xls.cell(row, column).value
                         if new_val is not None:
-                            if param not in ["pop", "pp"]:
+                            # for short_key in short_keys.split(';'):
+                            if param in ["pop", "pp"]:
+                                rm.cor_pop(zone=short_keys, new_pop=new_val)  # изменить потребление
+                            else:
                                 if self.calc_val == 1:
-                                    rm.cor(keys=str(short_key),
+                                    rm.cor(keys=short_keys,
                                            values=f"{param}={new_val}",
                                            print_log=True)
                                 else:
-                                    rm.cor(keys=str(short_key),
+                                    rm.cor(keys=short_keys,
                                            values=f"{param}={param}{calc_vals[self.calc_val]}{new_val}",
                                            print_log=True)
-                            else:
-                                rm.cor_pop(zone=short_key, new_pop=new_val)  # изменить потребление
 
 
 class CorXL:
@@ -3753,7 +3852,7 @@ class ImportFromModel:
                 tab.setsel(self.sel)
                 if tab.count:
                     # Данные
-                    if way == 'csv':
+                    if way == 'csv':  # todo удалить
                         self.import_csv_file.append(f"{folder_temp}\\{os.path.basename(import_file_name)}_{tabl}_"
                                                     f"{ImportFromModel.number}.csv")
                         # Экспорт данных из файла в .csv файлы в папку temp
@@ -3983,9 +4082,9 @@ class PrintXL:
         date = pd.Series(dtype='object')
         for i in self.set_output_parameters:
             k, p = i.split(':')
-            table, sel = rm.recognize_key(k)
+            table, sel = rm.recognize_key(k, 'tab sel')
             if rm.rastr.tables(table).cols(p).Prop(1) == 2:  # если поле типа строка
-                date.loc[i] = rm.txt_field_return(table, sel, p)
+                date.loc[i] = str(rm.txt_field_return(table, sel, p))
             else:
                 date.loc[i] = rm.rastr.tables(table).cols.Item(p).ZS(rm.index(table_name=table, key_str=sel))
         date = pd.concat([date, rm.info_file])
@@ -4294,7 +4393,7 @@ if __name__ == '__main__':
     formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s:%(message)s')
 
     file_handler = logging.FileHandler(filename=GeneralSettings.log_file, mode='w')
-    file_handler.setLevel(logging.INFO)
+    file_handler.setLevel(logging.INFO)  # INFO DEBUG
     file_handler.setFormatter(formatter)
     # file_handler.close()
     console_handler = logging.StreamHandler()
@@ -4323,7 +4422,7 @@ if __name__ == '__main__':
 # TODO спросить про перезапись файлов
 # self.save(full_name_new=r'I:\rastr_add\test\result\1.rg2')
 
-# TODO в иксель не более 1 048 576 строк и 16 384 столбца
+# TODO в excel не более 1 048 576 строк и 16 384 столбца
 
 # # import time
 # start_time = time.time()
@@ -4337,3 +4436,4 @@ if __name__ == '__main__':
 # calc в 4-10(узлы - ветви) раз быстрее чем writesafearray - ReadSafeArray
 # writesafearray > ReadSafeArray на 10 %
 # циклить через FindNextSel крайне медленно
+

@@ -1,7 +1,7 @@
 'закрыть все окна и книгу XL
 tip = 1 ' 0 чтение в  XL     1 запись в rastr(если в столбце Q стоит 1 то добавляется в растр)
     'если 1 то 
-    File_XL = "I:\rastr_add\Rastrwin шаблоны\rastr fields rg2 my.xlsx"
+    File_XL = "I:\rastr_add\Rastrwin шаблоны\add fields rg2.xlsx"
 
 set XL = CreateObject("Excel.Application") 
 
