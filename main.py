@@ -877,12 +877,15 @@ class GeneralSettings(ABC):
     set_save = {}
     ini = 'settings.ini'
     log_file = 'log_file.log'
+    constants = {  # "calc_val": {1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"},
+                 "calc_name_val": {"обновить": 2, "загрузить": 1, "присоединить": 0,
+                                   "присоединить-обновить": 3, "объединить": 3}}
 
     # @abstractmethod
     def __init__(self):
         # коллекция для хранения информации о расчете
-        self.set_info = {"calc_val": {1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"},
-                         'collapse': '', 'end_info': ''}
+        self.set_info = {'collapse': '',
+                         'end_info': ''}
         self.all_read_ini()
 
         self.file_count = 0  # Счетчик расчетных файлов.
@@ -1052,9 +1055,9 @@ class CalcModel(GeneralSettings):
             self.srs_xl = self.srs_xl[self.srs_xl['Статус'] != '-']
             self.srs_xl.drop(columns=['Примечание', 'Статус'], inplace=True)
             self.srs_xl.dropna(how='all', axis=0, inplace=True)
-            self.srs_xl.dropna(how='all', axis=1, inplace=True)
-            for col in self.srs_xl.columns:
-                self.srs_xl[col] = self.srs_xl[col].str.split('#').str[0]
+            # self.srs_xl.dropna(how='all', axis=1, inplace=True)
+            # for col in self.srs_xl.columns:
+            #     self.srs_xl[col] = self.srs_xl[col].astype(str).str.split('#').str[0]
             self.srs_xl.fillna(0, inplace=True)
 
         # Цикл, если несколько файлов задания.
@@ -1088,66 +1091,76 @@ class CalcModel(GeneralSettings):
         :param df:
         :return:  комбинацию comb_xl
         """
-        for _, row in df.iterrows():  # todo может можно заменить на Itertuples
-            raise ValueError(' todo добавить s_key')
+        for _, row in df.iterrows():
             comb_xl = pd.DataFrame(columns=['table',
                                             'index',
-                                            'dname',
                                             'status_repair',
-                                            'key',  # todo добавить s_key
+                                            'key',
+                                            's_key',
                                             'repair_scheme',
-                                            'disable_scheme'])
+                                            'disable_scheme',
+                                            'double_repair_scheme',
+                                            'double_repair_scheme_copy'])
+            double_repair = True if row['Ключ рем.1'] and row['Ключ рем.2'] else False
+            for key_type, scheme_xl_name in (('Ключ откл.', 'Схема при отключении'),
+                                             ('Ключ рем.1', 'Ремонтная схема1'),
+                                             ('Ключ рем.2', 'Ремонтная схема2')):
+                key = row[key_type]
+                if key:
+                    key = str(key)
+                    status_repair = False if key_type == 'Ключ откл.' else True
+                    table, s_key = rm.recognize_key(key=key, back='tab s_key')
+                    index = rm.index(table_name=table, key_int=s_key)
+                    if table and index >= 0:
+                        repair_scheme = False
+                        disable_scheme = False
+                        double_repair_scheme = False
+                        double_repair_scheme_copy = False
+                        # Если в колонке «Схема при отключении» или «Ремонтная схема» содержится «*», то значение поля
+                        # дополняется из соответствующих полей disable_scheme, repair_scheme, double_repair_scheme РМ.
+                        scheme_xl = row[scheme_xl_name]
+                        add_scheme = []
+                        if scheme_xl:
+                            scheme_xl = scheme_xl.split('#')[0].replace(' ', '')
+                            if '*' in scheme_xl:
+                                scheme_xl = scheme_xl.replace('*', '')
 
-            if row['Ключ откл.']:
-                table = rm.name_table_from_key(row['Ключ откл.'])
-                index = rm.index(table_name=table, key_str=row['Ключ откл.'])
-                if table and index >= 0:
-                    scheme = rm.rastr.tables(table).cols.item("disable_scheme").Z(index)
-                    if 'Схема при отключении' in row and row['Схема при отключении']:
-                        scheme += ',' + row['Схема при отключении']
-                    comb_xl.loc[len(comb_xl.index)] = [table,  # 'table'
-                                                       index,  # 'index'
-                                                       row['Отключение'],  # 'dname'
-                                                       False,  # 'status_repair'
-                                                       row['Ключ откл.'],  # 'key'
-                                                       0,  # 'repair_scheme'
-                                                       scheme]  # 'disable_scheme'
-                else:
-                    log.info(f'Задание комбинаций их XL: {row["Отключение"]!r} не найден ключ {row["Ключ откл."]!r}')
-                    continue
+                                if status_repair:
+                                    add_scheme = rm.t_scheme[table]['repair_scheme'].get(s_key, False)
+                                    if double_repair:
+                                        double_repair_scheme_copy = \
+                                            rm.t_scheme[table]['double_repair_scheme'].get(s_key, False)
+                                else:
+                                    add_scheme = rm.t_scheme[table]['disable_scheme'].get(s_key, False)
+                            scheme_xl = GeneralSettings.split_task_action(scheme_xl)
+                            if add_scheme:
+                                if scheme_xl:
+                                    scheme_xl.append(add_scheme)
+                                else:
+                                    scheme_xl = add_scheme
+                        if scheme_xl:
+                            if status_repair:
+                                repair_scheme = scheme_xl
+                            else:
+                                disable_scheme = scheme_xl
 
-            if row['Ключ рем.1']:
-                table = rm.name_table_from_key(row['Ключ рем.1'])
-                index = rm.index(table_name=table, key_str=row['Ключ рем.1'])
-                if table and index >= 0:
-                    scheme = rm.rastr.tables(table).cols.item("repair_scheme").Z(index)
-                    if 'Ремонтная схема' in row and row['Ремонтная схема']:
-                        scheme += ',' + row['Ремонтная схема']
-                    comb_xl.loc[len(comb_xl.index)] = [table,  # 'table'
-                                                       index,  # 'index'
-                                                       row['Ремонт 1'],  # 'dname'
-                                                       True,  # 'status_repair'
-                                                       row['Ключ рем.1'],  # 'key'
-                                                       0,  # 'repair_scheme'
-                                                       scheme]  # 'disable_scheme'
-                else:
-                    log.info(f'Задание комбинаций их XL: {row["Ремонт 1"]!r} не найден ключ {row["Ключ рем.1"]!r}')
-                    continue
-
-            if row['Ключ рем.2']:
-                table = rm.name_table_from_key(row['Ключ рем.2'])
-                index = rm.index(table_name=table, key_str=row['Ключ рем.2'])
-                if table and index >= 0:
-                    comb_xl.loc[len(comb_xl.index)] = [table,  # 'table'
-                                                       index,  # 'index'
-                                                       row['Ремонт 2'],  # 'dname'
-                                                       True,  # 'status_repair'
-                                                       row['Ключ рем.2'],  # 'key'
-                                                       0,  # 'repair_scheme'
-                                                       rm.rastr.tables(table).cols.item("repair_scheme").Z(index)]
-                else:
-                    log.info(f'Задание комбинаций их XL: {row["Ремонт 2"]!r} не найден ключ {row["Ключ рем.2"]!r}')
-                    continue
+                        comb_xl.loc[len(comb_xl.index)] = [table,
+                                                           index,
+                                                           status_repair,
+                                                           key,
+                                                           s_key,
+                                                           repair_scheme,
+                                                           disable_scheme,
+                                                           double_repair_scheme,
+                                                           double_repair_scheme_copy]
+                    else:
+                        log.info(f'Задание комбинаций их XL: в РМ не найден ключ {key!r}')
+                        log.info(tabulate(row, headers='keys', tablefmt='psql'))
+                        continue
+            if not len(comb_xl):
+                continue
+            if comb_xl['double_repair_scheme'].any():
+                CalcModel.find_double_repair_scheme(comb_xl)
             yield comb_xl
 
     def run_calc_task(self):
@@ -1457,6 +1470,10 @@ class CalcModel(GeneralSettings):
         rm.add_fields_in_table(name_tables='Generator', fields='key', type_fields=2,
                                prop=((5, '"Num="+str(Num)'),))
 
+        rm.add_fields_in_table(name_tables='vetv,node', fields='all_control', type_fields=3)
+        # В поле all_disable складываем элементы авто отмеченные и отмеченные в поле comb_field
+        rm.add_fields_in_table(name_tables='vetv,node,Generator', fields='all_disable', type_fields=3)
+
         # Сохранить текущее состояние РМ
         rm.save_value_fields()
 
@@ -1467,7 +1484,6 @@ class CalcModel(GeneralSettings):
         if self.task_calc['cb_control']:
             log.debug('Инициализация контролируемых элементов сети.')
             # all_control для отметки всех контролируемых узлов и ветвей (авто и field)
-            rm.add_fields_in_table(name_tables='vetv,node', fields='all_control', type_fields=3)
 
             if self.task_calc['cb_control_field']:
                 control_field = self.task_calc['control_field'].replace(' ', '')
@@ -1577,9 +1593,6 @@ class CalcModel(GeneralSettings):
                     self.set_comb[3] = 'ДДТН'
             log.info(f'Расчетные СРС: {self.set_comb}.')
 
-            # В поле all_disable складываем элементы авто отмеченные и отмеченные в поле comb_field
-            rm.add_fields_in_table(name_tables='vetv,node,Generator', fields='all_disable', type_fields=3)
-
             if self.task_calc['cb_auto_disable']:
                 # Выбор отключаемых элементов автоматически из выборки в таблице узлы
                 # Отметка в таблицах ветви и узлы нужного поля
@@ -1600,16 +1613,15 @@ class CalcModel(GeneralSettings):
                                  formula='1')
 
             # Создать df отключаемых узлов и ветвей и генераторов. Сортировка.
-            columns_pa = 'repair_scheme,disable_scheme,double_repair_scheme'
             # Генераторы
             disable_df_gen = rm.df_from_table(table_name='Generator',
-                                              fields='index,key,Num,' + columns_pa,  # ,Num,NodeState,Node
+                                              fields='index,key,Num',  # ,Num,NodeState,Node
                                               setsel="all_disable")
             disable_df_gen['table'] = 'Generator'
             disable_df_gen.rename(columns={'Num': 's_key'}, inplace=True)
             # Узлы
             disable_df_node = rm.df_from_table(table_name='node',
-                                               fields='index,name,uhom,key,ny,' + columns_pa,
+                                               fields='index,name,uhom,key,ny',
                                                setsel="all_disable")
             # disable_df_node.index = self.disable_df_node['index']
 
@@ -1621,7 +1633,7 @@ class CalcModel(GeneralSettings):
             disable_df_node.rename(columns={'ny': 's_key'}, inplace=True)
             # Ветви
             self.disable_df_vetv = rm.df_from_table(table_name='vetv',
-                                                    fields='index,name,key,temp,temp1,tip,ip,iq,np,i_zag,' + columns_pa,
+                                                    fields='index,name,key,temp,temp1,tip,ip,iq,np,i_zag',
                                                     setsel="all_disable")
             self.disable_df_vetv['table'] = 'vetv'
             self.disable_df_vetv['uhom'] = self.disable_df_vetv[['temp', 'temp1']].max(axis=1) * 10000 + \
@@ -1652,11 +1664,7 @@ class CalcModel(GeneralSettings):
 
             if self.task_calc['filter_comb']:
                 self.disable_df_vetv.set_index('index', inplace=True)
-                self.disable_df_vetv.drop(['table', 'uhom', *columns_pa.split(',')], axis=1, inplace=True)
-
-            for col in ['disable_scheme', 'repair_scheme', 'double_repair_scheme']:
-                disable_df_all[col] = disable_df_all[col].str.replace(' ', '').str.split('#').str[0]
-                disable_df_all[col] = disable_df_all[col].apply(GeneralSettings.split_task_action)
+                self.disable_df_vetv.drop(['table', 'uhom'], axis=1, inplace=True)
 
             # Цикл по всем возможным сочетаниям отключений
             for n_, self.info_srs['Контроль ДТН'] in self.set_comb.items():  # Цикл н-1 н-2 н-3.
@@ -1675,45 +1683,48 @@ class CalcModel(GeneralSettings):
                 for comb in combinations(disable_all, r=n_):  # Цикл по комбинациям.
                     log.debug(f'Комбинация элементов {comb}')
                     comb_df = pd.DataFrame(data=comb, columns=name_columns)
-                    comb_df['double_repair_scheme_copy'] = comb_df['double_repair_scheme']
                     unique_set_actions = []
 
+                    comb_df['repair_scheme'] = False
+                    comb_df['disable_scheme'] = False
+                    comb_df['double_repair_scheme'] = False
+                    for index in comb_df.index:
+                        t = comb_df.loc[index, 'table']
+                        k = comb_df.loc[index, 's_key']
+                        for nm in ('repair_scheme', 'disable_scheme', 'double_repair_scheme'):
+                            comb_df[nm].iloc[index] = rm.t_scheme[t][nm].get(k, False)
+
+                    # Если нет дополнительных изменений сети, то всего 1 сочетание.
+                    if not comb_df[['disable_scheme', 'repair_scheme', 'double_repair_scheme']].any().any():
+                        comb_df['status_repair'] = True
+                        comb_df.loc[0, 'status_repair'] = False
+                        self.calc_comb(rm, comb_df)
+                        continue
+                    comb_df['double_repair_scheme_copy'] = comb_df['double_repair_scheme']
+                    # Цикл по всем возможным комбинациям внутри сочетания, вызванные ремонтами и отключениями.
                     # Под i понимаем номер отключаемого элемента, остальные в ремонте.
                     # Если -1, то ремонт всех элементов.
+
                     i_min = 0 if len(comb_df) == 3 else -1
-                    for i in range(n_ - 1, i_min - 1, -1):  # От последнего по первого элемента или -1.
+                    for i in range(n_ - 1, i_min - 1, -1):  # От последнего до первого элемента или -1.
+
+                        # Если в ремонте 2 элемента.
+                        double_repair = True if (n_ == 2 and i == -1) or (n_ == 3) else False
+                        if self.info_srs['Контроль ДТН'] == "AДТН" and double_repair and n_ == 2:
+                            continue  # Не расчетный случай по ГОСТ.
 
                         comb_df['status_repair'] = True  # Истина, если элемент в ремонте. Ложь отключен.
                         if i != -1:
                             comb_df.loc[i, 'status_repair'] = False
 
-                        # Если в ремонте 2 элемента.
-                        double_repair = True if (n_ == 2 and i == -1) or (n_ == 3) else False
-                        if self.info_srs['Контроль ДТН'] == "AДТН" and double_repair and n_ == 2:
-                            continue  # Не расчетный случай.
-
-                        double_repair_scheme = []
                         comb_df['double_repair_scheme'] = False
+                        double_repair_scheme = []
                         if double_repair:
-
-                            # Оставить только общие значения.
-                            if comb_df.loc[comb_df['status_repair'], 'double_repair_scheme_copy'].all():
-                                double_repair_scheme = comb_df.loc[comb_df['status_repair'], 'double_repair_scheme_copy'
-                                                                   ].to_list()
-                                double_repair_scheme = list(set(double_repair_scheme[0]) & set(double_repair_scheme[1]))
-                                if double_repair_scheme:
-                                    comb_df.loc[comb_df['status_repair'], 'double_repair_scheme'] = comb_df.loc[
-                                        comb_df['status_repair'], 'double_repair_scheme'].apply(
-                                        lambda x: double_repair_scheme)
-
-                        # Если нет дополнительных изменений сети, то всего 1 сочетание.
-                        if not comb_df[['disable_scheme', 'repair_scheme', 'double_repair_scheme']].any().any():
-                            self.calc_comb(rm, comb_df)
-                            break
+                            double_repair_scheme = self.find_double_repair_scheme(comb_df)
 
                         # Суммировать текущий набор изменений сети в set и проверить на уникальность.
                         set_actions = set()
-                        for _, row in comb_df.iterrows():  # todo может можно заменить на Itertuples
+                        for _, row in comb_df.iterrows():
                             if row['status_repair']:
                                 if double_repair_scheme:
                                     set_actions.add(tuple(double_repair_scheme))
@@ -1910,7 +1921,7 @@ class CalcModel(GeneralSettings):
                                                           rm.data_save[name_table])
             self.restore_only_state = True
             log.debug('Состояние элементов сети и параметров восстановлено.')
-
+        # log.debug(tabulate(comb, headers='keys', tablefmt='psql'))
         comb.sort_values(by='status_repair', inplace=True)
 
         # Для добавления в 'Наименование СРС' данных о disable_scheme, double_repair_scheme и repair_scheme
@@ -1951,34 +1962,42 @@ class CalcModel(GeneralSettings):
                            inplace=True, errors='ignore')
         dname = rm.t_name[comb["table"].iloc[0]][comb["s_key"].iloc[0]]
         if comb.iloc[0]["status_repair"]:
-            name_srs = 'Ремонт '
+            all_name_srs = 'Ремонт '
             self.info_srs['Ремонт 1'] = dname + comb['scheme_info'].iloc[0]
             self.info_srs['Ключ рем.1'] = comb["s_key"].iloc[0]
         else:
-            name_srs = 'Отключение '
+            all_name_srs = 'Отключение '
             self.info_srs['Отключение'] = dname + comb['scheme_info'].iloc[0]
             self.info_srs['Ключ откл.'] = comb["s_key"].iloc[0]
 
-        name_srs += dname + comb['scheme_info'].iloc[0]
-
+        name_srs_base = all_name_srs + dname
+        all_name_srs += dname + comb['scheme_info'].iloc[0]
         if len(comb) > 1:
             dname = rm.t_name[comb["table"].iloc[1]][comb["s_key"].iloc[1]]
-            name_srs += ' при ремонте' if 'Откл' in name_srs else ' и'
-            name_srs += f' {dname}{comb["scheme_info"].iloc[1]}'
-            self.info_srs['Ремонт 1'] = dname + comb["scheme_info"].iloc[1]
-            self.info_srs['Ключ рем.1'] = comb["s_key"].iloc[1]
+            all_name_srs += ' при ремонте' if 'Откл' in all_name_srs else ' и'
+            all_name_srs += f' {dname}{comb["scheme_info"].iloc[1]}'
+            name_srs_base += ' при ремонте' if 'Откл' in all_name_srs else ' и'
+            name_srs_base += f' {dname}'
+            if comb.iloc[0]["status_repair"]:
+                self.info_srs['Ремонт 2'] = dname + comb["scheme_info"].iloc[1]
+                self.info_srs['Ключ рем.2'] = comb["s_key"].iloc[1]
+            else:
+                self.info_srs['Ремонт 1'] = dname + comb["scheme_info"].iloc[1]
+                self.info_srs['Ключ рем.1'] = comb["s_key"].iloc[1]
         if len(comb) == 3:
             dname = rm.t_name[comb["table"].iloc[2]][comb["s_key"].iloc[2]]
-            name_srs += f', {dname}{comb["scheme_info"].iloc[2]}'
+            all_name_srs += f', {dname}{comb["scheme_info"].iloc[2]}'
+            name_srs_base += f', {dname}'
             self.info_srs['Ремонт 2'] = dname + comb["scheme_info"].iloc[2]
             self.info_srs['Ключ рем.2'] = comb["s_key"].iloc[2]
-        self.info_srs['Наименование СРС без()'] = re.sub(r'\(.+?\)', '', name_srs)
-        name_srs += '.'
 
-        self.info_srs['Наименование СРС'] = name_srs
+        self.info_srs['Наименование СРС без()'] = name_srs_base  # re.sub(r'\(.+\)', '', all_name_srs).strip()
+        all_name_srs += '.'
+
+        self.info_srs['Наименование СРС'] = all_name_srs.strip()
         self.info_srs['Номер СРС'] = self.number_comb
         self.info_srs['Кол. откл. эл.'] = comb.shape[0]
-        log.info(f"Сочетание {self.number_comb}: {name_srs}")
+        log.info(f"Сочетание {self.number_comb}: {all_name_srs}")
 
         self.do_action(rm, comb)
 
@@ -1996,6 +2015,8 @@ class CalcModel(GeneralSettings):
                 for i in range(len(actions)):
                     name = rm.cor_rm_from_txt(actions[i])
                     if name:
+                        if self.restore_only_state:
+                            self.test_not_only_sta(name)
                         if names[i]:
                             name = names[i]
                         info.append(name)
@@ -2003,7 +2024,7 @@ class CalcModel(GeneralSettings):
                 info.append(rm.cor_rm_from_txt(task_action_i))
 
         all_info = ', '.join(info) if info else ''
-        self.test_not_only_sta(all_info)
+
         return all_info
 
     def test_not_only_sta(self, txt):
@@ -2012,7 +2033,7 @@ class CalcModel(GeneralSettings):
         :param txt: Строка сформированная group_cor
         """
         for i in ['нагрузки', 'генерации', 'ktr', 'pn', 'qn', 'pg', 'qg', 'vzd', 'bsh', 'P']:
-            # список параметров сверять по group_cor, data_columns
+            # список параметров сверять с функцией group_cor, data_columns
             if i in txt:
                 self.restore_only_state = False
                 break
@@ -2051,7 +2072,7 @@ class CalcModel(GeneralSettings):
         """
         log.debug(f'Проверка параметров УР.')
         test_rgm = rm.rgm('do_control')
-        if self.set_save['avr']:
+        if self.set_save['avr'] and len(comb):
             self.info_action['АРВ'] = rm.node_include()
             if 'Восстановлено' in self.info_action['АРВ']:
                 test_rgm = rm.rgm('Перерасчет после действия АВР.')
@@ -2171,6 +2192,7 @@ class CalcModel(GeneralSettings):
 
         num = len(overloads)
         log.debug(f'Выявлено {num} отклонений от допустимых значений.')
+
         # Добавить рисунки.
         if self.task_calc['results_RG2'] and (not self.task_calc['pic_overloads'] or
                                               (self.task_calc['pic_overloads'] and num)):
@@ -2197,6 +2219,24 @@ class CalcModel(GeneralSettings):
             self.overloads_srs = pd.concat([self.overloads_srs,
                                             overloads.apply(lambda x: pd.concat([self.info_srs, self.info_action]),
                                                             axis=1).join(other=overloads)])
+
+    @staticmethod
+    def find_double_repair_scheme(comb_df):
+        """
+        Функция поиска общего действия double_repair_scheme в ремонтируемых элементах comb.
+        Добавляет в колонку double_repair_scheme общее действие из колонки double_repair_scheme_copy и возвращает его.
+        :param comb_df:
+        """
+        double_repair_scheme = []
+        if comb_df.loc[comb_df['status_repair'], 'double_repair_scheme_copy'].all():
+            double_repair_scheme = comb_df.loc[comb_df['status_repair'], 'double_repair_scheme_copy'].to_list()
+            double_repair_scheme = list(set(double_repair_scheme[0]) & set(double_repair_scheme[1]))
+            for i in comb_df.index:
+                if comb_df['status_repair'].iloc[i]:
+                    comb_df['double_repair_scheme'].iloc[i] = double_repair_scheme
+                else:
+                    comb_df['double_repair_scheme'].iloc[i] = False
+        return double_repair_scheme
 
 
 class EditModel(GeneralSettings):
@@ -2360,7 +2400,6 @@ class RastrModel(RastrMethod):
         self.Name = os.path.basename(full_name)  # вернуть имя с расширением "2020 зим макс.rg2"
         self.name_base, self.type_file = self.Name.rsplit(sep='.', maxsplit=1)
         self.pattern = GeneralSettings.set_save["шаблон " + self.type_file]
-        self.code_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 ПЭВТ 4 лет макс 5 лет мин 6 паводок
         self.all_auto_shunt = {}
         self.temperature: float = 0
         self.rastr = None
@@ -2371,22 +2410,6 @@ class RastrModel(RastrMethod):
         self.god: str = ''
         self.name_rm: str = self.Name
         self.info_file = pd.Series(dtype='object')  # имя файла
-
-        # Для хранения исходной схемы и параметров сети
-        self.v__num_transit = {}  # {(ip, iq, np): номер транзита в тч из 1 ветви}
-        self.data_save = None
-        self.data_columns = None
-        self.data_save_sta = None
-        self.data_columns_sta = None
-        self.t_sta = {}  # {имя таблицы: {(ip, iq, np): 0 или 1}}
-        self.t_name = {}  # {имя таблицы: {ny: имя}}
-        self.t_i = {}  # {имя таблицы: {(ip, iq, np): индекс}}
-        for tab_name in ['node', 'vetv', 'Generator']:
-            self.t_sta[tab_name] = {}
-            self.t_i[tab_name] = {}
-            self.t_name[tab_name] = {}
-            self.t_name[tab_name][-1] = 'Режим не моделируется'
-        self.ny_join_vetv = defaultdict(list)  # {ny: все присоединенные ветви}
 
         # self.ny_pqng = defaultdict(tuple)  # {ny: (pn, qn, pg, qn)} - все с pn pg > 0 | qn pg > 0 | pg > 0 | qg > 0
         self.v_gr = {}   # {(ip, iq, np): groupid} - все c groupid > 0
@@ -2468,13 +2491,21 @@ class RastrModel(RastrMethod):
             self.t_sta['node'][ny] = sta
             # if pn or qn or pg:
             #     self.ny_pqng[ny] = (pn, qn, pg, qg)
-        t = self.rastr.tables('node').writesafearray("ny,name,dname,index", "000")
-        for ny, name, dname, index in t:
+        t = self.rastr.tables('node').writesafearray("ny,name,dname,index,repair_scheme,disable_scheme,"
+                                                     "double_repair_scheme", "000")
+        for ny, name, dname, index, repair_scheme, disable_scheme, double_repair_scheme in t:
             self.t_i['node'][ny] = index
             if dname:
                 self.t_name['node'][ny] = dname
             else:
                 self.t_name['node'][ny] = name if name else f'Узел {ny}'
+            for n, z in (('repair_scheme', repair_scheme),
+                         ('disable_scheme', disable_scheme),
+                         ('double_repair_scheme', double_repair_scheme)):
+                if z:
+                    z = z.replace(' ', '').split('#')[0]
+                    if z:
+                        self.t_scheme['node'][n][ny] = GeneralSettings.split_task_action(z)
 
         # Ветви
         for ip, iq, np_, sta, ktr in self.data_save['vetv']:  # , r, x, b
@@ -2483,8 +2514,9 @@ class RastrModel(RastrMethod):
             self.ny_join_vetv[ip].append(s_key)
             self.ny_join_vetv[iq].append(s_key)
 
-        t = self.rastr.tables('vetv').writesafearray("ip,iq,np,dname,groupid,r,x,b,index", "000")
-        for ip, iq, np_, dname, groupid, r, x, b, index in t:
+        t = self.rastr.tables('vetv').writesafearray("ip,iq,np,dname,groupid,r,x,b,index,repair_scheme,disable_scheme,"
+                                                     "double_repair_scheme", "000")
+        for ip, iq, np_, dname, groupid, r, x, b, index, repair_scheme, disable_scheme, double_repair_scheme in t:
             s_key = (ip, iq, np_)  # if np_ else (ip, iq)
             self.t_i['vetv'][s_key] = index
 
@@ -2496,18 +2528,33 @@ class RastrModel(RastrMethod):
             if groupid:
                 self.v_gr[s_key] = groupid
             self.v_rxb[s_key] = (r, x, b)
+            for n, z in (('repair_scheme', repair_scheme),
+                         ('disable_scheme', disable_scheme),
+                         ('double_repair_scheme', double_repair_scheme)):
+                if z:
+                    z = z.replace(' ', '').split('#')[0]
+                    if z:
+                        self.t_scheme['vetv'][n][s_key] = GeneralSettings.split_task_action(z)
 
         # Генераторы
         for Num, sta, P in self.data_save['Generator']:
             self.t_sta['Generator'][Num] = sta
 
-        t = self.rastr.tables('Generator').writesafearray("Num,index,Name,Node", "000")
-        for Num, index, Name, Node in t:
+        t = self.rastr.tables('Generator').writesafearray("Num,index,Name,Node,repair_scheme,disable_scheme,"
+                                                          "double_repair_scheme", "000")
+        for Num, index, Name, Node, repair_scheme, disable_scheme, double_repair_scheme in t:
             self.t_i['Generator'][Num] = index
             if Name:
                 self.t_name['Generator'][Num] = Name
             else:
                 self.t_name['Generator'][Num] = f'генератор номер {Num} в узле {self.t_name["node"][Node]}'
+            for n, z in (('repair_scheme', repair_scheme),
+                         ('disable_scheme', disable_scheme),
+                         ('double_repair_scheme', double_repair_scheme)):
+                if z:
+                    z = z.replace(' ', '').split('#')[0]
+                    if z:
+                        self.t_scheme['Generator'][n][Num] = GeneralSettings.split_task_action(z)
 
     def network_analysis(self, disable_on: bool = True,
                          field: str = 'disable',
@@ -2721,39 +2768,6 @@ class RastrModel(RastrMethod):
                 log.info(f'{len(all_v_disable)} отключаемых ветвей')
                 vetv.ReadSafeArray(2, 'ip,iq,np,' + field, all_v_disable)
 
-    def index(self, table_name: str, key_int: Union[int | tuple] = 0,  key_str: str = '') -> int:
-        """
-        Возвращает номер строки в таблице по ключу в одном из форматов.
-        :param table_name: 'vetv' ...
-        :param key_int: Например: узел 10 или ветвь (1, 2). При наличии t_i индекс берется из них.
-        :param key_str: Например: 'ny=10' или 'ip=1&iq=2&np=3'
-        :return: index
-        """
-        if not table_name:
-            raise ValueError(f'Ошибка в задании {table_name=}.')
-        if key_int:
-            if table_name in ['node', 'vetv', 'Generator'] and key_int in self.t_i[table_name]:
-                return self.t_i[table_name][key_int]
-            else:
-                t = self.rastr.tables(table_name)
-
-                if table_name == 'vetv':
-                    np_ = key_int[2] if len(key_int) == 3 else 0
-                    t.setsel(f'ip={key_int[0]}&iq={key_int[1]}&np={np_}')
-                else:
-                    t.setsel(f'{t.Key}={key_int}')
-                i = t.FindNextSel(-1)
-                if i > -1:
-                    log.warning(f'В таблице{table_name} не найдена строка по ключу {key_int} ')
-                return i
-        if key_str:
-            t = self.rastr.tables(table_name)
-            t.setsel(key_str)
-            i = t.FindNextSel(-1)
-            if i > -1:
-                log.warning(f'В таблице{table_name} не найдена строка по ключу {key_int} ')
-            return i
-
     @staticmethod
     def name_table_from_key(task_key: str):
         """
@@ -2764,29 +2778,6 @@ class RastrModel(RastrMethod):
             if key_tables in task_key:
                 return RastrMethod.KEY_TABLES[key_tables]
         return False
-
-    def replace_links(self, formula: str) -> str:
-        """
-        Функция заменяет в формуле ссылки на значения в таблицах rastr, на соответствующие значения.
-        :param formula: '(10.5+15,16,2:r)*ip.uhom'
-        :return: formula: '(10.5+z)*ip.uhom'
-        """
-        # formula = formula.replace(' ', '')
-        formula_list = re.split('\*|/|\^|\+|-|\(|\)|==|!=|&|\||not|>|<|<=|=<|>=|=>', formula)
-        for formula_i in formula_list:
-            if ':' in formula_i:
-                if any([txt in formula_i for txt in ['years', 'season', 'max_min', 'add_name']]):
-                    continue
-                sel_all, field = formula_i.split(':')
-                name_table, sel = self.recognize_key(sel_all, 'tab sel')
-                self.rgm(f'для определения значения {formula}')
-                index = self.index(table_name=name_table, key_str=sel)
-                if index > -1:
-                    new_val = self.rastr.tables(name_table).cols.Item(field).ZS(index)
-                    formula = formula.replace(formula_i, new_val)
-                else:
-                    raise ValueError(f'В таблице {name_table} отсутствует {sel}')
-        return formula
 
     def sta(self, table_name: str, ndx: int = 0, key_int: Union[int | tuple] = 0) -> bool:
         """
@@ -3039,14 +3030,11 @@ class RastrModel(RastrMethod):
                     name_fun = 'изм'
                 else:
                     continue  # К следующей строке.
-
-            # Условие выполнения в фигурных скобках
-            if '{' in task_row:
-                if not self.conditions_test(task_row):
-                    log.debug(f'Условие не выполняется: {task_row}')
-                    continue  # К следующей строке.
-                else:
-                    log.debug(f'Условие выполняется: {task_row}')
+            # Цикличность
+            cycle_condition = False
+            if '}*' in task_row:
+                cycle_condition = True
+                task_row = task_row.replace('}*', '}')
 
             # Параметры функции в квадратных скобках
             param = ''
@@ -3060,68 +3048,60 @@ class RastrModel(RastrMethod):
                     sel, value = param.split(':', maxsplit=1)
                 else:
                     sel = param
+            info_i = ''
 
+            # Условие выполнения в фигурных скобках
+            execution_condition = ''
+            if '{' in task_row:
+                match = re.search(re.compile(r"\{(.+?)}"), task_row)
+                if match:
+                    execution_condition = match[1].strip()
+                else:
+                    raise ValueError(f'Ошибка в условии {task_row}')
+
+                if not self.conditions_test(task_row):
+                    log.debug(f'Условие не выполняется: {task_row}')
+                    break  # К следующей строке.
+                else:
+                    log.debug(f'Условие выполняется: {task_row}')
+            if not cycle_condition:
+                execution_condition = ''
             info_i = self.txt_task_cor(name=name_fun,
                                        sel=sel,
                                        value=value,
-                                       all_task=param)
+                                       all_task=param,
+                                       execution_condition=execution_condition,
+                                       cycle_condition=cycle_condition)
             if info_i:
                 info.append(info_i)
         return ', '.join(info) if info else ''
 
-    def conditions_test(self, conditions: str) -> bool:
-        """
-        В строке типа "years : 2026...2029& ny=1: vras>125|(not ny=1: na==2)" проверяет выполнение условий.
-        Если в conditions имеются {}, то значения берутся внутри скобок
-        :param conditions:
-        :return:
-        """
-        log.debug(f'Проверка условия: {conditions}')
-        if '{' in conditions:
-            match = re.search(re.compile(r"\{(.+?)}"), conditions)
-            if match:
-                conditions = match[1].strip()
-            else:
-                raise ValueError(f'Ошибка в условии {conditions}')
-        conditions_s = conditions
-        conditions = self.replace_links(conditions)
-        conditions_list = re.split('\*|/|\^|\+|-|\(|\)|==|!=|&|\||not|>|<|<=|=<|>=|=>', conditions)
-        for condition in conditions_list:
-            if ':' in condition:
-                for key_txt in ['years', 'season', 'max_min', 'add_name']:
-                    if not self.code_name_rg2:  # Если имя не стандартное, то True.
-                        conditions = conditions.replace(condition, 'True')
-                        continue
-                    else:
-                        if key_txt in condition:
-                            par, value = condition.split(':')
-
-                            if self.test_name(condition={par.replace(' ', ''): value.strip()}, info=condition):
-                                conditions = conditions.replace(condition, 'True')
-                            else:
-                                conditions = conditions.replace(condition, 'False')
-        if ':' in conditions:
-            raise ValueError("Ошибка в условии: " + conditions)
-        try:
-            # log.debug(f'conditions_test: {conditions}')
-            return bool(eval(conditions))
-        except Exception:
-            raise ValueError(f'Ошибка у условии: {conditions_s!r}.')
-
-    def txt_task_cor(self, name: str, sel: str = '', value: str = '', all_task: str = '') -> str:
+    def txt_task_cor(self,
+                     name: str,
+                     sel: str = '',
+                     value: str = '',
+                     all_task: str = '',
+                     execution_condition: str = '',
+                     cycle_condition: bool = False) -> str:
         """
         Функция для выполнения задания в текстовом формате
         :param name: Имя функции.
         :param all_task: [всё задание]
         :param sel: Выборка, нр, 15145; 12,13.
         :param value: Значение, нр, name=Промплощадка: изм name; pg=qn*2+10.
+        :param cycle_condition: Если истина, то выполнять действие пока условие не станет ложным;
+        :param execution_condition: условие выполнения;
         :return: информация
         """
         name = name.lower()
         if 'уд' in name:
             return self.cor(keys=sel, values='del', del_all=('*' in name), print_log=True)
         elif 'изм' in name:
-            return self.cor(keys=sel, values=value, print_log=True)
+            return self.cor(keys=sel,
+                            values=value,
+                            print_log=True,
+                            execution_condition=execution_condition,
+                            cycle_condition=cycle_condition)
         elif 'импорт' in name:
             self.txt_import_rm(type_import=sel, description=value)
         elif 'снять' in name:
@@ -3392,6 +3372,7 @@ class RastrModel(RastrMethod):
                     r, x, _ = self.v_rxb[s_key]
                     if r < 0.011 and x < 0.011:
                         ny_connectivity = s_key[0] if ny != s_key[0] else s_key[1]
+                        log.debug(ny_connectivity)
                         ndx = self.t_i['node'][ny_connectivity]
                         if not self.rastr.tables('node').Cols("sta").Z(ndx):  # Питающий узел включен.
                             # Включить узел и ветвь
@@ -3779,21 +3760,17 @@ class CorXL:
 
 
 class ImportFromModel:
-    # __slots__ = 'set_import_model', 'calc_str'
-    set_import_model = []  # хранение объектов класса ImportFromModel созданных в GUI и коде
-    calc_str = {"обновить": 2, "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3, "объединить": 3}
-    number = 0  # для создания уникального имени csv файла
+    set_import_model = []  # хранение созданных объектов класса ImportFromModel
 
     def __init__(self,
                  import_file_name: str,
                  criterion_start: Union[dict, None] = None,
                  tables: str = '',
-                 param='',
+                 param: str = '',
                  sel: Union[str, None] = '',
-                 calc: Union[int, str] = '2',
-                 way='array'):
+                 calc: Union[int, str] = 2):
         """
-        Импорт данных из файлов РМ ('.rg2', '.rst' и др.) и сохранение их в экземпляре класса или в csv.
+        Импорт данных из файлов РМ ('.rg2', '.rst' и др.) в РМ.
         :param import_file_name: Полное имя файла
         :param criterion_start: {"years": "","season": "","max_min": "", "add_name": ""} условие выполнения
         :param tables: таблица для импорта, нр "node, vetv"
@@ -3801,95 +3778,72 @@ class ImportFromModel:
         :param sel: выборка нр "sel" или "" - все
         :param calc: число типа int, строка или ключевое слово:
         {"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}
-        :param way: 'csv' или 'array'
-        'array' - Создает папку temp в папке с файлом и сохраняет в ней .csv файлы
         """
-        self.way = way
-        folder_temp = ''
+        log.info(f'Экспорт данных из файла "{import_file_name}".')
         if not os.path.exists(import_file_name):
             raise ValueError("Ошибка в задании, не найден файл: " + import_file_name)
+
+        self.import_file_name = import_file_name
+        self.criterion_start = criterion_start
+        self.sel = sel if sel else ''
+
+        if type(calc) == int:
+            self.calc = calc
+        elif calc.isdigit():
+            self.calc = int(calc)
         else:
-            log.info(f'Экспорт данных из файла "{import_file_name}".')
-            self.import_file_name = import_file_name
-
-            if way == 'csv':
-                ImportFromModel.number += 1
-                folder_temp = os.path.dirname(import_file_name) + '\\temp'
-                if not os.path.exists(folder_temp):
-                    log.debug(f'Создана папка {folder_temp}.')
-                    os.mkdir(folder_temp)
-
-            self.criterion_start = criterion_start
-            self.sel = sel if sel else ''
-
-            if type(calc) == int:
-                self.calc = calc
-            elif calc.isdigit():
-                self.calc = int(calc)
+            if calc in GeneralSettings.constants["calc_name_val"]:
+                self.calc = GeneralSettings.constants["calc_name_val"][calc]
             else:
-                if calc in self.calc_str:
-                    self.calc = self.calc_str[calc]
-                else:
-                    raise ValueError(f"ImportFromModel. Ошибка в задании, не распознано задание '{calc=}'.")
+                raise ValueError(f"ImportFromModel. Ошибка в задании, не распознано задание '{calc=}'.")
 
-            self.param = []
-            self.import_data = []  # if way == 'array': tuple(данных)
-            self.import_csv_file = []  # if way == 'csv': полный путь к CSV
-            self.tables = tables.replace(' ', '').split(",")  # разделить на ["таблицы"]
+        data_import_i = namedtuple('импорт', ['table', 'parameters', 'data'])
+        self.data_import = []
+        import_rm = RastrModel(full_name=self.import_file_name)
+        self.type_file = import_rm.type_file
+        import_rm.load()
 
-            import_rm = RastrModel(full_name=self.import_file_name)
-            import_rm.load()
-
-            for i, tabl in enumerate(self.tables):
-                # Параметры
-                if param:  # Добавить к строке параметров ключи текущей таблицы
-                    self.param.append(param + ',' + import_rm.rastr.Tables(tabl).Key)
-                else:  # если все параметры
-                    self.param.append(import_rm.all_cols(tabl))
-
-                log.info(f"\tТаблица: {tabl}, выборка: {self.sel}, параметры: {self.param[i]!r}.")
-                tab = import_rm.rastr.Tables(tabl)
-                tab.setsel(self.sel)
-                if tab.count:
-                    # Данные
-                    if way == 'csv':  # todo удалить
-                        self.import_csv_file.append(f"{folder_temp}\\{os.path.basename(import_file_name)}_{tabl}_"
-                                                    f"{ImportFromModel.number}.csv")
-                        # Экспорт данных из файла в .csv файлы в папку temp
-                        log.info(f"\tФайл CSV: {self.import_csv_file[i]!r}.")
-                        tab.WriteCSV(1, self.import_csv_file[i], self.param[i], ";")  # 0 дописать, 1 заменить
-                    elif way == 'array':
-                        self.import_data.append(tab.writesafearray(self.param[i], "000"))
+        for table in tables.replace(' ', '').split(","):  # разделить на ["таблицы"]
+            tab_rm = import_rm.rastr.Tables(table)
+            tab_rm.setsel(self.sel)
+            if not tab_rm.count:
+                continue
+            # Параметры
+            if param:  # Добавить к строке параметров ключи текущей таблицы
+                param_all = param + ',' + import_rm.rastr.Tables(table).Key
+            else:  # если все параметры
+                param_all = import_rm.all_cols(table)
+            # Данные
+            self.data_import.append(data_import_i(table,
+                                                  param_all,
+                                                  tab_rm.writesafearray(param_all, "000")))
+            log.info(f"\tТаблица: {table}, выборка: {self.sel}, параметры: {param_all!r}.")
 
     def import_data_in_rm(self, rm: RastrModel) -> None:
         """
         Импорт данных в файлы
         """
-        log.info(f"\tИмпорт из файла {self.import_file_name} в РМ.")
-        if not rm.code_name_rg2 or rm.test_name(condition=self.criterion_start,
-                                                info='\tImportFromModel '):
-            for i, tab in enumerate(self.tables):
-                log.info(f"\tТаблица: {self.tables[i]}, выборка: {self.sel}, тип: {self.calc}, "
-                         f"параметры: {self.param[i]}.")
-                rm_tab = rm.rastr.Tables(self.tables[i])
-
-                if self.way == 'csv':
-                    log.info(f"\tФайл CSV: {self.import_csv_file[i]}")
-                    rm_tab.ReadCSV(self.calc, self.import_csv_file[i], self.param[i], ";", '')
-                elif self.way == 'array':
-
-                    set_param_in = set(rm.all_cols(self.tables[i], val_return='list'))
-                    set_param_out = set(self.param[i].split(','))
-                    delta = set_param_out - set_param_in
-                    if delta:
-                        data = pd.DataFrame(data=self.import_data[i], columns=self.param[i].split(','))
-                        for field in delta:
-                            data.drop(columns=field, inplace=True)
-                        self.param[i] = ','.join(data.columns)
-                        self.import_data[i] = tuple(data.itertuples(index=False, name=None))
-                    if len(self.import_data) > i:
-                        rm_tab.ReadSafeArray(self.calc, self.param[i], self.import_data[i])
-        ImportFromModel.number = 0
+        log.info(f"\tИмпорт данных в текущую РМ из файла {self.import_file_name} в РМ.")
+        if not rm.code_name_rg2 or rm.test_name(condition=self.criterion_start, info='\tImportFromModel '):
+            for i in self.data_import:
+                rm_tab = rm.rastr.Tables(i.table)
+                if self.type_file == rm.type_file:
+                    rm_tab.ReadSafeArray(self.calc, i.parameters, i.data)
+                    log.info(f"\tТаблица: {i.table}, выборка: {self.sel}, тип: {self.calc}, параметры: {i.parameters}.")
+                else:
+                    set_param_in = set(rm.all_cols(i.table, val_return='list'))
+                    set_param_out = set(i.parameters.split(','))
+                    common = set_param_out & set_param_in  # пересечение
+                    if not common:
+                        log.warning(f"Таблица: {i.table}, параметры: ОТСУТСТВУЮТ.")
+                        return
+                    data = pd.DataFrame(data=i.data, columns=i.parameters.split(','))
+                    data.drop(columns=list(set_param_out - common), inplace=True)
+                    param_all = ','.join(list(data.columns))
+                    import_data = tuple(data.itertuples(index=False, name=None))
+                    rm_tab.ReadSafeArray(self.calc, param_all, import_data)
+                    log.info(f"\tТаблица: {i.table}, выборка: {self.sel}, тип: {self.calc}, "
+                             f"параметры: {param_all}, без параметров: {set_param_out - common}.")
 
 
 class Automation:
@@ -3912,6 +3866,7 @@ class Automation:
 
                     self.df_automation.replace({"action": dict_name_action}, inplace=True)
                     self.df_automation.replace({"condition": dict_name_action}, inplace=True)
+                    self.df_automation = self.df_automation[(self.df_automation['sta'] == 0)]
 
     def scheme_description(self, number: str) -> tuple:
         """
@@ -3932,7 +3887,7 @@ class Automation:
             step = -1
         n = int(n)
         step = int(step)
-        cut = self.df_automation[(self.df_automation['n'] == n) & (self.df_automation['sta'] == 0)]
+        cut = self.df_automation[self.df_automation['n'] == n]
         if step > -1:
             cut = cut[cut['step'] == step]
 

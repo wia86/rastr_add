@@ -1,6 +1,6 @@
 import logging
 import re
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 from typing import Union
 import pandas as pd
 log_r_m = logging.getLogger('__main__.' + __name__)
@@ -29,11 +29,34 @@ class RastrMethod:
 
     def __init__(self):
         self.rastr = None
+        self.code_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 ПЭВТ 4 лет макс 5 лет мин 6 паводок
+        # Для хранения исходной схемы и параметров сети
+        self.v__num_transit = {}  # {(ip, iq, np): номер транзита в тч из 1 ветви}
+        self.data_save = None
+        self.data_columns = None
+        self.data_save_sta = None
+        self.data_columns_sta = None
+        self.t_sta = {}  # {имя таблицы: {(ip, iq, np): 0 или 1}}
+        self.t_name = {}  # {имя таблицы: {ny: имя}}
+        self.t_i = {}  # {имя таблицы: {(ip, iq, np): индекс}}
+        self.t_scheme = {}  # {имя таблицы: {тип схемы:{(ip, iq, np): индекс}}}
+        for tab_name in ['node', 'vetv', 'Generator']:
+            self.t_sta[tab_name] = {}
+            self.t_i[tab_name] = {}
+            self.t_scheme[tab_name] = {'repair_scheme': {}, 'disable_scheme': {}, 'double_repair_scheme': {}}
+            self.t_name[tab_name] = {}
+            self.t_name[tab_name][-1] = 'Режим не моделируется'
+        self.ny_join_vetv = defaultdict(list)  # {ny: все присоединенные ветви}
 
-    def cor(self, keys: str = '', values: str = '', print_log: bool = False, del_all: bool = False) -> str:
+    def cor(self,
+            keys: str = '',
+            values: str = '',
+            print_log: bool = False,
+            del_all: bool = False,
+            execution_condition: str = '',
+            cycle_condition: bool = False) -> str:
         """
         Коррекция значений в таблицах rastrwin.
-
         В круглых скобках указать имя таблицы (н.р. na=1(node)).
         Если корректировать все строки таблицы, то указать только имя таблицы, н.р. (node).
         Если выборка по ключам, то имя таблицы указывать не нужно (н.р. ny=1 в таблице узлы).
@@ -41,15 +64,18 @@ class RastrMethod:
         Если np=0, то выборка по ветвям можно записать еще короче: «12,13», вместо «12,13,0».
         При задании краткой формы имя таблицы указывать не нужно.
 
-        :param keys: "125;ny=25;na=1(node)" для узлов, "Num=25;g=12" для генераторов, "1,2" для ветви,
+        :param keys: Если несколько выборок, то указываются через ";"
+        "125;ny=25;na=1(node)" для узлов, "Num=25;g=12" для генераторов, "1,2" для ветви,
         "na=2;no=1;npa=1;nga=2" для районов, объединения, территорий и нагрузочных групп;
-        Если несколько выборок, то указываются через ";".
 
         :param values:  Удалить строки в таблице 'del'
         Изменить значение параметров: 'pn=10.2;qn=qn*2' ;
         Использование ссылок на другие значения таблиц rastr: 'pn=10.2;qn=qn*2+30:qn+1,2(vetv):ip'
+
         :param print_log: выводить в лог;
         :param del_all: удалять узлы с генераторами и отходящими ветвями;
+        :param execution_condition: условие выполнения;
+        :param cycle_condition: Если истина, то выполнять действие пока условие не станет ложным;
         :return: Информация об отключении
         """
         info = []
@@ -78,14 +104,22 @@ class RastrMethod:
                 else:
                     raise ValueError(f"Задание не распознано, {key=}, {value=}")
 
-                info.append(self.group_cor(tabl=rastr_table, param=param, selection=selection_in_table,
-                                           formula=formula, del_all=del_all))
+                info.append(self.group_cor(tabl=rastr_table,
+                                           param=param,
+                                           selection=selection_in_table,
+                                           formula=formula,
+                                           del_all=del_all,
+                                           execution_condition=execution_condition,
+                                           cycle_condition=cycle_condition))
         return ', '.join(info)
 
     def recognize_key(self, key: str, back: str = 'all'):
         """
-        Распознать имя таблицы и выборку в таблице по короткой записи.
-        :param key: например:['na=11(node)','125', 'g=125', '12,13,0', '12,13']
+        Распознать:
+         -имя таблицы;
+         -короткий ключ (s_key);
+         -выборку в таблице.
+        :param key: например:['na=11(node)','125', 'g=125', '12,13,0', '12,13', 'ip=5&iq=3&np=0']
         :param back: тип возвращаемого значения
         :return:'all' (имя таблицы: str, выборка: str, ключ: int|tuple(int,int,int?))
                 'tab' имя таблицы: str
@@ -162,7 +196,9 @@ class RastrMethod:
                   param: str = '',
                   selection: str = '',
                   formula: str = '',
-                  del_all: bool = False) -> str:
+                  del_all: bool = False,
+                  execution_condition: str = '',
+                  cycle_condition: bool = False) -> str:
         """
         Групповая коррекция;
         :param tabl: таблица, нр 'node';
@@ -171,8 +207,16 @@ class RastrMethod:
         :param formula: 'del' удалить строки, формула для расчета параметра, нр 'pn*2' или значение, нр '10'.
         Меняются все поля в выборке через 'Calc'. А значит formula может быть например 'pn*0.4'
         :param del_all: удалять узлы с генераторами и отходящими ветвями;
+        :param execution_condition: условие выполнения;
+        :param cycle_condition: Если истина то выполнять действие пока условие не станет ложным;
         :return: Информация об отключении
         """
+        if execution_condition:
+            if not self.conditions_test(execution_condition):
+                return ''
+        if cycle_condition and (not execution_condition):
+            raise ValueError(f"Ошибка в задании {cycle_condition!r}, {execution_condition!r}.")
+
         if self.rastr.tables.Find(tabl) < 0:
             raise ValueError(f"В rastrwin не загружена таблица {tabl!r}.")
 
@@ -203,16 +247,29 @@ class RastrMethod:
                 raise ValueError(f"В таблице {tabl!r} нет параметра {param!r}.")
 
             if table.cols(param).Prop(1) == 2:  # если поле типа строка
-                while i > -1:
+
+                if table.count > 1:
+                    new_data = [(*x, formula) for x in table.writesafearray(table.Key, "000")]
+                    table.ReadSafeArray(2, table.Key + ',' + param, new_data)
+                else:
+
                     table.cols.Item(param).SetZ(i, formula)
-                    i = table.FindNextSel(i)
-            else:
+
+            else:  # если поле типа число
                 if type(formula) == str:
                     formula = formula.replace(' ', '').replace(',', '.')
+
                 table.cols.item(param).Calc(formula)
+                if cycle_condition:
+                    for i in range(1000):
+                        self.rgm(f'Расчет {i} в цикле')
+                        if self.conditions_test(execution_condition):
+                            table.cols.item(param).Calc(formula)
+                        else:
+                            break
 
             if num > 1:
-                return f'изменение {selection} параметра {param}, {formula!r}'
+                return f'изменение {num} строк по выборке {selection} параметра {param}, {formula!r}'
             elif num == 1:
                 # [отключение / включение:]    [имя(ВЛ, 1СШ, ЮЖНАЯ) / выборка]
                 # [имя(ВЛ, 1СШ, ЮЖНАЯ) / выборка]    [: изменение]    [нагрузки / генерации][с до]
@@ -657,8 +714,8 @@ class RastrMethod:
         for ny in all_auto_shunt:
             ku = all_auto_shunt[ny]
             ny_test = ku.ny_control if ku.ny_control else ku.ny_adjacency
-            i = self.index(name_table='node', key_str=f'ny={ny}')
-            i_test = self.index(name_table='node', key_str=f'ny={ny_test}')
+            i = self.index(table_name='node', key_str=f'ny={ny}')
+            i_test = self.index(table_name='node', key_str=f'ny={ny_test}')
             node = self.rastr.tables('node')
             sta = node.cols.item("sta").Z(i)  # 1 откл, 0 вкл
             volt_test = round(node.cols.item("vras").Z(i_test), 1)
@@ -781,7 +838,7 @@ class RastrMethod:
         for name_table in name_tables.replace(' ', '').split(','):
             self.add_fields_in_table(name_tables=name_table, fields='index', type_fields=0)
             table = self.rastr.tables(name_table)
-            keys = [(*x, i) for i, x in enumerate(table.writesafearray(table.Key, "000"), 1)]
+            keys = [(*x, i) for i, x in enumerate(table.writesafearray(table.Key, "000"), 0)]
             table.ReadSafeArray(2, table.Key + ',index', keys)
             log_r_m.debug(f'В таблице {name_table} заполнено поле index.')
 
@@ -793,3 +850,101 @@ class RastrMethod:
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
         vetv.cols.item("sta").calc(sta)
+
+    def replace_links(self, formula: str) -> str:
+        """
+        Функция заменяет в формуле ссылки на значения в таблицах rastr, на соответствующие значения.
+        :param formula: '(10.5+15,16,2:r)*ip.uhom'
+        :return: formula: '(10.5+z)*ip.uhom'
+        """
+        # formula = formula.replace(' ', '')
+        formula_list = re.split('\*|/|\^|\+|-|\(|\)|==|!=|&|\||not|>|<|<=|=<|>=|=>', formula)
+        for formula_i in formula_list:
+            if ':' in formula_i:
+                if any([txt in formula_i for txt in ['years', 'season', 'max_min', 'add_name']]):
+                    continue
+                sel_all, field = formula_i.split(':')
+                name_table, sel = self.recognize_key(sel_all, 'tab sel')
+                self.rgm(f'для определения значения {formula}')
+                index = self.index(table_name=name_table, key_str=sel)
+                if index > -1:
+                    new_val = self.rastr.tables(name_table).cols.Item(field).ZS(index)
+                    formula = formula.replace(formula_i, new_val)
+                else:
+                    raise ValueError(f'В таблице {name_table} отсутствует {sel}')
+        return formula
+
+    def index(self, table_name: str, key_int: Union[int | tuple] = 0,  key_str: str = '') -> int:
+        """
+        Возвращает номер строки в таблице по ключу в одном из форматов.
+        :param table_name: 'vetv' ...
+        :param key_int: Например: узел 10 или ветвь (1, 2). При наличии t_i индекс берется из них.
+        :param key_str: Например: 'ny=10' или 'ip=1&iq=2&np=3'
+        :return: index
+        """
+        if not table_name:
+            raise ValueError(f'Ошибка в задании {table_name=}.')
+        if key_int:
+            if table_name in ['node', 'vetv', 'Generator'] and key_int in self.t_i[table_name]:
+                return self.t_i[table_name][key_int]
+            else:
+                t = self.rastr.tables(table_name)
+
+                if table_name == 'vetv':
+                    np_ = key_int[2] if len(key_int) == 3 else 0
+                    t.setsel(f'ip={key_int[0]}&iq={key_int[1]}&np={np_}')
+                else:
+                    t.setsel(f'{t.Key}={key_int}')
+                i = t.FindNextSel(-1)
+                if i == -1:
+                    raise ValueError(f'index: В таблице {table_name} не найдена строка по ключу {key_int} ')
+                    # log.warning
+                return i
+        if key_str:
+            t = self.rastr.tables(table_name)
+            t.setsel(key_str)
+            i = t.FindNextSel(-1)
+            if i == -1:
+                raise ValueError(f'index: В таблице {table_name} не найдена строка по ключу {key_str} ')
+                # log.warning
+            return i
+
+    def conditions_test(self, conditions: str) -> bool:
+        """
+        В строке типа "years : 2026...2029& ny=1: vras>125|(not ny=1: na==2)" проверяет выполнение условий.
+        Если в conditions имеются {}, то значения берутся внутри скобок
+        :param conditions:
+        :return:
+        """
+        log_r_m.debug(f'Проверка условия: {conditions}')
+        if '{' in conditions:
+            match = re.search(re.compile(r"\{(.+?)}"), conditions)
+            if match:
+                conditions = match[1].strip()
+            else:
+                raise ValueError(f'Ошибка в условии {conditions}')
+        conditions_s = conditions
+        conditions = self.replace_links(conditions)
+        conditions_list = re.split('\*|/|\^|\+|-|\(|\)|==|!=|&|\||not|>|<|<=|=<|>=|=>', conditions)
+        for condition in conditions_list:
+            if ':' in condition:
+                for key_txt in ['years', 'season', 'max_min', 'add_name']:
+                    if not self.code_name_rg2:  # Если имя не стандартное, то True.
+                        conditions = conditions.replace(condition, 'True')
+                        continue
+                    else:
+                        if key_txt in condition:
+                            par, value = condition.split(':')
+
+                            if self.test_name(condition={par.replace(' ', ''): value.strip()},
+                                              info=condition):
+                                conditions = conditions.replace(condition, 'True')
+                            else:
+                                conditions = conditions.replace(condition, 'False')
+        if ':' in conditions:
+            raise ValueError("Ошибка в условии: " + conditions)
+        try:
+            log_r_m.debug(f'conditions_test: {conditions}')
+            return bool(eval(conditions))
+        except Exception:
+            raise ValueError(f'Ошибка у условии: {conditions_s!r}.')
