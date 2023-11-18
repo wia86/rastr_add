@@ -1330,7 +1330,7 @@
 #изм[(vetv);(area);(area2);(darea): Tc=0]
 #изм[(area);(area2);(darea): set_pop=0]
 #изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  
-#снять отметку{years: 2026&amp; season:лет&amp; max_min:min&amp; add_name:0°C&amp; (ny=2:vras&gt;525.5)}
+#снять отметку{years: 2026&amp; season:лет&amp; max_min:макс &amp; add_name:0°C&amp; (ny=2:vras&gt;525.5)}
 #добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]
 #текст[node: name, dname; vetv:dname; Generator: Name]  
 #СХН[na=11]{years : 2026...2029&amp; (ny=1: vras&gt;125)|(not (ny=1: na)==2)}

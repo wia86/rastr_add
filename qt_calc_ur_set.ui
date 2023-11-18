@@ -69,10 +69,10 @@
       <item>
        <widget class="QCheckBox" name="cb_pa">
         <property name="enabled">
-         <bool>false</bool>
+         <bool>true</bool>
         </property>
         <property name="text">
-         <string>Учитывать ПА</string>
+         <string> Моделировать действие ПА</string>
         </property>
         <property name="checked">
          <bool>true</bool>

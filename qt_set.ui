@@ -6,103 +6,147 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>684</width>
-    <height>218</height>
+    <width>552</width>
+    <height>230</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>Настройки</string>
+   <string>Настройки программы</string>
   </property>
-  <widget class="QWidget" name="layoutWidget">
+  <widget class="QGroupBox" name="groupBox">
    <property name="geometry">
     <rect>
-     <x>0</x>
-     <y>2</y>
-     <width>681</width>
-     <height>197</height>
+     <x>10</x>
+     <y>0</y>
+     <width>531</width>
+     <height>181</height>
     </rect>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
-    <item>
-     <layout class="QFormLayout" name="formLayout">
-      <property name="leftMargin">
-       <number>6</number>
-      </property>
-      <property name="topMargin">
-       <number>3</number>
-      </property>
-      <property name="rightMargin">
-       <number>3</number>
-      </property>
-      <property name="bottomMargin">
-       <number>3</number>
-      </property>
-      <item row="0" column="0">
-       <widget class="QLabel" name="label">
-        <property name="text">
-         <string>Путь к папке RastrWin3:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="0" column="1">
-       <widget class="QLineEdit" name="LE_path">
-        <property name="text">
-         <string>C:\Users\User\Documents\RastrWin3</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="0">
-       <widget class="QLabel" name="label_2">
-        <property name="text">
-         <string>Шаблон .rg2:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="1" column="1">
-       <widget class="QLineEdit" name="LE_rg2">
-        <property name="text">
-         <string>C:\Users\User\Documents\RastrWin3\SHABLON\режим.rg2</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="0">
-       <widget class="QLabel" name="label_3">
-        <property name="text">
-         <string>Шаблон .rst:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="2" column="1">
-       <widget class="QLineEdit" name="LE_rst">
-        <property name="text">
-         <string>C:\Users\User\Documents\RastrWin3\SHABLON\динамика.rst</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="0">
-       <widget class="QLabel" name="label_4">
-        <property name="text">
-         <string>Шаблон .sch:</string>
-        </property>
-       </widget>
-      </item>
-      <item row="3" column="1">
-       <widget class="QLineEdit" name="LE_sch">
-        <property name="text">
-         <string>C:\Users\User\Documents\RastrWin3\SHABLON\сечения.sch</string>
-        </property>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <widget class="QPushButton" name="set_save">
-      <property name="text">
-       <string>Соханить</string>
-      </property>
-     </widget>
-    </item>
-   </layout>
+   <property name="title">
+    <string>Шаблоны</string>
+   </property>
+   <widget class="QWidget" name="">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>20</y>
+      <width>501</width>
+      <height>138</height>
+     </rect>
+    </property>
+    <layout class="QHBoxLayout" name="horizontalLayout">
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout_2">
+       <item>
+        <widget class="QLabel" name="label_2">
+         <property name="text">
+          <string>Шаблон .rg2:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Шаблон .rst:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_4">
+         <property name="text">
+          <string>Шаблон .sch:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label_5">
+         <property name="text">
+          <string>Шаблон .trn:</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="label">
+         <property name="text">
+          <string>Шаблон .anc:</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QVBoxLayout" name="verticalLayout">
+       <item>
+        <widget class="QLineEdit" name="LE_shablon_rg2">
+         <property name="text">
+          <string>C:\Users\User\Documents\RastrWin3\SHABLON\режим.rg2</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="LE_shablon_rst">
+         <property name="text">
+          <string>C:\Users\User\Documents\RastrWin3\SHABLON\динамика.rst</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="LE_shablon_sch">
+         <property name="text">
+          <string>C:\Users\User\Documents\RastrWin3\SHABLON\сечения.sch</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="LE_shablon_trn">
+         <property name="text">
+          <string>C:\Users\User\Documents\RastrWin3\SHABLON\трансформаторы.trn</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLineEdit" name="LE_shablon_anc">
+         <property name="text">
+          <string>C:\Users\User\Documents\RastrWin3\SHABLON\анцапфы.anc</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
+   </widget>
+   <widget class="QCheckBox" name="CB_load_trn_anc">
+    <property name="geometry">
+     <rect>
+      <x>20</x>
+      <y>160</y>
+      <width>491</width>
+      <height>19</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>При загрузке файла rst или rg2 загружать одноименные файлы trn и anc (из той же папки)</string>
+    </property>
+    <property name="checked">
+     <bool>true</bool>
+    </property>
+   </widget>
+  </widget>
+  <widget class="QPushButton" name="PB_qt_set_save">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>190</y>
+     <width>511</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>Соханить</string>
+   </property>
   </widget>
  </widget>
  <resources/>

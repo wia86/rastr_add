@@ -1741,14 +1741,14 @@ class Ui_cor(object):
         self.label_98.setText(_translate("cor", ", (доп имя 1;2):"))
         self.sel_import.setTabText(self.sel_import.indexOf(self.IT), _translate("cor", "I(T)"))
         self.CB_cor_b.setText(_translate("cor", "Задание на корректировку в текстовом формате"))
-        self.TE_cor_b.setPlainText(_translate("cor", "# отключения[na>0] # [-] только анализ\n"
+        self.TE_cor_b.setPlainText(_translate("cor", "# анализ[na>0] # [-] только анализ\n"
 "# краткая справка:\n"
 "#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей\n"
 "#изм[15148:name=Промплощадка: изм name; pg=qn*2+10] \n"
 "#изм[(vetv);(area);(area2);(darea): Tc=0]\n"
 "#изм[(area);(area2);(darea): set_pop=0]\n"
 "#изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  \n"
-"#снять отметку{years: 2026& season:лет& max_min:min& add_name:0°C& (ny=2:vras>525.5)}\n"
+"#снять отметку{years: 2026& season:лет& max_min:мин& add_name:0°C& (ny=2:vras>525.5)}\n"
 "#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]\n"
 "#текст[node: name, dname; vetv:dname; Generator: Name]  \n"
 "#СХН[na=11]{years : 2026...2029& (ny=1: vras>125)|(not (ny=1: na)==2)}\n"
@@ -1792,4 +1792,4 @@ class Ui_cor(object):
         self.print_tab_log_vals.setText(_translate("cor", "P,Pmax"))
         self.CB_print_parametr.setText(_translate("cor", "Вывод значений следующих параметров из моделей:"))
         self.TA_parametr_vibor.setPlainText(_translate("cor", "15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech"))
-        self.CB_print_balance_Q.setText(_translate("cor", "Таблица баланс реактивной мощности, выборка в таблице районы:"))
+        self.CB_print_balance_Q.setText(_translate("cor", "Таблица баланс реактивной мощности, выборка в таблице районы и узлы:"))

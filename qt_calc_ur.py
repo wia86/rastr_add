@@ -32,7 +32,7 @@ class Ui_calc_ur(object):
         self.scrollArea.setWidgetResizable(True)
         self.scrollArea.setObjectName("scrollArea")
         self.scrollAreaWidgetContents = QtWidgets.QWidget()
-        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, -262, 712, 1008))
+        self.scrollAreaWidgetContents.setGeometry(QtCore.QRect(0, 0, 712, 1008))
         self.scrollAreaWidgetContents.setObjectName("scrollAreaWidgetContents")
         self.gridLayout_3 = QtWidgets.QGridLayout(self.scrollAreaWidgetContents)
         self.gridLayout_3.setObjectName("gridLayout_3")
@@ -616,7 +616,7 @@ class Ui_calc_ur(object):
         self.le_auto_disable_choice.setText(_translate("calc_ur", "na=1"))
         self.cb_comb_field.setText(_translate("calc_ur", "Выбор отключаемых ветвей, узлов и генераторов (имя поля):"))
         self.le_comb_field.setText(_translate("calc_ur", "disable"))
-        self.cb_filter_comb.setText(_translate("calc_ur", "Фильтры для сочетаний н-1, н-2:"))
+        self.cb_filter_comb.setText(_translate("calc_ur", "Фильтры для сочетаний н-2, н-3:"))
         self.label_7.setText(_translate("calc_ur", "%"))
         self.gb_disable_excel.setTitle(_translate("calc_ur", "Параметры:"))
         self.te_XL_path.setPlainText(_translate("calc_ur", "I:\\rastr_add\\test\\пример задания.xlsx"))
@@ -666,7 +666,7 @@ class Ui_calc_ur(object):
 "#изм[(vetv);(area);(area2);(darea): Tc=0]\n"
 "#изм[(area);(area2);(darea): set_pop=0]\n"
 "#изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  \n"
-"#снять отметку{years: 2026& season:лет& max_min:min& add_name:0°C& (ny=2:vras>525.5)}\n"
+"#снять отметку{years: 2026& season:лет& max_min:макс & add_name:0°C& (ny=2:vras>525.5)}\n"
 "#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]\n"
 "#текст[node: name, dname; vetv:dname; Generator: Name]  \n"
 "#СХН[na=11]{years : 2026...2029& (ny=1: vras>125)|(not (ny=1: na)==2)}\n"
