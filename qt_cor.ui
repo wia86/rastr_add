@@ -88,7 +88,7 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>0</y>
+         <y>-606</y>
          <width>931</width>
          <height>1437</height>
         </rect>
@@ -3838,7 +3838,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Имя листов:</string>
+                <string>Имена листов:</string>
                </property>
               </widget>
              </item>
@@ -3879,7 +3879,7 @@
            </font>
           </property>
           <property name="text">
-           <string>Расчет режима и ДТН (I(Тс))</string>
+           <string>Расчет режима и ДТН (I(Тс)), проверка графа сети</string>
           </property>
          </widget>
         </item>

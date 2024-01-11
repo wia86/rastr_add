@@ -9,7 +9,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>733</width>
+    <width>760</width>
     <height>791</height>
    </rect>
   </property>
@@ -53,7 +53,7 @@
           <rect>
            <x>0</x>
            <y>0</y>
-           <width>712</width>
+           <width>739</width>
            <height>1008</height>
           </rect>
          </property>
@@ -99,7 +99,7 @@
                <item>
                 <widget class="QLabel" name="label_2">
                  <property name="text">
-                  <string>Количество отключаемых элементов сети:</string>
+                  <string>Количество отключаемых элементов сети в сочетании (температура по ГОСТ): </string>
                  </property>
                 </widget>
                </item>
@@ -117,12 +117,25 @@
                 </widget>
                </item>
                <item>
-                <widget class="QCheckBox" name="cb_n2">
+                <widget class="QCheckBox" name="cb_n2_abv">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
                  <property name="text">
-                  <string>2,</string>
+                  <string>2(а,б,в),</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cb_n2_gd">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>2(г,д),</string>
                  </property>
                  <property name="checked">
                   <bool>true</bool>
@@ -1637,7 +1650,7 @@
   <tabstop>te_tab_KO_info</tabstop>
   <tabstop>cb_results_pic</tabstop>
   <tabstop>cb_pic_overloads</tabstop>
-  <tabstop>cb_n2</tabstop>
+  <tabstop>cb_n2_abv</tabstop>
   <tabstop>te_cor_txt</tabstop>
   <tabstop>cb_disable_excel</tabstop>
   <tabstop>cb_import_model</tabstop>

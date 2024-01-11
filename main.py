@@ -3,7 +3,7 @@
 # pip freeze > requirements.txt
 # pip install -r requirements.txt
 # exe приложение:
-# pyinstaller --onefile --noconsole main.py
+#  pyinstaller  --noconsole main.py --name Помошник_режимщика_2024_01_10 -i fav.ico --add-data "help;help" # --onefile
 import win32com.client  # установить pywin32
 # Excel.Application https://memotut.com/en/150745ae0cc17cb5c866/
 from abc import ABC
@@ -27,6 +27,7 @@ import configparser  # создать ini файл
 # import random
 import logging
 # import webbrowser
+import sqlite3
 from tkinter import messagebox as mb
 import numpy as np
 import pandas as pd
@@ -39,6 +40,7 @@ from qt_calc_ur import Ui_calc_ur  # pyuic5 qt_calc_ur.ui -o qt_calc_ur.py
 from qt_calc_ur_set import Ui_calc_ur_set  # pyuic5 qt_calc_ur_set.ui -o qt_calc_ur_set.py
 from collections import namedtuple, defaultdict, Counter
 
+
 # Если не работает терминал, то в  PowerShell ввести:
 # Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned –Force
 
@@ -50,7 +52,7 @@ class Window:
     def check_status(set_checkbox_element: tuple):
         """
         По состоянию CheckBox изменить состояние видимости соответствующего элемента.
-        :param set_checkbox_element: картеж картежей (checkbox, element)
+        :param set_checkbox_element: Картеж картежей (checkbox, element).
         """
         for CB, element in set_checkbox_element:
             if CB.isChecked():
@@ -219,7 +221,8 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         # Расчет всех возможных сочетаний. Отключаемые элементы.
         self.cb_disable_comb.setChecked(task_yaml['cb_disable_comb'])
         self.cb_n1.setChecked(task_yaml['SRS']['n-1'])
-        self.cb_n2.setChecked(task_yaml['SRS']['n-2'])
+        self.cb_n2_abv.setChecked(task_yaml['SRS']['n-2_abv'])
+        self.cb_n2_gd.setChecked(task_yaml['SRS']['n-2_gd'])
         self.cb_n3.setChecked(task_yaml['SRS']['n-3'])
 
         self.cb_auto_disable.setChecked(task_yaml['cb_auto_disable'])
@@ -283,7 +286,8 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             # Расчет всех возможных сочетаний. Отключаемые элементы.
             'cb_disable_comb': self.cb_disable_comb.isChecked(),
             'SRS': {'n-1': self.cb_n1.isChecked(),
-                    'n-2': self.cb_n2.isChecked(),
+                    'n-2_abv': self.cb_n2_abv.isChecked(),
+                    'n-2_gd': self.cb_n2_gd.isChecked(),
                     'n-3': self.cb_n3.isChecked()},
 
             'cb_auto_disable': self.cb_auto_disable.isChecked(),
@@ -881,8 +885,9 @@ class GeneralSettings(ABC):
     ini = 'settings.ini'
     log_file = 'log_file.log'
     constants = {  # "calc_val": {1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"},
-                 "calc_name_val": {"обновить": 2, "загрузить": 1, "присоединить": 0,
-                                   "присоединить-обновить": 3, "объединить": 3}}
+        "calc_name_val": {"обновить": 2, "загрузить": 1, "присоединить": 0,
+                          "присоединить-обновить": 3, "объединить": 3}}
+    overwrite_new_file = 'question'
 
     # @abstractmethod
     def __init__(self):
@@ -958,17 +963,17 @@ class GeneralSettings(ABC):
         """
         if not txt:
             return False
-        # вычленить значения в [ ] и { }
+        # Вычленить значения в [ ] и { }.
         actions = re.findall(re.compile(r"\[(.+?)]"), txt)
         conditions = re.findall(re.compile(r"\{(.+?)}"), txt)
 
-        # заменить значения в [ ] и { } на act_cond_{n}
+        # Заменить значения в [ ] и { } на act_cond_{n}
         dict_key = {}  # замена, действие
         for n, action in enumerate(actions + conditions):
             dict_key[f'act_cond_{n}'] = action
             txt = txt.replace(action, f'act_cond_{n}')
 
-        #  заменить act_cond_{n} на значения в [ ] и { }
+        #  Заменить act_cond_{n} на значения в [ ] и { }.
         result = []
         for part in txt.split(','):
             for key in dict_key:
@@ -980,9 +985,9 @@ class GeneralSettings(ABC):
     @staticmethod
     def read_title(txt: str) -> tuple:
         """
-        Разделить строку типа 'Рисунок [1] - Южный'
+        Разделить строку типа 'Рисунок [1] - Южный'.
         :param txt:
-        :return: (1, ['Рисунок ', ' - Южный'])
+        :return: (1, ['Рисунок ', ' - Южный']).
         """
         txt = txt.strip()
         num = txt[txt.find('[') + 1: txt.find(']')]
@@ -995,13 +1000,14 @@ class CalcModel(GeneralSettings):
     """
     Расчет нормативных возмущений.
     """
+
     def __init__(self, task_calc):
         super(CalcModel, self).__init__()
         self.all_read_ini()
         self.number_comb = 0
         self.task_calc = task_calc
         self.all_folder = False  # Не перебирать вложенные папки
-        self.set_comb = {}  # {количество отключений: контроль ДТН, 1:"ДДТН",2:"АДТН"}
+        # self.set_comb = {}  # {количество отключений: контроль ДТН, 1:"ДДТН",2:"АДТН"}
         # self.auto_shunt = {}
 
         self.control_I = None
@@ -1029,6 +1035,8 @@ class CalcModel(GeneralSettings):
         self.df_picture = pd.DataFrame(dtype='str', columns=['Наименование файла',
                                                              'Наименование рисунка'])
         self.num_pic, self.name_pic = list(GeneralSettings.read_title(self.task_calc['name_pic']))
+
+        RastrModel.all_rm = pd.DataFrame()
 
     def run_calc(self):
         """
@@ -1085,6 +1093,7 @@ class CalcModel(GeneralSettings):
         with open(self.task_calc['name_time'] + ' задание на расчет РМ.yaml', 'w') as f:
             yaml.dump(data=self.task_calc, stream=f, default_flow_style=False, sort_keys=False)
         # webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
+        GeneralSettings.overwrite_new_file = 'question'
         mb.showinfo("Инфо", self.set_info['end_info'])
 
     @staticmethod
@@ -1174,10 +1183,12 @@ class CalcModel(GeneralSettings):
         xlApp = None
 
         if os.path.isdir(self.task_calc["calc_folder"]):
-            if self.all_folder:  # с вложенными папками
+            # папка с вложенными папками
+            if self.all_folder:
                 for address, dir_, file_ in os.walk(self.task_calc["calc_folder"]):
                     self.for_file(folder_calc=address)
-            else:  # без вложенных папок
+            # папка без вложенных папок
+            else:
                 self.for_file(folder_calc=self.task_calc["calc_folder"])
         # один файл
         elif os.path.isfile(self.task_calc["calc_folder"]):
@@ -1185,6 +1196,10 @@ class CalcModel(GeneralSettings):
             if not rm.code_name_rg2:
                 raise ValueError(f'Имя файла {self.task_calc["calc_folder"]!r} не подходит.')
             self.calc_file(rm=rm)
+
+        # Сохранить таблицы перегрузки в SQL.
+        # con = sqlite3.connect("result.db")
+        # self.overloads_all.to_sql("overloads", con, if_exists="replace", index=False)
 
         # Сохранить в Excel таблицы перегрузки.
         if len(self.overloads_all):
@@ -1202,7 +1217,7 @@ class CalcModel(GeneralSettings):
                                             index_label='Номер сочетания.подсочетания',
                                             freeze_panes=(1, 1),
                                             sheet_name='Перегрузки')
-        # Сохранить в Excel таблицы перегрузки.
+        # Сохранить в Excel таблицу перегрузки.
         sheet_name_pic = 'Рисунки'
         if len(self.df_picture):
             with pd.ExcelWriter(path=self.book_path,
@@ -1222,7 +1237,7 @@ class CalcModel(GeneralSettings):
             sheet_pic['A2'] = 'Ориентация(1 - книжная, 0 - альбомная):'
             sheet_pic['A3'] = 'Имя папки с файлами rg2:'
             sheet_pic['B1'] = 3
-            sheet_pic['B2'] = 1
+            sheet_pic['B2'] = 0
             sheet_pic['B3'] = self.task_calc['folder_result_calc']
             thins = Side(border_style="thin", color="000000")
             for col in ['A', 'B']:
@@ -1236,7 +1251,17 @@ class CalcModel(GeneralSettings):
                                  point_start='A5')
             book.save(self.book_path)
 
-        # Сводная
+        # Сохранить макрос rbs.
+        rbs = ''
+        with open('help\Сделать рисунки в word.rbs') as f:
+            for readline in f.readlines():
+                rbs += readline
+        rbs = rbs.replace('папка с файлами', self.book_path)
+        f2 = open(self.book_path.rsplit('.', 1)[0] + '.rbs', 'w')
+        f2.write(rbs)
+        f2.close()
+
+        # Сводная.
         if len(self.overloads_all):
             log.info(f'Формируется сводная таблица ({self.book_path}).')
             xlApp = win32com.client.Dispatch("Excel.Application")
@@ -1257,7 +1282,7 @@ class CalcModel(GeneralSettings):
             task_pivot = []
             task_pivot_i = namedtuple('task_pivot',
                                       ['sheet_name', 'pivot_table_name', 'data_field'])
-            # todo сводная если только режимы которые не моделируются
+
             if "i_max" in self.overloads_all.columns:
                 task_pivot.append(task_pivot_i('Сводная_I', "Свод_I",
                                                dict(i_max="Iрасч.,A",
@@ -1397,17 +1422,19 @@ class CalcModel(GeneralSettings):
         Цикл по файлам.
         :param folder_calc:
         """
+
         files_calc = os.listdir(folder_calc)  # список всех файлов в папке
         rm_files = list(filter(lambda x: x.endswith('.rg2'), files_calc))
 
         for rastr_file in rm_files:  # цикл по файлам '.rg2' в папке
+            log.info("\n\n")
             if self.task_calc["Filter_file"] and self.file_count == self.task_calc["file_count_max"]:
                 break  # Если включен фильтр файлов проверяем количество расчетных файлов.
             full_name = os.path.join(folder_calc, rastr_file)
             rm = RastrModel(full_name)
             # если включен фильтр файлов и имя стандартизовано
             if not rm.code_name_rg2:
-                log.info(f'Имя файла {full_name} не подходит.')
+                log.info(f'Имя файл {full_name} не распознано.')
                 continue
             if self.task_calc["Filter_file"]:
                 if not rm.test_name(condition=self.task_calc["calc_criterion"],
@@ -1419,12 +1446,12 @@ class CalcModel(GeneralSettings):
         """
         Рассчитать РМ.
         """
+        self.set_comb = {}  # {количество отключений: контроль ДТН, 1:"ДДТН",2:"АДТН"}
         self.file_count += 1
         self.book_path = self.task_calc['name_time'] + ' результаты расчетов.xlsx'
-        log.info("\n\n")
         rm.load()
-        log.info(f"Расчетная температура: {rm.temperature}")
-        rm.rastr.CalcIdop(rm.temperature, 0.0, "")
+        rm.rastr.CalcIdop(rm.info_file["Темп.(°C)"], 0.0, "")
+        log.info(f'Выполнен расчет ДТН для температуры: {rm.info_file["Темп.(°C)"]} °C.')
 
         if self.task_calc['cor_rm']['add']:
             rm.cor_rm_from_txt(self.task_calc['cor_rm']['txt'])
@@ -1604,15 +1631,22 @@ class CalcModel(GeneralSettings):
         if self.task_calc['cb_disable_comb']:
             # self.set_comb[0] = 'ДДТН'
             # Выбор количества одновременно отключаемых элементов
+            # н-1
             if self.task_calc['SRS']['n-1']:
                 self.set_comb[1] = 'ДДТН'
-            if self.task_calc['SRS']['n-2']:
-                self.set_comb[2] = 'ДДТН'
-                if 0 < rm.code_name_rg2 < 4 and self.set_save['gost']:
+            # н-2
+            if self.set_save['gost']:
+                if self.task_calc['SRS']['n-2_abv'] and rm.gost_abv:
                     self.set_comb[2] = 'AДТН'
+                if self.task_calc['SRS']['n-2_gd'] and rm.gost_gd:
+                    self.set_comb[2] = 'ДДТН'
+            else:
+                if self.task_calc['SRS']['n-2_abv'] or self.task_calc['SRS']['n-2_gd']:
+                    self.set_comb[2] = 'ДДТН'
+            # н-3
             if self.task_calc['SRS']['n-3']:
                 if self.set_save['gost']:
-                    if rm.code_name_rg2 > 3:
+                    if rm.gost_gd:
                         self.set_comb[3] = 'АДТН'
                 else:
                     self.set_comb[3] = 'ДДТН'
@@ -1683,7 +1717,9 @@ class CalcModel(GeneralSettings):
                                         disable_df_node,
                                         disable_df_gen])
             # Фильтр комбинаций
-            if not self.task_calc['SRS']['n-1'] or not (self.task_calc['SRS']['n-2'] or self.task_calc['SRS']['n-3']):
+            if not self.task_calc['SRS']['n-1'] or not (self.task_calc['SRS']['n-2_abv']
+                                                        or self.task_calc['SRS']['n-2_gd']
+                                                        or self.task_calc['SRS']['n-3']):
                 self.task_calc['filter_comb'] = False
 
             if self.task_calc['filter_comb']:
@@ -1775,10 +1811,9 @@ class CalcModel(GeneralSettings):
             for comb in comb_xl:
                 self.info_srs['Контроль ДТН'] = 'ДДТН'
                 if self.set_save['gost']:
-                    if comb.shape[0] == 3 or (comb.shape[0] == 2 and rm.code_name_rg2 in [1, 2, 3]):
+                    if comb.shape[0] == 3 or (comb.shape[0] == 2 and rm.gost_abv):
                         self.info_srs['Контроль ДТН'] = 'АДТН'
-                    if rm.code_name_rg2 in [1, 2, 3] and (comb.shape[0] == 3 or
-                                                          (comb.shape[0] == 2 and all(comb['status_repair']))):
+                    if rm.gost_abv and (comb.shape[0] == 3 or (comb.shape[0] == 2 and all(comb['status_repair']))):
                         log.info(f'Сочетание отклонено по ГОСТ: ')
                         log.info(tabulate(comb, headers='keys', tablefmt='psql'))
                         continue
@@ -1788,7 +1823,7 @@ class CalcModel(GeneralSettings):
         if not self.overloads_srs.empty:
             self.overloads_srs['Контролируемые элементы'] = \
                 self.overloads_srs.apply(lambda x: rm.t_name[rm.recognize_key(x.s_key, 'tab')
-                                                             ][rm.recognize_key(x.s_key, 's_key')], axis=1)
+                ][rm.recognize_key(x.s_key, 's_key')], axis=1)
 
             self.overloads_srs.index = self.overloads_srs['Номер СРС'].astype(str) + '.' + \
                                        self.overloads_srs['Номер подсочетания'].astype(str) + '_' + \
@@ -1852,7 +1887,7 @@ class CalcModel(GeneralSettings):
             for name_sheet in control_df_dict:
                 ws = wb[name_sheet]
                 num_tab, name_tab = GeneralSettings.read_title(self.task_calc['te_tab_KO_info'])
-                ws['A1'] = f'{name_tab[0]}{num_tab + self.file_count - 1}{name_tab[1]} {rm.name_rm}'
+                ws['A1'] = f'{name_tab[0]}{num_tab + self.file_count - 1}{name_tab[1]} {rm.info_file["Имя режима"]}'
                 ws['A2'] = 'Наименование режима'
                 ws['B2'] = 'Номер режима'
                 ws['C2'] = 'Наименование параметра'
@@ -2166,7 +2201,6 @@ class CalcModel(GeneralSettings):
                                                     'i_zag_av',  # 'Iзагр.адтн(%),'
                                              setsel=selection_v)
             # проверка на наличие недопустимого снижение напряжения
-            # todo округлить i_max
             tn = rm.rastr.tables('node')
             tn.SetSel(selection_n)
             if tn.count:
@@ -2245,7 +2279,7 @@ class CalcModel(GeneralSettings):
             # Южный р-н. Зимний максимум нагрузки 2026 г (-32°C/ПЭВТ). Нормальная схема сети. Действия...Загрузка...
             # todo Действия...Загрузка...
             add_name = f' ({", ".join(rm.additional_name_list)})' if rm.additional_name_list else ""
-            picture_name = f'{self.name_pic[0]}{self.num_pic}{self.name_pic[1]} {rm.season_name} {rm.god} г' \
+            picture_name = f'{self.name_pic[0]}{self.num_pic}{self.name_pic[1]} {rm.info_file["Сезон макс/мин"]} {rm.info_file["Год"]} г' \
                            f'{add_name}. {self.info_srs["Наименование СРС"]}'
             pic_name_file = pic_name_file.replace(self.task_calc['folder_result_calc'] + '\\', '')
             self.df_picture.loc[len(self.df_picture.index)] = (pic_name_file, picture_name,)
@@ -2293,6 +2327,7 @@ class EditModel(GeneralSettings):
         self.task = task
         self.rastr_files = None
         self.all_folder = False  # Не перебирать вложенные папки
+        RastrModel.all_rm = pd.DataFrame()
 
     def run_cor(self):
         """
@@ -2355,8 +2390,7 @@ class EditModel(GeneralSettings):
             self.cor_file(rm)
             if self.task["KInFolder"]:
                 if os.path.isdir(self.task["KInFolder"]):
-                    rm.save(file_name=self.task["KInFolder"],
-                            folder_name=rm.name_base)
+                    rm.save(full_name_new=os.path.join(self.task["KInFolder"], rm.name_base))
                 else:  # if os.path.isfile(self.task["KInFolder"]):
                     rm.save(full_name_new=self.task["KInFolder"])
 
@@ -2376,6 +2410,7 @@ class EditModel(GeneralSettings):
         with open(self.task['name_time'] + ' задание на корректировку.yaml', 'w') as f:
             yaml.dump(data=self.task, stream=f, default_flow_style=False, sort_keys=False)
         # webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
+        GeneralSettings.overwrite_new_file = 'question'
         mb.showinfo("Инфо", self.set_info['end_info'])
 
     def for_file_in_dir(self, from_dir: str, in_dir: str):
@@ -2431,15 +2466,14 @@ class EditModel(GeneralSettings):
 
 class RastrModel:
     """
-    Для хранения параметров файла rg2.
+    Для хранения параметров файла rg2, rst.
     """
     # Работа с напряжением узлов
     U_NOM = [6, 10, 35, 110, 150, 220, 330, 500, 750]  # номинальные напряжения
-    U_MIN_NORM = [5.8, 9.7, 32, 100, 135,  205, 315, 490, 730]  # минимальное нормальное напряжение
-    U_LARGEST_WORKING = [7.2, 12, 42, 126, 180,  252, 363, 525, 787]  # наибольшее рабочее напряжения
+    U_MIN_NORM = [5.8, 9.7, 32, 100, 135, 205, 315, 490, 730]  # минимальное нормальное напряжение
+    U_LARGEST_WORKING = [7.2, 12, 42, 126, 180, 252, 363, 525, 787]  # наибольшее рабочее напряжения
 
     # U_LARGEST_WORKING_dict = {6: 7.2, 10: 12, 35: 42, 110: 126,150: 180,220: 252, 330: 363,500: 525,750: 787}
-
     KEY_TABLES = {'ny': 'node',
                   'ip': 'vetv',
                   'Num': 'Generator',
@@ -2449,25 +2483,25 @@ class RastrModel:
                   'no': 'darea',
                   'nga': 'ngroup',
                   'ns': 'sechen'}
+    rm_id = 0
+    all_rm = pd.DataFrame()
 
     def __init__(self, full_name: str):
+        # Информация о файле.
+        RastrModel.rm_id += 1
+        self.info_file = pd.Series(dtype='object')
+        self.info_file['rm_id'] = RastrModel.rm_id
         self.full_name = full_name
         self.dir = os.path.dirname(full_name)
-        self.Name = os.path.basename(full_name)  # вернуть имя с расширением "2020 зим макс.rg2"
+        self.Name = os.path.basename(full_name)  # Вернуть имя с расширением "2020 зим макс.rg2"
         self.name_base, self.type_file = self.Name.rsplit(sep='.', maxsplit=1)
+        self.info_file['Имя файла'] = self.name_base
         self.pattern = GeneralSettings.set_save["шаблон " + self.type_file]
         self.all_auto_shunt = {}
-        self.temperature: float = 0
+        self.info_file["Темп.(°C)"]: float = 0
         self.rastr = None
-        self.name_list = ["-", "-", "-"]
-        self.additional_name = None
         self.additional_name_list = None
-        self.season_name: str = ''
-        self.god: str = ''
-        self.name_rm: str = self.Name
-        self.info_file = pd.Series(dtype='object')  # имя файла
-        self.rastr = None
-        self.code_name_rg2 = 0  # 0 не распознан, 1 зим макс 2 зим мин 3 ПЭВТ 4 лет макс 5 лет мин 6 паводок
+        self.add_load = []  # Расширение дополнительных файлов из [trn, anc]
 
         # Для хранения исходной схемы и параметров сети
         self.v__num_transit = {}  # {(ip, iq, np): номер транзита в тч из 1 ветви}
@@ -2493,67 +2527,108 @@ class RastrModel:
         self.ny_join_vetv = defaultdict(list)  # {ny: все присоединенные ветви}
 
         # self.ny_pqng = defaultdict(tuple)  # {ny: (pn, qn, pg, qn)} - все с pn pg > 0 | qn pg > 0 | pg > 0 | qg > 0
-        self.v_gr = {}   # {(ip, iq, np): groupid} - все c groupid > 0
-        self.v_rxb = {}   # {(ip, iq, np): (r, x, b)} - все
+        self.v_gr = {}  # {(ip, iq, np): groupid} - все c groupid > 0
+        self.v_rxb = {}  # {(ip, iq, np): (r, x, b)} - все
 
-        # "^(20[1-9][0-9])\s(лет\w?|зим\w?|паводок)\s?(макс|мин)?"
-        match = re.search(re.compile(r"^(20[1-9][0-9])\s(лет\w*|зим\w*|паводок)\s?(макс\w*|мин\w*)?"), self.name_base)
+        # Произвольный формат названия файла
+        self.info_file['Сезон']: str = ''  # 'зимний', 'летний', 'паводок' сезон года
+        self.info_file['макс/мин']: str = ''  # 'максимум', 'максимум' потребления в сутках
+        self.info_file['Сезон макс/мин']: str = ''  # "Зимний максимум нагрузки"
+        self.info_file["Имя режима"]: str = ''  # "Зимний максимум нагрузки 2023 г. Расчетная температура -40 °C."
+        name_base_lower = self.name_base.lower()
+
+        # Поиск в имени: сезона
+        for test in ['zim', 'зим']:  # , '.12.'
+            if test in self.name_base.lower():
+                self.info_file['Сезон'] = 'зимний'
+        if not self.info_file['Сезон']:
+            for test in ['let', 'лет']:  # , '.06.'
+                if test in name_base_lower:
+                    self.info_file['Сезон'] = 'летний'
+        if not self.info_file['Сезон']:
+            for test in ['пав', 'flood', 'pav']:
+                if test in name_base_lower:
+                    self.info_file['Сезон'] = 'паводок'
+        self.info_file['Сезон макс/мин'] = f'{self.info_file["Сезон"].capitalize()}.'  # Сделать первую букву заглавной
+        self.info_file['Сезон макс/мин'] = self.info_file['Сезон макс/мин'].replace('Паводок', 'Паводок,')
+        # Поиск в имени: макс мин
+        for test in ['max', 'макс']:
+            if test in name_base_lower:
+                self.info_file['макс/мин'] = 'максимум'
+        if not self.info_file['макс/мин']:
+            for test in ['min', 'мин']:
+                if test in name_base_lower:
+                    self.info_file['макс/мин'] = 'минимум'
+        self.info_file['Сезон макс/мин'] = (
+            self.info_file['Сезон макс/мин'].replace('.', f' {self.info_file["макс/мин"]} нагрузки.'))
+
+        if self.info_file['Сезон макс/мин']:
+            self.info_file["Имя режима"] = self.info_file['Сезон макс/мин']
+
+        # Поиск в имени: год
+        match = re.search(re.compile(r"(20[2-9][0-9])"), name_base_lower)
         if match:
-            if match.re.groups == 3:
-                self.name_list = [match[1], match[2], match[3]]
-                if not self.name_list[2]:
-                    self.name_list = "-"
-                if self.name_list[1] == "паводок":
-                    self.code_name_rg2 = 6
-                    self.season_name = "Паводок"
-                if "зим" in self.name_list[1] and "макс" in self.name_list[2]:
-                    self.code_name_rg2 = 1
-                    self.season_name = "Зимний максимум нагрузки"
-                if "зим" in self.name_list[1] and "мин" in self.name_list[2]:
-                    self.code_name_rg2 = 2
-                    self.season_name = "Зимний минимум нагрузки"
-                if "лет" in self.name_list[1] and "макс" in self.name_list[2]:
+            self.info_file['Год'] = match[1]
+            self.info_file["Имя режима"] = self.info_file["Имя режима"].replace('.', f' {match[1]} г.')
+        else:
+            self.info_file['Год'] = ''
+
+        # Температура абв по ГОСТ.
+        # 0 не распознан, 1 зим макс, 2 зим мин, 3 зим макс tср(табл), 4 зим мин tср, 5 ПЭВТ (tэкст).
+        # Температура гд по ГОСТ.
+        #  6 лет макс, 7 лет мин, 8 паводок макс, 9 паводок мин.
+        self.code_name_rg2 = 0
+
+        if ("tэкст" in name_base_lower) or ("пэвт" in name_base_lower):
+            self.code_name_rg2 = 5
+            self.info_file["Имя режима"] = self.info_file["Имя режима"].replace('нагрузки', 'нагрузки (ПЭВТ)')
+        else:
+            if self.info_file['Сезон макс/мин'] == 'Зимний максимум нагрузки.':
+                self.code_name_rg2 = 1
+                if "tср" in name_base_lower:
+                    self.code_name_rg2 = 3
+            if self.info_file['Сезон макс/мин'] == 'Зимний минимум нагрузки.':
+                self.code_name_rg2 = 2
+                if "tср" in name_base_lower:
                     self.code_name_rg2 = 4
-                    self.season_name = "Летний максимум нагрузки"
-                if "лет" in self.name_list[1] and "мин" in self.name_list[2]:
-                    self.code_name_rg2 = 5
-                    self.season_name = "Летний минимум нагрузки"
-            else:
-                pass
+            if self.info_file['Сезон макс/мин'] == 'Летний максимум нагрузки.':
+                self.code_name_rg2 = 6
+            if self.info_file['Сезон макс/мин'] == 'Летний минимум нагрузки.':
+                self.code_name_rg2 = 7
+            if self.info_file['Сезон макс/мин'] == 'Паводок, максимум нагрузки.':
+                self.code_name_rg2 = 8
+            if self.info_file['Сезон макс/мин'] == 'Паводок, минимум нагрузки.':
+                self.code_name_rg2 = 9
 
-        self.god = self.name_list[0]
-        if self.code_name_rg2:
-            if self.code_name_rg2 in [4, 5] and ("ПЭВТ" in self.name_base):
-                self.code_name_rg2 = 3
-        self.name_rm = f'{self.season_name} {self.god} г.'
-
-        # поиск в строке значения в ()
+        self.gost_abv = True if 0 < self.code_name_rg2 < 6 else False
+        self.gost_gd = True if self.code_name_rg2 > 5 else False
+        # Поиск в строке значения в ()
         match = re.search(re.compile(r"\((.+)\)"), self.name_base)
         if match:
-            self.additional_name = match[1]
-            self.additional_name_list = self.additional_name.split(";")
+            self.info_file["Доп. имена"] = match[1]
+            self.additional_name_list = match[1].split(";")
+        else:
+            self.info_file["Доп. имена"] = ''
 
         if "°C" in self.name_base:
             match = re.search(re.compile(r"(-?\d+((,|\.)\d*)?)\s?°C"),
-                              self.name_base.replace('минус', '-').replace(' ', ''))  # -45.,14 °C
+                              self.name_base.replace('минус', '-').replace(' ', '').replace(',', '.'))  # -45.14 °C
             if match:
-                self.temperature = float(match[1].replace(',', '.'))  # число
-                self.name_rm += f' Расчетная температура {self.temperature} °C.'
+                self.info_file['Темп.(°C)'] = float(match[1])  # число
+                self.info_file["Имя режима"] += f' Расчетная температура {self.info_file["Темп.(°C)"]} °C.'
 
-        self.info_file['Имя файла'] = self.name_base
-        self.info_file['Год'] = self.god
-        self.info_file['Сезон макс/мин'] = self.season_name
-        self.info_file['Темп.(°C)'] = self.temperature
         if self.additional_name_list:
-            for i, additional_name in enumerate(self.additional_name_list, 1):
-                self.info_file['Доп. имя' + str(i)] = additional_name
+            for i, additional_name_i in enumerate(self.additional_name_list, 1):
+                self.info_file['Доп. имя' + str(i)] = additional_name_i
+        RastrModel.all_rm.insert(loc=len(RastrModel.all_rm.columns), value=self.info_file, column=RastrModel.rm_id)
+        log.info(self.info_file["Имя режима"])
 
     def save_value_fields(self):
         """
         Сохранить значения изменяемых полей в исходной схеме сети и считать некоторые данные.
         """
-        log.info('Сохранение значений исходных параметров сети.')
-        
+        log.debug('Сохранение значений исходных параметров сети.')
+
         self.data_save_sta = {'vetv': None, 'node': None, 'Generator': None}
         self.data_columns_sta = {'vetv': 'ip,iq,np,sta,sel',
                                  'node': 'ny,sta,sel',
@@ -2561,7 +2636,7 @@ class RastrModel:
         for name_tab in self.data_save_sta:
             self.data_save_sta[name_tab] = \
                 self.rastr.tables(name_tab).writesafearray(self.data_columns_sta[name_tab], "000")
-            
+
         self.data_save = {'vetv': None, 'node': None, 'Generator': None}
         self.data_columns = {'vetv': 'ip,iq,np,sta,ktr',  # ,r,x,b
                              'node': 'ny,sta,pn,qn,pg,qg,vzd,bsh',
@@ -2895,7 +2970,7 @@ class RastrModel:
         """
          Проверка имени файла на соответствие условию condition.
         :param condition:
-        {"years":"2020,2023...2025","season": "лет,зим,паводок","max_min":"макс","add_name":"-41С;МДП:ТЭ-У"}
+        {"years":"2020,2023...2025","season": "лет, зим, паводок","max_min":"макс","add_name":"-41С;МДП:ТЭ-У"}
         :param info: для вывода в протокол
         :return: True если удовлетворяет
         """
@@ -2906,19 +2981,19 @@ class RastrModel:
         # Проверка года
         if 'years' in condition:
             if condition['years']:
-                if not int(self.god) in str_yeas_in_list(str(condition['years'])):
+                if not int(self.info_file['Год']) in str_yeas_in_list(str(condition['years'])):
                     log.info(f"{info} {self.Name!r}. Год не проходит по условию: {condition['years']!r}")
                     return False
         # Проверка "зим" "лет" "паводок"
         if 'season' in condition:
             if condition['season']:
-                if not self.name_list[1] in condition['season'].replace(' ', '').split(","):
+                if self.info_file['Сезон'][:3] not in condition['season']:
                     log.info(f'{info} {self.Name!r}. Сезон не проходит по условию: {condition["season"]!r}')
                     return False
         # Проверка "макс" "мин"
         if 'max_min' in condition:
             if condition['max_min']:
-                if self.name_list[2] not in condition['max_min'].replace(' ', '').split(","):
+                if self.info_file['макс/мин'][:3] not in condition['max_min']:
                     log.info(f'{info} {self.Name!r}. Не проходит по условию: {condition["max_min"]!r}')
                     return False
         # Проверка доп имени, например (-41С;МДП:ТЭ-У)
@@ -2949,6 +3024,7 @@ class RastrModel:
             for type_file_add in ['trn', 'anc']:
                 name_file_add = f'{self.dir}\\{self.name_base}.{type_file_add}'
                 if os.path.exists(name_file_add):
+                    self.add_load.append(type_file_add)
                     self.rastr.Load(1, name_file_add, GeneralSettings.set_save[f'шаблон {type_file_add}'])
                     log.info(f"Загружен файл: {name_file_add}")
 
@@ -2975,10 +3051,26 @@ class RastrModel:
                 full_name_new = folder_name + '\\' + re.sub(r'\\|\/|\:|\?|<|>|\||\.', '', file_name)
                 full_name_new = full_name_new[:252]
                 full_name_new += '.' + self.type_file
-
-        self.rastr.Save(full_name_new, self.pattern)
-        log.info("Файл сохранен: " + full_name_new)
-        return full_name_new
+            else:
+                raise ValueError(f'Ошибка в входных аргументах функции.')
+        # Запрос о перезаписи файлов.
+        if not folder_name:
+            folder_name = os.path.dirname(full_name_new)
+        if os.path.exists(full_name_new):
+            if GeneralSettings.overwrite_new_file == 'question':
+                GeneralSettings.overwrite_new_file = mb.askquestion('Внимание!',
+                                                                 f'Заменить файлы в папке: {folder_name}')
+        # Запись файла.
+        if GeneralSettings.overwrite_new_file != 'no':
+            self.rastr.Save(full_name_new, self.pattern)
+            log.info("Файл сохранен: " + full_name_new)
+            if self.add_load:
+                for type_file_add in self.add_load:
+                    full_name_new_add = f'{full_name_new.rsplit(".", 1)[0]}.{type_file_add}'
+                    self.rastr.Save(full_name_new_add,
+                                    GeneralSettings.set_save[f"шаблон {type_file_add}"])
+                    log.info("Файл сохранен: " + full_name_new_add)
+            return full_name_new
 
     def checking_parameters_rg2(self, dict_task: dict):
         """  контроль  dict_task = {'node': True, 'vetv': True, 'Gen': True, 'section': True,
@@ -2986,8 +3078,8 @@ class RastrModel:
         if not self.rgm("checking_parameters_rg2"):
             return False
         # self.fill_field_index('node,vetv,Generator')
-        self.rastr.CalcIdop(self.temperature, 0.0, "")
-        log.info(f"Выполнен расчет загрузки ветвей для температуры {self.temperature}.")
+        self.rastr.CalcIdop(self.info_file["Темп.(°C)"], 0.0, "")
+        log.info(f'Выполнен расчет загрузки ветвей для температуры {self.info_file["Темп.(°C)"]}.')
 
         node = self.rastr.tables("node")
         branch = self.rastr.tables("vetv")
@@ -3021,7 +3113,7 @@ class RastrModel:
                 log.error(f'В таблице Generator есть ссылка на узлы которых нет в таблице node: {all_gen_not_node}')
                 for Num, Node in generator.writesafearray('Num,Node', "000"):
                     if Node in all_gen_not_node:
-                        self.cor(keys=f'Node={Node}', values='del', print_log=True)
+                        self.cor(keys=f'Num={Num}', values='del', print_log=True)
 
         if dict_task["sel_node"]:
             # node.setsel(dict_task["sel_node"])
@@ -3585,8 +3677,8 @@ class RastrModel:
 
             if selection_in_table:
                 # разделение ключей для распознания
-                key_comma = selection_in_table.split(",")  # нр для ветви [,,], прочее []
-                key_equally = selection_in_table.split("=")  # есть = [,], нет равно []
+                key_comma = selection_in_table.split(",")  # нр для ветви [ , , ], прочее []
+                key_equally = selection_in_table.split("=")  # есть = [, ], нет равно []
                 if ',' in selection_in_table:  # vetv
                     if len(key_comma) > 3:
                         raise ValueError(f'Ошибка в задании {key=}')
@@ -3761,7 +3853,7 @@ class RastrModel:
         В таблице узлы задать поля umin(uhom*1.15*0.7), umin_av(uhom*1.1*0.7), если uhom>100
         и и_umax
         """
-        log.info(f"\t Заполнение поля umax и umin таблицы node.")
+        log.info(f"Заполнение поля umax и umin таблицы node.")
         node = self.rastr.tables("node")
         data = []
         field = 'ny,uhom,umax,umin,umin_av'
@@ -3808,7 +3900,7 @@ class RastrModel:
                             log.warning(f"\tНизкое напряжение: {ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
                         if vras > self.U_LARGEST_WORKING[i]:
                             log.warning(f"\tПревышение наибольшего рабочего напряжения: "
-                                            f"{ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
+                                        f"{ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
 
         sel_node = "vras>0&vras<umin"  # Отклонение напряжения от umin минимально допустимого, в %
         if choice:
@@ -3847,16 +3939,16 @@ class RastrModel:
                     for x in range(len(self.U_NOM)):
                         if self.U_MIN_NORM[x] < uhom < self.U_LARGEST_WORKING[x]:
                             log.warning(f"\tНесоответствие номинального напряжения: "
-                                            f"{ny=}, {name=}, {uhom=}->{self.U_NOM[x]}.")
+                                        f"{ny=}, {name=}, {uhom=}->{self.U_NOM[x]}.")
                             uhom = self.U_NOM[x]
                             add = True
                             break
                 # Ошибки
-                if not rst_on and  umax and umax < uhom:
+                if not rst_on and umax and umax < uhom:
                     log.warning(f"\tОшибка:{ny=},{name=}, {umax=}<{uhom=}.")
                     umax = 0
                     add = True
-                if not rst_on and  umin > uhom:
+                if not rst_on and umin > uhom:
                     log.warning(f"\tОшибка: {ny=},{name=}, {umin=}>{uhom=}.")
                     umin = 0
                     add = True
@@ -4073,7 +4165,7 @@ class RastrModel:
                     return False
             else:
                 log.info(f"\t\tПотребление {name_z!r}({zone}) = {pop_beginning:.1f} МВт изменено на {pop:.1f} МВт"
-                             f" (задано {new_pop}, отклонение {abs(new_pop - pop):.1f} МВт, {i + 1} ит.)")
+                         f" (задано {new_pop}, отклонение {abs(new_pop - pop):.1f} МВт, {i + 1} ит.)")
                 return True
 
     def auto_shunt_rec(self, selection: str = '', only_auto_bsh: bool = False) -> dict:
@@ -4222,9 +4314,9 @@ class RastrModel:
         :param name_tables: Можно несколько через запятую.
         :param fields: Можно несколько через запятую.
         :param type_fields: Тип поля: 0 целый, 1 вещ, 2 строка, 3 переключатель(sta sel), 4 перечисление, 6 цвет
-        :param prop: ((0-12, значение),()) prop=((8, '2'), (0, 'yes')) или ((8, '2'), )
+        :param prop: ((0-12, значение), ()) prop=((8, '2'), (0, 'yes')) или ((8, '2'),)
         0 Имя, 1 Тип, 2 Ширина, 3 Точность, 4 Заголовок
-        5 Формула   "str(ip.name)+"+"+str(iq.name)+"_"+str(ip.uhom)"
+        5 Формула "str(ip.name)+"+"+str(iq.name)+"_"+str(ip.uhom)"
         6-, 7-, 8 Перечисление – ссылка, 9 Описание, 10 Минимум, 11 Максимум, 12 Масштаб
         :param replace: True предварительно удалить поле если оно существует
         """
@@ -4237,11 +4329,11 @@ class RastrModel:
                     table.Cols.Add(field, type_fields)
                     if prop != ():
                         for property_number, val in prop:
-                            table.Cols(field).SetProp(property_number, val)  # (номер свойства,новое значение)
-                            log.info(f'В таблицу {name_table} добавлено поле {field}.')
+                            table.Cols(field).SetProp(property_number, val)  # (номер свойства, новое значение)
+                            log.debug(f'В таблицу {name_table} добавлено поле {field}.')
                             # table.Cols(field).Prop(5)  # Получить значение
                 else:
-                    log.info(f'В таблицу {name_table} поле {field} уже имеется.')
+                    log.debug(f'В таблицу {name_table} поле {field} уже имеется.')
 
     def df_from_table(self, table_name: str, fields: str = '', setsel: str = ''):
         """
@@ -4293,7 +4385,7 @@ class RastrModel:
         """Включить/отключить узел с ветвями."""
         if not ny:
             raise ValueError(f'Ошибка в задании {ny=}')
-        self.cor(keys=str(ny), values='sta='+str(sta))
+        self.cor(keys=str(ny), values='sta=' + str(sta))
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
         vetv.cols.item("sta").calc(sta)
@@ -4321,7 +4413,7 @@ class RastrModel:
                     raise ValueError(f'В таблице {name_table} отсутствует {sel}')
         return formula
 
-    def index(self, table_name: str, key_int: Union[int | tuple] = 0,  key_str: str = '') -> int:
+    def index(self, table_name: str, key_int: Union[int | tuple] = 0, key_str: str = '') -> int:
         """
         Возвращает номер строки в таблице по ключу в одном из форматов.
         :param table_name: 'vetv' ...
@@ -4778,7 +4870,7 @@ class ImportFromModel:
         :param param: параметры для импорта: "" все параметры или перечисление, нр 'sel, sta'(ключи необязательно)
         :param sel: выборка нр "sel" или "" - все
         :param calc: число типа int, строка или ключевое слово:
-        {"обновить": 2 , "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}
+        {"обновить": 2, "загрузить": 1, "присоединить": 0, "присоединить-обновить": 3}
         """
         log.info(f'Экспорт данных из файла "{import_file_name}".')
         if not os.path.exists(import_file_name):
@@ -4851,6 +4943,7 @@ class Automation:
     """
     Моделирование действия ПА
     """
+
     def __init__(self, rm: RastrModel):
         """
         Выполняется один раз при загрузки РМ
@@ -4936,7 +5029,7 @@ class Automation:
                                     z_list[i] = str(n_new_pa)
                                     df.loc[len(df.index)] = [n_new_pa,  # 'n',
                                                              0,  # 'test',
-                                                             name, 
+                                                             name,
                                                              1,  # 'step',
                                                              0,  # 'time',
                                                              '',  # 'set_point',
@@ -5123,7 +5216,7 @@ class PrintXL:
                          'nga': 'ngroup',
                          'ns': 'sechen'}
 
-    #  ...._log  лист протокол для сводной
+    #  ...._log лист протокол для сводной
 
     def __init__(self, task):
         """
@@ -5246,7 +5339,8 @@ class PrintXL:
     def add_val_balance_q(self, rm):
         column = self.sheet_q.max_column + 1
         choice = self.task["print_balance_q"]["sel"]
-        self.sheet_q.cell(2, column, f'{rm.season_name} {rm.god} г ({rm.additional_name})')
+        self.sheet_q.cell(2, column,
+                          f'{rm.info_file["Сезон макс/мин"]} {rm.info_file["Год"]} г ({rm.info_file["Доп. имена"]})')
         area = rm.rastr.Tables("area")
         area.SetSel(self.task["print_balance_q"]["sel"])
         # ndx = area.FindNextSel(-1)
@@ -5413,7 +5507,7 @@ class PrintXL:
             if len(values) > 1:
                 pt.DataPivotField.Orientation = 1  # xlRowField"Значения в столбцах или строках xlColumnField
 
-            # .DataPivotField.Position = 1 #  позиция в строках
+            # .DataPivotField.Position = 1 # позиция в строках
             pt.RowGrand = False  # удалить строку общих итогов
             pt.ColumnGrand = False  # удалить столбец общих итогов
             pt.MergeLabels = True  # объединять одинаковые ячейки
@@ -5546,7 +5640,7 @@ if __name__ == '__main__':
     #                     format='%(asctime)s %(name)s  %(levelname)s:%(message)s')
 
     log = logging.getLogger(__name__)
-    log.setLevel(logging.DEBUG)  # INFO DEBUG
+    log.setLevel(logging.INFO)  # INFO DEBUG
     formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s:%(message)s')
 
     file_handler = logging.FileHandler(filename=GeneralSettings.log_file, mode='w')
