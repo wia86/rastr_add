@@ -1,9 +1,11 @@
+# help:
 # установка модулей:
 # Qt Designer для работы с файлами.ui
 # pip freeze > requirements.txt
 # pip install -r requirements.txt
 # exe приложение:
-#  pyinstaller  --noconsole main.py --name Помошник_режимщика_2024_01_10 -i fav.ico --add-data "help;help" # --onefile
+#  pyinstaller  --noconsole main.py --name Помощник_2024_01_10 -i fav.ico --add-data "help;help" # --onefile
+
 import win32com.client  # установить pywin32
 # Excel.Application https://memotut.com/en/150745ae0cc17cb5c866/
 from abc import ABC
@@ -39,6 +41,9 @@ from qt_cor import Ui_cor  # pyuic5 qt_cor.ui -o qt_cor.py
 from qt_calc_ur import Ui_calc_ur  # pyuic5 qt_calc_ur.ui -o qt_calc_ur.py
 from qt_calc_ur_set import Ui_calc_ur_set  # pyuic5 qt_calc_ur_set.ui -o qt_calc_ur_set.py
 from collections import namedtuple, defaultdict, Counter
+
+import collection_func as cf
+import report
 
 
 # Если не работает терминал, то в  PowerShell ввести:
@@ -243,8 +248,8 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         self.le_control_field.setText(task_yaml['control_field'])
         self.cb_control_sel.setChecked(task_yaml['cb_control_sel'])
         self.le_control_sel.setText(task_yaml['control_sel'])
-        self.cb_Imax.setChecked(task_yaml['cb_Imax'])
         # Результаты в EXCEL: таблицы контролируемые - отключаемые элементы
+        self.cb_save_i.setChecked(task_yaml['cb_save_i'])
         self.cb_tab_KO.setChecked(task_yaml['cb_tab_KO'])
         self.te_tab_KO_info.setPlainText(task_yaml['te_tab_KO_info'])
         # Результаты в RG2
@@ -308,9 +313,9 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             'cb_control_sel': self.cb_control_sel.isChecked(),
             'control_field': self.le_control_field.text(),
             'control_sel': self.le_control_sel.text(),
-            'cb_Imax': self.cb_Imax.isChecked(),
 
             # Результаты в EXCEL: таблицы контролируемые - отключаемые элементы
+            'cb_save_i': self.cb_save_i.isChecked(),
             'cb_tab_KO': self.cb_tab_KO.isChecked(),
             'te_tab_KO_info': self.te_tab_KO_info.toPlainText(),
 
@@ -892,7 +897,7 @@ class GeneralSettings(ABC):
     # @abstractmethod
     def __init__(self):
         # коллекция для хранения информации о расчете
-        self.set_info = {'collapse': '',
+        self.set_info = {'collapse': [],
                          'end_info': ''}
         self.all_read_ini()
 
@@ -963,7 +968,7 @@ class GeneralSettings(ABC):
         """
         if not txt:
             return False
-        # Вычленить значения в [ ] и { }.
+        # Вычленить значения в [] и {}.
         actions = re.findall(re.compile(r"\[(.+?)]"), txt)
         conditions = re.findall(re.compile(r"\{(.+?)}"), txt)
 
@@ -1004,10 +1009,11 @@ class CalcModel(GeneralSettings):
     def __init__(self, task_calc):
         super(CalcModel, self).__init__()
         self.all_read_ini()
-        self.number_comb = 0
+        self.info_srs = None  # СРС
+        self.comb_id = 1
         self.task_calc = task_calc
         self.all_folder = False  # Не перебирать вложенные папки
-        # self.set_comb = {}  # {количество отключений: контроль ДТН, 1:"ДДТН",2:"АДТН"}
+        self.set_comb = None  # {количество отключений: контроль ДТН, 1:"ДДТН",2:"АДТН"}
         # self.auto_shunt = {}
 
         self.control_I = None
@@ -1015,13 +1021,10 @@ class CalcModel(GeneralSettings):
         self.restore_only_state = True
 
         # DF для хранения токовых перегрузок и недопустимого снижения U
-        self.srs_xl = pd.DataFrame()  # Перечень отключений их excel
-        self.overloads_all = pd.DataFrame()  # общий
-        self.overloads_srs = pd.DataFrame()  # СРС перегрузки
-        self.info_srs = pd.Series(dtype='object')  # СРС
-        self.info_action = pd.Series(dtype='object')  # действие ПА
+        self.srs_xl = pd.DataFrame()  # Перечень отключений из excel
 
         self.book_path: str = ''  # Путь к файлу excel.
+        self.book_db: str = ''  # Путь к файлу db.
         self.pa = None  # Объект Automation
         self.task_full_name = ''  # Путь к файлу задания rg2.
 
@@ -1031,18 +1034,28 @@ class CalcModel(GeneralSettings):
         # отключаемая ветвь: (ветви из списка отключаемых ветвей, загрузка которых изменяется)
         self.disable_effect = defaultdict(list)
 
-        # Для хранения имен файлов с рисунками и имен рисунков
-        self.df_picture = pd.DataFrame(dtype='str', columns=['Наименование файла',
-                                                             'Наименование рисунка'])
         self.num_pic, self.name_pic = list(GeneralSettings.read_title(self.task_calc['name_pic']))
 
+        self.info_action = None
         RastrModel.all_rm = pd.DataFrame()
+        self.all_comb = pd.DataFrame()
+        self.all_actions = pd.DataFrame()  # действие оперативного персонала или ПА
+
+        # Для хранения имен файлов с рисунками и имен рисунков
+        self.all_pic = pd.DataFrame(dtype='str', columns=['pic_id',
+                                                          'comb_id',
+                                                          'active_id',
+                                                          'Наименование файла',
+                                                          'Наименование рисунка'])
+        self.breach = {'i': pd.DataFrame(), 'high_u': pd.DataFrame(), 'low_u': pd.DataFrame()}
+        # Для хранения токовой загрузки контролируемых элементов в пределах одной РМ a формате df и добавления в db.
+        self.save_i_rm = None
 
     def run_calc(self):
         """
         Запуск расчета нормативных возмущений (НВ) в РМ.
         """
-        test_run('calc')
+        # test_run('calc')
         log.info('Запуск расчета нормативных возмущений (НВ) в расчетной модели (РМ).')
         if "*" in self.task_calc["calc_folder"]:
             self.task_calc["calc_folder"] = self.task_calc["calc_folder"].replace('*', '')
@@ -1062,7 +1075,8 @@ class CalcModel(GeneralSettings):
                                       f"\\{datetime.now().strftime('%d-%m-%Y %H-%M-%S')}"
 
         if self.task_calc['cb_disable_excel']:
-            self.srs_xl = pd.read_excel(self.task_calc['srs_XL_path'], sheet_name=self.task_calc['srs_XL_sheets'])
+            self.srs_xl = pd.read_excel(self.task_calc['srs_XL_path'],
+                                        sheet_name=self.task_calc['srs_XL_sheets'])
 
             self.srs_xl = self.srs_xl[self.srs_xl['Статус'] != '-']
             self.srs_xl.drop(columns=['Примечание', 'Статус'], inplace=True)
@@ -1186,10 +1200,10 @@ class CalcModel(GeneralSettings):
             # папка с вложенными папками
             if self.all_folder:
                 for address, dir_, file_ in os.walk(self.task_calc["calc_folder"]):
-                    self.for_file(folder_calc=address)
+                    self.cycle_rm(folder_calc=address)
             # папка без вложенных папок
             else:
-                self.for_file(folder_calc=self.task_calc["calc_folder"])
+                self.cycle_rm(folder_calc=self.task_calc["calc_folder"])
         # один файл
         elif os.path.isfile(self.task_calc["calc_folder"]):
             rm = RastrModel(self.task_calc["calc_folder"])
@@ -1197,37 +1211,96 @@ class CalcModel(GeneralSettings):
                 raise ValueError(f'Имя файла {self.task_calc["calc_folder"]!r} не подходит.')
             self.calc_file(rm=rm)
 
-        # Сохранить таблицы перегрузки в SQL.
-        # con = sqlite3.connect("result.db")
-        # self.overloads_all.to_sql("overloads", con, if_exists="replace", index=False)
+        # Сохранить таблицы в SQL.
+        con = sqlite3.connect(self.book_db)
+        for key in self.breach:
+            self.breach[key].to_sql(key, con, if_exists="replace")
+        name_df = {'all_rm': RastrModel.all_rm,
+                   'all_comb': self.all_comb,
+                   'all_actions': self.all_actions,
+                   'all_pic': self.all_pic}
+        for key in name_df:
+            name_df[key].to_sql(key, con, if_exists="replace")
+        save_i_for_xl = None
+        if self.task_calc['cb_save_i']:
+            save_i_for_xl = pd.read_sql_query("""
+            SELECT s_key, "Контролируемые элементы", "Год", "Сезон макс/мин", 
+            "Темп.(°C)", "Кол. откл. эл.", 
+            count(*) AS "Кол.СРС", 
+            "Наименование СРС", 
+            max(i_max) AS "Iрасч.,A", 
+            i_dop_r AS "Iддтн,А", 
+            i_zag AS "Iзагр. ддтн,%", 
+            i_dop_r_av AS "Iадтн,А", 
+            i_zag_av AS "Iзагр. адтн,%"
+            FROM (
+            SELECT *
+            FROM save_i AS si
+               INNER JOIN all_actions AS aa
+                  ON si.comb_id = aa.comb_id AND si.active_id = aa.active_id
+               INNER JOIN all_comb AS ac
+                  ON ac.comb_id = aa.comb_id
+               INNER JOIN all_rm AS ar
+                  ON ar.rm_id = ac.rm_id
+            )
+            GROUP BY s_key, "Год", "Сезон макс/мин", "Темп.(°C)", "Кол. откл. эл.";
+            """, con)
 
-        # Сохранить в Excel таблицы перегрузки.
-        if len(self.overloads_all):
-            # https://www.geeksforgeeks.org/how-to-write-pandas-dataframes-to-multiple-excel-sheets/
-            log.debug(f'Запись перегрузок в excel ({len(self.overloads_all)}строк)')
-            mode = 'a' if os.path.exists(self.book_path) else 'w'
-            with pd.ExcelWriter(path=self.book_path, mode=mode) as writer:
+        con.commit()
+        con.close()
+
+        log.debug(f'Запись параметров режима в excel.')
+        full_breach = {}
+        for key in self.breach:
+            if len(self.breach[key]):
+                full_breach[key] = (RastrModel.all_rm.merge(self.all_comb)
+                                    .merge(self.all_actions)
+                                    .merge(self.breach[key]))
+
                 for col in ["Отключение", "Ремонт 1", "Ремонт 2", "Доп. имя"]:
-                    for col_df in self.overloads_all.columns:
+                    for col_df in full_breach[key].columns:
                         if col in col_df:
-                            self.overloads_all.fillna(value={col_df: 0}, inplace=True)
-                            self.overloads_all.loc[self.overloads_all[col_df] == 0, col_df] = '-'
-                self.overloads_all.to_excel(excel_writer=writer,
-                                            float_format="%.2f",
-                                            index_label='Номер сочетания.подсочетания',
-                                            freeze_panes=(1, 1),
-                                            sheet_name='Перегрузки')
-        # Сохранить в Excel таблицу перегрузки.
+                            full_breach[key].fillna(value={col_df: 0}, inplace=True)
+                            full_breach[key].loc[full_breach[key][col_df] == 0, col_df] = '-'
+                # https://www.geeksforgeeks.org/how-to-write-pandas-dataframes-to-multiple-excel-sheets/
+                mode = 'a' if os.path.exists(self.book_path) else 'w'
+                with pd.ExcelWriter(path=self.book_path, mode=mode) as writer:
+                    full_breach[key].to_excel(excel_writer=writer,
+                                              float_format="%.2f",
+                                              index=False,
+                                              freeze_panes=(1, 1),
+                                              sheet_name=key)
+        crash = self.all_actions[self.all_actions.alive == 0]
+        if len(crash):
+            full_breach['crash'] = (RastrModel.all_rm.merge(self.all_comb)
+                                    .merge(self.all_actions[self.all_actions.alive == 0]))
+            mode = 'a' if os.path.exists(self.book_path) else 'w'
+            with (pd.ExcelWriter(path=self.book_path, mode=mode) as writer):
+                full_breach['crash'].to_excel(excel_writer=writer,
+                                              float_format="%.2f",
+                                              index=False,
+                                              freeze_panes=(1, 1),
+                                              sheet_name='crash')
+            (RastrModel.all_rm.merge(self.all_comb).merge(self.all_actions[self.all_actions.alive == 0]))
+
+        if self.task_calc['cb_save_i']:
+            mode = 'a' if os.path.exists(self.book_path) else 'w'
+            with (pd.ExcelWriter(path=self.book_path, mode=mode) as writer):
+                save_i_for_xl.to_excel(excel_writer=writer,
+                                       float_format="%.2f",
+                                       index=False,
+                                       freeze_panes=(1, 1),
+                                       sheet_name='Макс.ток')
+        # todo Сохранить в Excel таблицу перегрузки.
         sheet_name_pic = 'Рисунки'
-        if len(self.df_picture):
+        if len(self.all_pic):
             with pd.ExcelWriter(path=self.book_path,
                                 mode='a' if os.path.exists(self.book_path) else 'w') as writer:
-                self.df_picture.to_excel(excel_writer=writer,
-                                         startrow=1,
-                                         index=False,
-                                         freeze_panes=(5, 1),
-                                         sheet_name=sheet_name_pic)
-
+                self.all_pic[['Наименование файла', 'Наименование рисунка']].to_excel(excel_writer=writer,
+                                                                                      startrow=1,
+                                                                                      index=False,
+                                                                                      freeze_panes=(5, 1),
+                                                                                      sheet_name=sheet_name_pic)
             book = load_workbook(self.book_path)
             sheet_pic = book[sheet_name_pic]
 
@@ -1251,84 +1324,91 @@ class CalcModel(GeneralSettings):
                                  point_start='A5')
             book.save(self.book_path)
 
-        # Сохранить макрос rbs.
-        rbs = ''
-        with open('help\Сделать рисунки в word.rbs') as f:
-            for readline in f.readlines():
-                rbs += readline
-        rbs = rbs.replace('папка с файлами', self.book_path)
-        f2 = open(self.book_path.rsplit('.', 1)[0] + '.rbs', 'w')
-        f2.write(rbs)
-        f2.close()
+            # Сохранить макрос rbs.
+            rbs = ''
+            with open('help\Сделать рисунки в word.rbs') as f:
+                for readline in f.readlines():
+                    rbs += readline
+            rbs = rbs.replace('папка с файлами', self.book_path)
+            f2 = open(self.book_path.rsplit('.', 1)[0] + '.rbs', 'w')
+            f2.write(rbs)
+            f2.close()
 
         # Сводная.
-        if len(self.overloads_all):
-            log.info(f'Формируется сводная таблица ({self.book_path}).')
+        if len(full_breach):
+            log.info(f'Формирование сводных таблиц ({self.book_path}).')
             xlApp = win32com.client.Dispatch("Excel.Application")
             xlApp.ScreenUpdating = False  # Обновление экрана
             try:
                 book = xlApp.Workbooks.Open(self.book_path)
             except Exception:
                 raise Exception(f'Ошибка при открытии файла {self.book_path=}')
-            try:
-                sheet = book.sheets['Перегрузки']
-            except Exception:
-                raise Exception(f'Не найден лист Перегрузки')
-            # Создать объект таблица из всего диапазона листа.
-            tabl_overload = sheet.ListObjects.Add(SourceType=1, Source=sheet.Range(sheet.UsedRange.address))
-            tabl_overload.Name = "Таблица_Перегрузки"
-            pt_cache = book.PivotCaches().add(1, tabl_overload)  # Создать КЭШ xlDatabase, ListObjects
 
-            task_pivot = []
-            task_pivot_i = namedtuple('task_pivot',
-                                      ['sheet_name', 'pivot_table_name', 'data_field'])
+            for key in full_breach:
+                try:
+                    sheet = book.sheets[key]
+                except Exception:
+                    raise Exception(f'Не найден лист: {key}')
+                # Создать объект таблица из всего диапазона листа.
 
-            if "i_max" in self.overloads_all.columns:
-                task_pivot.append(task_pivot_i('Сводная_I', "Свод_I",
-                                               dict(i_max="Iрасч.,A",
-                                                    i_dop_r="Iддтн,A",
-                                                    i_zag="Iзагр. ддтн,%",
-                                                    i_dop_r_av="Iадтн,A",
-                                                    i_zag_av="Iзагр. адтн,%")))
-            if "umin" in self.overloads_all.columns:
-                task_pivot.append(task_pivot_i('Сводная_Umin', "Свод_Umin",
-                                               dict(vras="Uр, кВ",
-                                                    umin="МДН, кВ",
-                                                    otv_min="Uр, % от МДН",
-                                                    umin_av="АДН,кВ",
-                                                    otv_min_av="Uр, % от АДН")))
-            if "umax" in self.overloads_all.columns:
-                task_pivot.append(task_pivot_i('Сводная_Umax', "Свод_Umax",
-                                               dict(vras="Uр, кВ",
-                                                    umax="Uнр, кВ",
-                                                    otv_max="Uр, % от Uнр")))
+                tabl_overload = sheet.ListObjects.Add(SourceType=1, Source=sheet.Range(sheet.UsedRange.address))
+                tabl_overload.Name = f"Таблица_{key}"
+                pt_cache = book.PivotCaches().add(1, tabl_overload)  # Создать КЭШ xlDatabase, ListObjects
 
-            RowFields = [col for col in ["Контролируемые элементы", "Отключение", "Ремонт 1", "Ремонт 2"]
-                         if col in self.overloads_all.columns]
+                task_pivot = namedtuple('task_pivot',
+                                        ['sheet_name', 'pivot_table_name', 'data_field'])
+                task_pivot_cur = None
+                if key == "i":
+                    task_pivot_cur = task_pivot('Сводная_I', "Свод_I",
+                                                dict(i_max="Iрасч.,A",
+                                                     i_dop_r="Iддтн,A",
+                                                     i_zag="Iзагр. ддтн,%",
+                                                     i_dop_r_av="Iадтн,A",
+                                                     i_zag_av="Iзагр. адтн,%"))
+                elif key == "low_u":
+                    task_pivot_cur = task_pivot('Сводная_Umin', "Свод_Umin",
+                                                dict(vras="Uр, кВ",
+                                                     umin="МДН, кВ",
+                                                     otv_min="Uр, % от МДН",
+                                                     umin_av="АДН,кВ",
+                                                     otv_min_av="Uр, % от АДН"))
+                elif key == "high_u":
+                    task_pivot_cur = task_pivot('Сводная_Umax', "Свод_Umax",
+                                                dict(vras="Uр, кВ",
+                                                     umax="Uнр, кВ",
+                                                     otv_max="Uр, % от Uнр"))
+                elif key == "crash":
+                    task_pivot_cur = task_pivot('Сводная_не_сходятся', "Свод_crash",
+                                                dict(alive='Режим не сошелся'))
 
-            ColumnFields = ["Год", "Сезон макс/мин"] + [col for col in self.overloads_all.columns if "Доп. имя" in col]
+                RowFields = [col for col in ["Контролируемые элементы", "Отключение", "Ремонт 1", "Ремонт 2"]
+                             if col in full_breach[key].columns]
 
-            for task in task_pivot:
+                ColumnFields = (["Год", "Сезон макс/мин"] +
+                                [col for col in full_breach[key].columns if "Доп. имя" in col])
+
                 sheet_pivot = book.Sheets.Add()
-                sheet_pivot.Name = task.sheet_name
+                sheet_pivot.Name = task_pivot_cur.sheet_name
 
-                pt = pt_cache.CreatePivotTable(TableDestination=task.sheet_name + "!R1C1",
-                                               TableName=task.pivot_table_name)
+                pt = pt_cache.CreatePivotTable(TableDestination=task_pivot_cur.sheet_name + "!R1C1",
+                                               TableName=task_pivot_cur.pivot_table_name)
                 pt.ManualUpdate = True  # True не обновить сводную
                 pt.AddFields(RowFields=RowFields,
                              ColumnFields=ColumnFields,
-                             PageFields=["Имя файла", 'Кол. откл. эл.', 'Конец', 'Наименование СРС', 'Контроль ДТН',
+                             PageFields=["Имя файла", 'Кол. откл. эл.', 'End', 'Наименование СРС', 'Контроль ДТН',
                                          'Темп.(°C)'],
                              AddToTable=False)
-                for field_df, field_pt in task.data_field.items():
+                for field_df, field_pt in task_pivot_cur.data_field.items():
                     pt.AddDataField(Field=pt.PivotFields(field_df),
                                     Caption=field_pt,
                                     Function=-4136)  # xlMax -4136 xlSum -4157
                     pt.PivotFields(field_pt).NumberFormat = "0"
 
-                pt.PivotFields("Контролируемые элементы").ShowDetail = True  # группировка
+                if len(task_pivot_cur.data_field) > 1:
+                    pt.PivotFields("Контролируемые элементы").ShowDetail = True  # группировка
                 pt.RowAxisLayout(1)  # 1 xlTabularRow показывать в табличной форме!!!!
-                pt.DataPivotField.Orientation = 1  # xlRowField = 1 "Значения" в столбцах или строках xlColumnField
+                if len(task_pivot_cur.data_field) > 1:
+                    pt.DataPivotField.Orientation = 1  # xlRowField = 1 "Значения" в столбцах или строках xlColumnField
                 pt.RowGrand = False  # Удалить строку общих итогов
                 pt.ColumnGrand = False  # Удалить столбец общих итогов
                 pt.MergeLabels = True  # Объединять одинаковые ячейки
@@ -1339,11 +1419,10 @@ class CalcModel(GeneralSettings):
                 for row in RowFields + ColumnFields:
                     pt.PivotFields(row).Subtotals = [False, False, False, False, False, False, False, False, False,
                                                      False, False, False]  # промежуточные итоги и фильтры
-                field = list(task.data_field)[2]
-                pt.PivotFields(field).Orientation = 3  # xlPageField = 3
-                pt.PivotFields(field).CurrentPage = "(All)"  #
-                if len(task_pivot) > 1:
-                    pt.PivotFields(field).PivotItems("(blank)").Visible = False
+                if len(task_pivot_cur.data_field) > 1:
+                    field = list(task_pivot_cur.data_field)[2]
+                    pt.PivotFields(field).Orientation = 3  # xlPageField = 3
+                    pt.PivotFields(field).CurrentPage = "(All)"  #
                 pt.TableStyle2 = ""  # стиль
                 pt.ColumnRange.ColumnWidth = 10  # ширина строк
                 pt.RowRange.ColumnWidth = 20
@@ -1352,22 +1431,22 @@ class CalcModel(GeneralSettings):
                 for i in range(7, 13):
                     pt.TableRange1.Borders(i).LineStyle = 1  # лево
                 # Условное форматирование
-                for i in range(3, len(task.data_field) + 1, 2):
-                    dpz = pt.DataBodyRange.Rows(i).Cells(1)
-                    dpz.FormatConditions.AddColorScale(2)  # ColorScaleType:=2
-                    dpz.FormatConditions(dpz.FormatConditions.count).SetFirstPriority()
-                    dpz.FormatConditions(1).ColorScaleCriteria(1).Type = 0  # xlConditionValueNumber = 0
-                    if list(task.data_field)[2] == 'i_zag':
-                        dpz.FormatConditions(1).ColorScaleCriteria(1).Value = 100
-                    else:
-                        dpz.FormatConditions(1).ColorScaleCriteria(1).Value = 0
-                    dpz.FormatConditions(1).ColorScaleCriteria(1).FormatColor.ThemeColor = 1  # xlThemeColorDark1 = 1
-                    dpz.FormatConditions(1).ColorScaleCriteria(1).FormatColor.TintAndShade = 0
-                    dpz.FormatConditions(1).ColorScaleCriteria(2).Type = 2  # xlConditionValueHighestValue = 2
-                    dpz.FormatConditions(1).ColorScaleCriteria(2).FormatColor.ThemeColor = 3 + i  # номер темы
-                    dpz.FormatConditions(1).ColorScaleCriteria(2).FormatColor.TintAndShade = -0.249977111117893
-                    dpz.FormatConditions(1).ScopeType = 2  # xlDataFieldScope = 2 применить ко всем значениям поля
-                    pass
+                if key != 'crash':
+                    for i in range(3, len(task_pivot_cur.data_field) + 1, 2):
+                        dpz = pt.DataBodyRange.Rows(i).Cells(1)
+                        dpz.FormatConditions.AddColorScale(2)  # ColorScaleType:=2
+                        dpz.FormatConditions(dpz.FormatConditions.count).SetFirstPriority()
+                        dpz.FormatConditions(1).ColorScaleCriteria(1).Type = 0  # xlConditionValueNumber = 0
+                        if list(task_pivot_cur.data_field)[2] == 'i_zag':
+                            dpz.FormatConditions(1).ColorScaleCriteria(1).Value = 100
+                        else:
+                            dpz.FormatConditions(1).ColorScaleCriteria(1).Value = 0
+                        dpz.FormatConditions(1).ColorScaleCriteria(1).FormatColor.ThemeColor = 1  # xlThemeColorDark1=1
+                        dpz.FormatConditions(1).ColorScaleCriteria(1).FormatColor.TintAndShade = 0
+                        dpz.FormatConditions(1).ColorScaleCriteria(2).Type = 2  # xlConditionValueHighestValue = 2
+                        dpz.FormatConditions(1).ColorScaleCriteria(2).FormatColor.ThemeColor = 3 + i  # номер темы
+                        dpz.FormatConditions(1).ColorScaleCriteria(2).FormatColor.TintAndShade = -0.249977111117893
+                        dpz.FormatConditions(1).ScopeType = 2  # xlDataFieldScope = 2 применить ко всем значениям поля
                 pt.ManualUpdate = False  # обновить сводную
             book.Save()
             book.Close()
@@ -1417,7 +1496,7 @@ class CalcModel(GeneralSettings):
             xlApp.Visible = True
             xlApp.ScreenUpdating = True  # обновление экрана
 
-    def for_file(self, folder_calc: str):
+    def cycle_rm(self, folder_calc: str):
         """
         Цикл по файлам.
         :param folder_calc:
@@ -1446,9 +1525,14 @@ class CalcModel(GeneralSettings):
         """
         Рассчитать РМ.
         """
+
+        if self.task_calc['cb_save_i']:
+            self.save_i_rm = pd.DataFrame()
+
         self.set_comb = {}  # {количество отключений: контроль ДТН, 1:"ДДТН",2:"АДТН"}
         self.file_count += 1
         self.book_path = self.task_calc['name_time'] + ' результаты расчетов.xlsx'
+        self.book_db = self.task_calc['name_time'] + ' данные.db'
         rm.load()
         rm.rastr.CalcIdop(rm.info_file["Темп.(°C)"], 0.0, "")
         log.info(f'Выполнен расчет ДТН для температуры: {rm.info_file["Темп.(°C)"]} °C.')
@@ -1515,12 +1599,12 @@ class CalcModel(GeneralSettings):
 
         # Контролируемые элементы сети.
         if self.task_calc['cb_control']:
-            log.debug('Инициализация контролируемых элементов сети.')
+            log.debug('Определение контролируемых элементов сети.')
             # all_control для отметки всех контролируемых узлов и ветвей (авто и field)
 
             if self.task_calc['cb_control_field']:
                 control_field = self.task_calc['control_field'].replace(' ', '')
-                log.debug(f'Отмеченный в поле {control_field} элементы добавлены в контролируемые.')
+                log.debug(f'Отмеченный в поле [{control_field}] элементы добавлены в контролируемые.')
                 if control_field:
                     for table_name in ['vetv', 'node']:
                         rm.group_cor(tabl=table_name,
@@ -1534,14 +1618,17 @@ class CalcModel(GeneralSettings):
                 if control_sel:
                     table = rm.rastr.tables('node')
                     table.setsel(control_sel)
-                    ny_sel = [x[0] for x in table.writesafearray("ny", "000")]
-                    sel_v = set()
-                    for ny in ny_sel:
-                        for ip, iq, np_ in rm.ny_join_vetv[ny]:
-                            sel_v.add((ip, iq, np_, 1))
-                    rm.rastr.tables('vetv').ReadSafeArray(2, 'ip,iq,np,all_control', list(sel_v))
-                    rm.rastr.tables('node').ReadSafeArray(2, 'ny,all_control', [(ny, 1) for ny in ny_sel])
-                else:
+                    if table.count:
+                        ny_sel = [x[0] for x in table.writesafearray("ny", "000")]
+                        sel_v = set()
+                        for ny in ny_sel:
+                            for ip, iq, np_ in rm.ny_join_vetv[ny]:
+                                sel_v.add((ip, iq, np_, 1))
+                        rm.rastr.tables('vetv').ReadSafeArray(2, 'ip,iq,np,all_control', list(sel_v))
+                        rm.rastr.tables('node').ReadSafeArray(2, 'ny,all_control', [(ny, 1) for ny in ny_sel])
+                    else:
+                        raise ValueError(f'По выборке {control_sel} не найдены узлы в РМ.')
+                else:  # Контролировать все узлы и ветви.
                     rm.rastr.Tables("node").cols.item("all_control").Calc("1")
                     rm.rastr.Tables("vetv").cols.item("all_control").Calc("1")
 
@@ -1561,8 +1648,8 @@ class CalcModel(GeneralSettings):
                 rm.rastr.tables('vetv').cols.item("temp").calc('ip.uhom')
                 rm.rastr.tables('vetv').cols.item("temp1").calc('iq.uhom')
                 self.control_I = rm.df_from_table(table_name='vetv',
-                                                  fields='index,dname,name,temp,temp1,i_dop_r,i_dop_r_av,groupid,key,tip',
-                                                  # ip, iq, np
+                                                  fields='index,dname,name,temp,temp1,i_dop_r,i_dop_r_av,groupid'
+                                                         ',key,tip',  # ip, iq, np
                                                   setsel="all_control")
                 dname_list = []
                 for dname, name in zip(list(self.control_I.dname), list(self.control_I.name)):
@@ -1618,13 +1705,14 @@ class CalcModel(GeneralSettings):
                     self.control_U.index = pd.MultiIndex.from_product([['-'], ['-'], self.control_U.index])
 
         # Нормальная схема сети
-        self.info_srs = pd.Series(dtype='object')  # СРС
+        self.info_srs = dict()  # СРС
         self.info_srs['Наименование СРС'] = 'Нормальная схема сети.'
         self.info_srs["Наименование СРС без()"] = 'Нормальная схема сети'
-        self.info_srs['Номер СРС'] = self.number_comb
+        self.info_srs['comb_id'] = self.comb_id
         self.info_srs['Кол. откл. эл.'] = 0
         self.info_srs['Контроль ДТН'] = 'ДДТН'
-        log.info(f"Сочетание {self.number_comb}: {self.info_srs['Наименование СРС']}")
+        self.info_srs['rm_id'] = RastrModel.rm_id
+        log.info(f"Сочетание {self.comb_id}: {self.info_srs['Наименование СРС']}")
         self.do_action(rm)
 
         # Отключаемые элементы сети.
@@ -1695,8 +1783,8 @@ class CalcModel(GeneralSettings):
                                                     fields='index,name,key,temp,temp1,tip,ip,iq,np,i_zag',
                                                     setsel="all_disable")
             self.disable_df_vetv['table'] = 'vetv'
-            self.disable_df_vetv['uhom'] = self.disable_df_vetv[['temp', 'temp1']].max(axis=1) * 10000 + \
-                                           self.disable_df_vetv[['temp', 'temp1']].min(axis=1)
+            self.disable_df_vetv['uhom'] = (self.disable_df_vetv[['temp', 'temp1']].max(axis=1) * 10000 +
+                                            self.disable_df_vetv[['temp', 'temp1']].min(axis=1))
             self.disable_df_vetv.sort_values(by=['tip', 'uhom', 'name'],  # столбцы сортировки
                                              ascending=(False, False, True),  # обратный порядок
                                              inplace=True)  # изменить df
@@ -1819,20 +1907,24 @@ class CalcModel(GeneralSettings):
                         continue
                 self.calc_comb(rm, comb, source='xl')
 
-        # Доработка перечня перегрузок файла
-        if not self.overloads_srs.empty:
-            self.overloads_srs['Контролируемые элементы'] = \
-                self.overloads_srs.apply(lambda x: rm.t_name[rm.recognize_key(x.s_key, 'tab')
-                ][rm.recognize_key(x.s_key, 's_key')], axis=1)
+        # Доработка перечня перегрузок РМ
+        comb_min = min(self.all_comb[self.all_comb.rm_id == RastrModel.rm_id].comb_id.to_list())
 
-            self.overloads_srs.index = self.overloads_srs['Номер СРС'].astype(str) + '.' + \
-                                       self.overloads_srs['Номер подсочетания'].astype(str) + '_' + \
-                                       self.overloads_srs.index.astype(str)
-            self.overloads_all = pd.concat([self.overloads_all,
-                                            self.overloads_srs.apply(lambda x: rm.info_file,
-                                                                     axis=1).join(self.overloads_srs)])
-            self.overloads_srs.drop(self.overloads_srs.index, inplace=True)
-
+        for key in self.breach:
+            if len(self.breach[key]):
+                sel = self.breach[key].comb_id >= comb_min
+                if len(self.breach[key][sel]):
+                    tabl = rm.vetv_name if key == 'i' else rm.node_name
+                    self.breach[key].loc[sel, 'Контролируемые элементы'] = \
+                        self.breach[key].loc[sel, ['s_key']] \
+                            .merge(tabl, how='left') \
+                            .set_index(self.breach[key].loc[sel].index)['Контролируемые элементы']
+        if self.task_calc['cb_save_i']:
+            self.save_i_rm = self.save_i_rm.merge(rm.vetv_name, how='left')
+            con = sqlite3.connect(self.book_db)
+            self.save_i_rm.to_sql('save_i', con, if_exists="append")
+            con.commit()
+            con.close()
         # Вывод таблиц К-О в excel
         if self.task_calc['cb_tab_KO'] and (len(self.control_I) or len(self.control_U)):
             name_sheet = f'{self.file_count}_{rm.info_file["Имя файла"]}'.replace('[', '').replace(']', '')[:28]
@@ -2025,17 +2117,18 @@ class CalcModel(GeneralSettings):
         log.debug('Элементы сети из сочетания отключены.')
 
         # Имя сочетания
-        self.info_srs.drop(labels=['Отключение', 'Ключ откл.', 'Ремонт 1', 'Ключ рем.1', 'Ремонт 2', 'Ключ рем.2'],
-                           inplace=True, errors='ignore')
+        for k in ['Отключение', 'Ключ откл.', 'Ремонт 1', 'Ключ рем.1', 'Ремонт 2', 'Ключ рем.2']:
+            self.info_srs.pop(k, None)
+
         dname = rm.t_name[comb["table"].iloc[0]][comb["s_key"].iloc[0]]
         if comb.iloc[0]["status_repair"]:
             all_name_srs = 'Ремонт '
             self.info_srs['Ремонт 1'] = dname + comb['scheme_info'].iloc[0]
-            self.info_srs['Ключ рем.1'] = comb["s_key"].iloc[0]
+            self.info_srs['Ключ рем.1'] = RastrModel.key_to_str(comb["s_key"].iloc[0])
         else:
             all_name_srs = 'Отключение '
             self.info_srs['Отключение'] = dname + comb['scheme_info'].iloc[0]
-            self.info_srs['Ключ откл.'] = comb["s_key"].iloc[0]
+            self.info_srs['Ключ откл.'] = RastrModel.key_to_str(comb["s_key"].iloc[0])
 
         name_srs_base = all_name_srs + dname
         all_name_srs += dname + comb['scheme_info'].iloc[0]
@@ -2062,9 +2155,9 @@ class CalcModel(GeneralSettings):
         all_name_srs += '.'
 
         self.info_srs['Наименование СРС'] = all_name_srs.strip()
-        self.info_srs['Номер СРС'] = self.number_comb
+        self.info_srs['comb_id'] = self.comb_id
         self.info_srs['Кол. откл. эл.'] = comb.shape[0]
-        log.info(f"Сочетание {self.number_comb}: {all_name_srs}")
+        log.info(f"Сочетание {self.comb_id}: {all_name_srs}")
 
         self.do_action(rm, comb)
 
@@ -2109,36 +2202,44 @@ class CalcModel(GeneralSettings):
         :param rm:
         :param comb:
         """
-
-        self.info_action = pd.Series(dtype='object')
-        self.info_action['Номер подсочетания'] = 0
-        self.info_action['Конец'] = False
+        self.info_srs['comb_id'] = self.comb_id
+        self.all_comb = pd.concat([self.all_comb, pd.Series(self.info_srs).to_frame().T],
+                                  axis=0, ignore_index=True)
+        self.info_action = dict()
+        self.info_action['comb_id'] = self.comb_id
+        self.info_action['active_id'] = 1
+        self.info_action['End'] = False
+        self.info_action['alive'] = 1
         # Если False - значит есть ПА, True - конец расчета сочетания (перегрузку нечем ликвидировать или отсутствует).
         # Цикл по действиям (ПА или ОП)
         while True:
             overloads = self.do_control(rm, comb)
-            if self.set_save["pa"] and self.pa.active(overloads):
-                self.info_action['Действие'] += self.pa.execute_action_pa(rm)
+            if self.set_save["pa"] and self.pa.active(overloads):  # TODO overloads не задано
+                self.info_action['Action'] += self.pa.execute_action_pa(rm)
             else:
                 if self.set_save["pa"]:
                     self.pa.reset()
-                self.info_action['Конец'] = True
+                self.info_action['End'] = True
 
-            if self.info_action['Конец']:
-                self.number_comb += 1  # код комбинации
+            self.all_actions = pd.concat([self.all_actions, pd.Series(self.info_action).to_frame().T],
+                                         axis=0, ignore_index=True)
+            if self.info_action['End']:
+                self.comb_id += 1  # код комбинации
                 return
 
-            self.info_action['Номер подсочетания'] += 1
-            self.info_action.drop(labels=['АРВ', 'СКРМ', 'Действие'], inplace=True, errors='ignore')
+            self.info_action['active_id'] += 1
+            for k in ['АРВ', 'СКРМ', 'Action']:
+                self.info_action.pop(k, None)
 
     def do_control(self, rm, comb=pd.DataFrame()):
         """
         Проверка параметров режима.
         Заполняет таблицу Контроль - Отключение.
-        Наполняет overloads_srs.
+        Наполняет self.breach['i', 'low_u', 'high_u'].
         return overloads
         """
         log.debug(f'Проверка параметров УР.')
+        violation = False
         test_rgm = rm.rgm('do_control')
         if self.set_save['avr'] and len(comb):
             self.info_action['АРВ'] = rm.node_include()
@@ -2150,9 +2251,9 @@ class CalcModel(GeneralSettings):
         #         test_rgm = rm.rgm('do_control')
 
         if not test_rgm:
-            overloads = pd.DataFrame({'i_zag': [-1],
-                                      'otv_min': [-1],
-                                      's_key': ['-1']})
+            self.info_action['alive'] = 0
+            log.debug(f'Режим развалился.')
+            return None
         else:
             # Сохранение загрузки отключаемых элементов в н-1 для фильтра
             if self.task_calc['filter_comb'] and len(comb) == 1 and comb.table[0] == 'vetv':
@@ -2178,8 +2279,6 @@ class CalcModel(GeneralSettings):
                 # self.disable_df_vetv = pd.concat([self.disable_df_vetv, col_i_zag], axis=1)
                 # self.disable_df_vetv[col_name] = self.disable_df_vetv['i_zag'] - self.disable_df_vetv[col_name]
 
-            # Поиск отклонений от доп. значений среди контролируемых узлов
-            overloads = pd.DataFrame()
             # проверка на наличие перегрузок ветвей (ЛЭП, трансформаторов, выключателей)
             if self.info_srs['Контроль ДТН'] == 'АДТН':
                 selection_v = 'all_control & i_zag_av > 0.1004'
@@ -2190,46 +2289,75 @@ class CalcModel(GeneralSettings):
 
             tv = rm.rastr.tables('vetv')
             tv.SetSel(selection_v)
+            overloads_i = None
+            high_voltage = None
+            low_voltages = None
             if tv.count:
-                overloads = rm.df_from_table(table_name='vetv',
-                                             fields='s_key,'  # 'Ключ контроль,'
-                                                    'txt_zag,'  # 'txt_zag,' 
-                                                    'i_max,'  # 'Iрасч.(A),'
-                                                    'i_dop_r,'  # 'Iддтн(A),'
-                                                    'i_zag,'  # 'Iзагр.ддтн(%),'
-                                                    'i_dop_r_av,'  # 'Iадтн(A),'
-                                                    'i_zag_av',  # 'Iзагр.адтн(%),'
-                                             setsel=selection_v)
+                overloads_i = rm.df_from_table(table_name='vetv',
+                                               fields='s_key,'  # 'Ключ контроль,'
+                                                      'txt_zag,'  # 'txt_zag,' 
+                                                      'i_max,'  # 'Iрасч.(A),'
+                                                      'i_dop_r,'  # 'Iддтн(A),'
+                                                      'i_zag,'  # 'Iзагр.ддтн(%),'
+                                                      'i_dop_r_av,'  # 'Iадтн(A),'
+                                                      'i_zag_av',  # 'Iзагр.адтн(%),'
+                                               setsel=selection_v)
+                overloads_i['comb_id'] = self.comb_id
+                overloads_i['active_id'] = self.info_action['active_id']
+                self.breach['i'] = pd.concat([self.breach['i'], overloads_i], axis=0, ignore_index=True)
+                violation = True
+                log.info(f'Выявлено {len(overloads_i)} превышений ДТН.')
             # проверка на наличие недопустимого снижение напряжения
             tn = rm.rastr.tables('node')
             tn.SetSel(selection_n)
             if tn.count:
-                overload = rm.df_from_table(table_name='node',
-                                            fields='ny,'  # 'Ключ контроль,'
-                                            # 'txt_zag,'  # 'txt_zag,'
-                                            # todo сделать что бы в txt_zag были значения узлов?
-                                                   'vras,'  # 'Uрасч.(кВ),'
-                                                   'umin,'  # 'Uмин.доп.(кВ),'
-                                                   'umin_av,'  # 'U ав.доп.(кВ),'
-                                                   'otv_min,'
-                                            # отклонение vras от 'Uмин.доп.' (%)
-                                                   'otv_min_av',
-                                            # отклонение vras от 'U ав.доп.' (%)
-                                            setsel=selection_n)
-                overload.rename(columns={'ny': 's_key'}, inplace=True)
-                overloads = pd.concat([overloads, overload])
+                low_voltages = rm.df_from_table(table_name='node',
+                                                fields='ny,'  # 'Ключ контроль,'
+                                                # 'txt_zag,'  # 'txt_zag,'
+                                                # todo сделать что бы в txt_zag были значения узлов?
+                                                       'vras,'  # 'Uрасч.(кВ),'
+                                                       'umin,'  # 'Uмин.доп.(кВ),'
+                                                       'umin_av,'  # 'U ав.доп.(кВ),'
+                                                       'otv_min,'
+                                                # отклонение vras от 'Uмин.доп.' (%)
+                                                       'otv_min_av',
+                                                # отклонение vras от 'U ав.доп.' (%)
+                                                setsel=selection_n)
+                low_voltages.rename(columns={'ny': 's_key'}, inplace=True)
+                low_voltages['comb_id'] = self.comb_id
+                low_voltages['active_id'] = self.info_action['active_id']
+                self.breach['low_u'] = pd.concat([self.breach['low_u'], low_voltages], axis=0, ignore_index=True)
+                violation = True
+                log.info(f'Выявлено {len(low_voltages)} точек недопустимого снижения напряжения.')
 
             # проверка на наличие недопустимого повышения напряжения
             tn.SetSel('all_control & umax<vras & umax>0 & !sta')
             if tn.count:
-                overload = rm.df_from_table(table_name='node',
-                                            fields='ny,'  # 'Ключ контроль,'
-                                                   'vras,'  # 'Uрасч.(кВ),'
-                                                   'umax,'  # 'Uнаиб.раб.(кВ)'
-                                                   'otv_max',  # 'Uнаиб.раб.(кВ)'
-                                            setsel='all_control & umax<vras & umax>0 & !sta')
-                overload.rename(columns={'ny': 's_key'}, inplace=True)
-                overloads = pd.concat([overloads, overload])
+                high_voltage = rm.df_from_table(table_name='node',
+                                                fields='ny,'  # 'Ключ контроль,'
+                                                       'vras,'  # 'Uрасч.(кВ),'
+                                                       'umax,'  # 'Uнаиб.раб.(кВ)'
+                                                       'otv_max',  # 'Uнаиб.раб.(кВ)'
+                                                setsel='all_control & umax<vras & umax>0 & !sta')
+                high_voltage.rename(columns={'ny': 's_key'}, inplace=True)
+                high_voltage['comb_id'] = self.comb_id
+                high_voltage['active_id'] = self.info_action['active_id']
+                self.breach['high_u'] = pd.concat([self.breach['high_u'], high_voltage], axis=0, ignore_index=True)
+                violation = True
+                log.info(f'Выявлено {len(high_voltage)} точек недопустимого превышения напряжения.')
+
+            if self.task_calc['cb_save_i']:
+                save_i = rm.df_from_table(table_name='vetv',
+                                          fields='s_key,'  # 'Ключ контроль,'
+                                                 'i_max,'  # 'Iрасч.(A),'
+                                                 'i_dop_r,'  # 'Iддтн(A),'
+                                                 'i_zag,'  # 'Iзагр.ддтн(%),'
+                                                 'i_dop_r_av,'  # 'Iадтн(A),'
+                                                 'i_zag_av',  # 'Iзагр.адтн(%),'
+                                          setsel='all_control')
+                save_i['comb_id'] = self.comb_id
+                save_i['active_id'] = self.info_action['active_id']
+                self.save_i_rm = pd.concat([self.save_i_rm, save_i], axis=0)
 
             # Таблица КОНТРОЛЬ - ОТКЛЮЧЕНИЕ
             if self.task_calc['cb_tab_KO']:
@@ -2244,8 +2372,8 @@ class CalcModel(GeneralSettings):
                     ci['i_zag_av'] = ci['i_zag_av'].round(0)
                     ci = ci.T
                     ci.index = pd.MultiIndex.from_product([[self.info_srs['Наименование СРС']],
-                                                           [f'{self.number_comb}.'
-                                                            f'{self.info_action["Номер подсочетания"]}'],
+                                                           [f'{self.comb_id}.'
+                                                            f'{self.info_action["active_id"]}'],
                                                            ['I, А', 'I, % от ДДТН', 'I, % от АДТН']])
                     self.control_I = pd.concat([self.control_I, ci], axis=0)
 
@@ -2259,41 +2387,34 @@ class CalcModel(GeneralSettings):
                     cu['otv_min_av'] = cu['otv_min_av'].round(2)
                     cu = cu.T
                     cu.index = pd.MultiIndex.from_product([[self.info_srs['Наименование СРС']],
-                                                           [f'{self.number_comb}.'
-                                                            f'{self.info_action["Номер подсочетания"]}'],
+                                                           [f'{self.comb_id}.'
+                                                            f'{self.info_action["active_id"]}'],
                                                            ['U, кВ', 'U, % от МДН', 'U, % от АДН']])
                     self.control_U = pd.concat([self.control_U, cu], axis=0)
 
-        num = len(overloads)
-        log.debug(f'Выявлено {num} отклонений от допустимых значений.')
-
         # Добавить рисунки.
         if self.task_calc['results_RG2'] and (not self.task_calc['pic_overloads'] or
-                                              (self.task_calc['pic_overloads'] and num)):
+                                              (self.task_calc['pic_overloads'] and violation)):
             log.debug('Добавить рисунки.')
             pic_name_file = rm.save(folder_name=self.task_calc['folder_result_calc'],
                                     file_name=f'{rm.name_base} '
-                                              f'[{self.number_comb}_{self.info_action["Номер подсочетания"]}] '
+                                              f'[{self.comb_id}_{self.info_action["active_id"]}] '
                                               f'рис {self.num_pic} {self.info_srs["Наименование СРС без()"]}')
 
             # Южный р-н. Зимний максимум нагрузки 2026 г (-32°C/ПЭВТ). Нормальная схема сети. Действия...Загрузка...
             # todo Действия...Загрузка...
             add_name = f' ({", ".join(rm.additional_name_list)})' if rm.additional_name_list else ""
-            picture_name = f'{self.name_pic[0]}{self.num_pic}{self.name_pic[1]} {rm.info_file["Сезон макс/мин"]} {rm.info_file["Год"]} г' \
-                           f'{add_name}. {self.info_srs["Наименование СРС"]}'
+            picture_name = (f'{self.name_pic[0]}{self.num_pic}{self.name_pic[1]} '
+                            f'{rm.info_file["Сезон макс/мин"]} {rm.info_file["Год"]} г'
+                            f'{add_name}. {self.info_srs["Наименование СРС"]}')
             pic_name_file = pic_name_file.replace(self.task_calc['folder_result_calc'] + '\\', '')
-            self.df_picture.loc[len(self.df_picture.index)] = (pic_name_file, picture_name,)
-
-            if num:
-                overloads['num_pic'] = self.num_pic
+            self.all_pic.loc[len(self.all_pic.index)] = (self.num_pic,
+                                                         self.comb_id,
+                                                         self.info_action['active_id'],
+                                                         pic_name_file,
+                                                         picture_name)
             self.num_pic += 1
-
-        if num:
-            overloads.index = range(num)
-            self.overloads_srs = pd.concat([self.overloads_srs,
-                                            overloads.apply(lambda x: pd.concat([self.info_srs, self.info_action]),
-                                                            axis=1).join(other=overloads)])
-        return overloads
+        return None
 
     @staticmethod
     def find_double_repair_scheme(comb_df):
@@ -2333,7 +2454,7 @@ class EditModel(GeneralSettings):
         """
         Запуск корректировки моделей.
         """
-        test_run('edit')
+        # test_run('edit')
         log.info('\n!!! Запуск корректировки РМ !!!\n')
         self.task["KIzFolder"] = self.task["KIzFolder"].strip()
         if "*" in self.task["KIzFolder"]:
@@ -2403,7 +2524,8 @@ class EditModel(GeneralSettings):
 
         self.the_end()
         if self.set_info['collapse']:
-            self.set_info['end_info'] += f"\nВНИМАНИЕ! Развалились модели:\n[{self.set_info['collapse']}].\n"
+            t = f',\n'.join(self.set_info['collapse'])
+            self.set_info['end_info'] += f"\nВНИМАНИЕ! Развалились модели:\n[{t}]."
 
         notepad_path = self.task['name_time'] + ' протокол коррекции файлов.log'
         shutil.copyfile(self.log_file, notepad_path)
@@ -2455,11 +2577,11 @@ class EditModel(GeneralSettings):
         if 'checking_parameters_rg2' in self.task:
             if self.task['checking_parameters_rg2']:
                 if not rm.checking_parameters_rg2(self.task['control_rg2_task']):  # расчет и контроль параметров режима
-                    self.set_info['collapse'] += rm.name_base + ', '
+                    self.set_info['collapse'].append(rm.name_base)
 
         if 'printXL' in self.task:
             if self.task['printXL']:
-                if not type(self.print_xl) == PrintXL:
+                if not isinstance(self.print_xl, PrintXL):
                     self.print_xl = PrintXL(self.task)
                 self.print_xl.add_val(rm)
 
@@ -2486,10 +2608,16 @@ class RastrModel:
     rm_id = 0
     all_rm = pd.DataFrame()
 
+    def __str__(self):
+        return self.name_base
+
+    def __repr__(self):
+        return f'{self.__class__} {self.name_base}'
+
     def __init__(self, full_name: str):
         # Информация о файле.
         RastrModel.rm_id += 1
-        self.info_file = pd.Series(dtype='object')
+        self.info_file = dict()
         self.info_file['rm_id'] = RastrModel.rm_id
         self.full_name = full_name
         self.dir = os.path.dirname(full_name)
@@ -2529,6 +2657,8 @@ class RastrModel:
         # self.ny_pqng = defaultdict(tuple)  # {ny: (pn, qn, pg, qn)} - все с pn pg > 0 | qn pg > 0 | pg > 0 | qg > 0
         self.v_gr = {}  # {(ip, iq, np): groupid} - все c groupid > 0
         self.v_rxb = {}  # {(ip, iq, np): (r, x, b)} - все
+        self.vetv_name = None  # df[s_key, 'Контролируемые элементы']
+        self.node_name = None  # df[s_key, 'Контролируемые элементы']
 
         # Произвольный формат названия файла
         self.info_file['Сезон']: str = ''  # 'зимний', 'летний', 'паводок' сезон года
@@ -2611,21 +2741,25 @@ class RastrModel:
             self.info_file["Доп. имена"] = ''
 
         if "°C" in self.name_base:
-            match = re.search(re.compile(r"(-?\d+((,|\.)\d*)?)\s?°C"),
-                              self.name_base.replace('минус', '-').replace(' ', '').replace(',', '.'))  # -45.14 °C
+            match = re.search(re.compile(r"((-|минус)?\s?\d+([,.]\d*)?)\s?°C"), self.name_base)  # -45.14 °C
             if match:
-                self.info_file['Темп.(°C)'] = float(match[1])  # число
+                self.info_file['Темп.(°C)'] = float(match[1]
+                                                    .replace(',', '.')
+                                                    .replace('минус', '-')
+                                                    .replace(' ', ''))  # число
                 self.info_file["Имя режима"] += f' Расчетная температура {self.info_file["Темп.(°C)"]} °C.'
 
         if self.additional_name_list:
             for i, additional_name_i in enumerate(self.additional_name_list, 1):
                 self.info_file['Доп. имя' + str(i)] = additional_name_i
-        RastrModel.all_rm.insert(loc=len(RastrModel.all_rm.columns), value=self.info_file, column=RastrModel.rm_id)
+        RastrModel.all_rm = pd.concat([RastrModel.all_rm, pd.Series(self.info_file).to_frame().T],
+                                      axis=0, ignore_index=True)
         log.info(self.info_file["Имя режима"])
 
     def save_value_fields(self):
         """
-        Сохранить значения изменяемых полей в исходной схеме сети и считать некоторые данные.
+        Сохранить значения полей в исходной схеме сети (изменяемых в процессе расчетов).
+        Сохранить имена ветвей узлов и генераторов в dict и df.
         """
         log.debug('Сохранение значений исходных параметров сети.')
 
@@ -2695,6 +2829,23 @@ class RastrModel:
                 self.t_name['Generator'][Num] = Name
             else:
                 self.t_name['Generator'][Num] = f'генератор номер {Num} в узле {self.t_name["node"][Node]}'
+
+        # Создать df ['s_key', 'Контролируемые элементы']] для таблиц узлов и ветвей
+        self.node_name = pd.DataFrame.from_dict(self.t_name['node'],
+                                                orient='index',
+                                                columns=['Контролируемые элементы'])
+        self.node_name['s_key'] = self.node_name.index
+        self.node_name.reset_index(drop=True, inplace=True)
+
+        self.vetv_name = pd.DataFrame.from_dict(self.t_name['vetv'],
+                                                orient='index',
+                                                columns=['Контролируемые элементы'])
+        self.vetv_name['s_key'] = self.vetv_name.index
+        self.vetv_name.s_key = self.vetv_name.s_key.apply(lambda xx: str(xx).replace(' ', '')
+                                                          .replace('(', '')
+                                                          .replace(')', '')
+                                                          .replace(',0', ''))
+        self.vetv_name.reset_index(drop=True, inplace=True)
 
     def network_analysis(self, disable_on: bool = True,
                          field: str = 'disable',
@@ -2981,7 +3132,7 @@ class RastrModel:
         # Проверка года
         if 'years' in condition:
             if condition['years']:
-                if not int(self.info_file['Год']) in str_yeas_in_list(str(condition['years'])):
+                if not int(self.info_file['Год']) in cf.str_yeas_in_list(str(condition['years'])):
                     log.info(f"{info} {self.Name!r}. Год не проходит по условию: {condition['years']!r}")
                     return False
         # Проверка "зим" "лет" "паводок"
@@ -3048,7 +3199,7 @@ class RastrModel:
         """
         if not full_name_new:
             if file_name and folder_name:
-                full_name_new = folder_name + '\\' + re.sub(r'\\|\/|\:|\?|<|>|\||\.', '', file_name)
+                full_name_new = folder_name + '\\' + re.sub(r'[\\/|:?<>.]', '', file_name)
                 full_name_new = full_name_new[:252]
                 full_name_new += '.' + self.type_file
             else:
@@ -3059,7 +3210,7 @@ class RastrModel:
         if os.path.exists(full_name_new):
             if GeneralSettings.overwrite_new_file == 'question':
                 GeneralSettings.overwrite_new_file = mb.askquestion('Внимание!',
-                                                                 f'Заменить файлы в папке: {folder_name}')
+                                                                    f'Заменить файлы в папке: {folder_name}')
         # Запись файла.
         if GeneralSettings.overwrite_new_file != 'no':
             self.rastr.Save(full_name_new, self.pattern)
@@ -3658,10 +3809,10 @@ class RastrModel:
                 'sel' выборка: str
                 'tab sel'
         """
-        if type(key) == str:
+        if isinstance(key, str):
             key = key.replace(' ', '')
         else:
-            key = str(key)
+            key = str(int(key))
         selection_in_table = key  # выборка в таблице
         if key == '-1':
             rastr_table = 'vetv'
@@ -3789,7 +3940,7 @@ class RastrModel:
                     table.cols.Item(param).SetZ(index, formula)
 
             else:  # если поле типа число
-                if type(formula) == str:
+                if isinstance(formula, str):
                     formula = formula.replace(' ', '').replace(',', '.')
 
                 table.cols.item(param).Calc(formula)
@@ -3924,6 +4075,7 @@ class RastrModel:
         else:
             self.add_fields_in_table(name_tables='node', fields='index', type_fields=0)
         data = []
+        fild_set = ''
         node.setsel(choice)
         if node.count:
             rst_on = False
@@ -4108,9 +4260,9 @@ class RastrModel:
         :param choice: выборка, нр na=100
         """
         log.info("\tДобавлены зависимости СХН в таблицу узлы (uhom>100 nsx=1, uhom<100 nsx=2)")
-        all_choice = '' if choice == '' else choice + '&'
-        self.group_cor(tabl="node", param="nsx", selection=all_choice + "uhom>100", formula="1")
-        self.group_cor(tabl="node", param="nsx", selection=all_choice + "uhom<100", formula="2")
+        choice = choice + '&' if choice else ''
+        self.group_cor(tabl="node", param="nsx", selection=choice + "uhom>100", formula="1")
+        self.group_cor(tabl="node", param="nsx", selection=choice + "uhom<100", formula="2")
 
     def cor_pop(self, zone: str, new_pop: Union[int, float]) -> bool:
         """
@@ -4490,6 +4642,17 @@ class RastrModel:
         except Exception:
             raise ValueError(f'Ошибка у условии: {conditions_s!r}.')
 
+    @staticmethod
+    def key_to_str(ob):
+        """Преобразовать переменную в строку. Для удаления np=0 key vetv.
+        Убрать последний ноль в tuple или list"""
+        if isinstance(ob, tuple|list):
+            if ob[-1] == 0:
+                ob = ob[:-1]
+            return ','.join(map(str, ob))
+        else:
+            return str(ob)
+
 
 class NodeGeneration:
     """Класс для хранения информации об узле для изменения мощности в сечении."""
@@ -4769,8 +4932,8 @@ class CorSheet:
                     if name_file in [rm.name_base, "*"]:
                         duct_add = True
                     if "*" in name_file and len(name_file) > 7:
-                        pattern_name = re.compile(r"\[(.*)\].*\[(.*)\].*\[(.*)\].*\[(.*)\]")
-                        match = re.search(pattern_name, name_file)
+                        match = re.search(re.compile(r"\[(.*)].*\[(.*)].*\[(.*)].*\[(.*)]"),
+                                          name_file)
                         if match.re.groups == 4 and rm.code_name_rg2:
                             if rm.test_name(condition={"years": match[1], "season": match[2],
                                                        "max_min": match[3], "add_name": match[4]},
@@ -4833,7 +4996,7 @@ class CorXL:
                     if '#' not in sheet:  # все листы
                         self.sheets_list.append(CorSheet(name=sheet, obj=self.wb[sheet]))
             else:
-                self.sheets = re.findall(r"\[(.+?)\]", sheets)
+                self.sheets = re.findall(r"\[(.+?)]", sheets)
                 for sheet in self.sheets:
                     if sheet not in self.wb.sheetnames:
                         raise ValueError(f"Ошибка в задании, не найден лист: {sheet} в файле {excel_file_name}")
@@ -4853,6 +5016,7 @@ class CorXL:
 
 
 class ImportFromModel:
+    """Клас для импорта из одних моделей в другие"""
     set_import_model = []  # хранение созданных объектов класса ImportFromModel
 
     def __init__(self,
@@ -4880,7 +5044,7 @@ class ImportFromModel:
         self.criterion_start = criterion_start
         self.sel = sel if sel else ''
 
-        if type(calc) == int:
+        if isinstance(calc, int):
             self.calc = calc
         elif calc.isdigit():
             self.calc = int(calc)
@@ -5160,6 +5324,8 @@ class Automation:
 
 
 class AutoDevice:
+    """Моделирование устройства ПА"""
+
     def __init__(self, n: int,
                  data: pd.DataFrame):
         self.n = n
@@ -5310,7 +5476,8 @@ class PrintXL:
             data = rm.df_from_table(table_name=name_table, fields=fields, setsel=setsel)
             if not data.empty:
                 self.data_table[name_table] = pd.concat([self.data_table[name_table],
-                                                         data.apply(lambda x: rm.info_file, axis=1).join(other=data)])
+                                                         data.apply(lambda x: pd.Series(rm.info_file), axis=1).join(
+                                                             other=data)])
 
         if self.task['print_parameters']['add']:
             self.add_val_parameters(rm)
@@ -5358,8 +5525,8 @@ class PrintXL:
         address_shq_tran = self.sheet_q.cell(self.row_q['row_shq_tran'], column,
                                              rm.rastr.Calc("sum", "area", "shq_tran", choice)).coordinate
         # ШР УШР без бСК
-        skrm = rm.rastr.Calc("sum", "node", "qsh", f"qsh>0&({choice})") - \
-               rm.rastr.Calc("sum", "node", "qg", f"qg<0&pg<0.1&pg>-0.1&({choice})")
+        skrm = (rm.rastr.Calc("sum", "node", "qsh", f"qsh>0&({choice})") -
+                rm.rastr.Calc("sum", "node", "qg", f"qg<0&pg<0.1&pg>-0.1&({choice})"))
         address_SHR = self.sheet_q.cell(self.row_q['row_skrm_potr'], column, skrm).coordinate
         # Генерация Q генераторов
         address_qg = self.sheet_q.cell(self.row_q['row_qg'], column,
@@ -5507,7 +5674,7 @@ class PrintXL:
             if len(values) > 1:
                 pt.DataPivotField.Orientation = 1  # xlRowField"Значения в столбцах или строках xlColumnField
 
-            # .DataPivotField.Position = 1 # позиция в строках
+            # pt.DataPivotField.Position = 1 # позиция в строках
             pt.RowGrand = False  # удалить строку общих итогов
             pt.ColumnGrand = False  # удалить столбец общих итогов
             pt.MergeLabels = True  # объединять одинаковые ячейки
@@ -5571,31 +5738,6 @@ class PrintXL:
         sheet.add_table(tab)
 
 
-def str_yeas_in_list(id_str: str):
-    """
-    Преобразует перечень годов.
-    :param id_str: "2021,2023...2025"
-    :return: [2021,2023,2024,2025] или []
-    """
-    years_list = id_str.replace(" ", "").split(',')
-    if years_list:
-        years_list_new = np.array([], int)
-        for it in years_list:
-            if "..." in it:
-                i_years = it.split('...')
-                years_list_new = np.hstack(
-                    [years_list_new, np.array(np.arange(int(i_years[0]), int(i_years[1]) + 1), int)])
-            elif "…" in it:
-                i_years = it.split('…')
-                years_list_new = np.hstack(
-                    [years_list_new, np.array(np.arange(int(i_years[0]), int(i_years[1]) + 1), int)])
-            else:
-                years_list_new = np.hstack([years_list_new, int(it)])
-        return np.sort(years_list_new)
-    else:
-        return []
-
-
 def test_run(source):
     year = datetime.now().year
     month = datetime.now().month
@@ -5608,7 +5750,7 @@ def test_run(source):
     # except:
     #     pass
 
-    if year > 2023:
+    if year > 2028:
         if month > 1:
             if source:
                 raise ValueError('Неизвестная ошибка.')
@@ -5670,7 +5812,6 @@ if __name__ == '__main__':
     sys.exit(app.exec_())  # Запуск
 
 # TODO дописать: сравнение файлов
-# TODO спросить про перезапись файлов
 # self.save(full_name_new=r'I:\rastr_add\test\result\1.rg2')
 # rm.save(full_name_new=r'I:\rastr_add\test\result\1.rg2')
 
@@ -5690,4 +5831,3 @@ if __name__ == '__main__':
 # циклить через FindNextSel крайне медленно
 
 # todo по гост генераторы могут только аварийно отключаться
-# todo разделить кнопку н-2 на 2

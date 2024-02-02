@@ -52,9 +52,9 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>0</y>
+           <y>-288</y>
            <width>739</width>
-           <height>1008</height>
+           <height>1027</height>
           </rect>
          </property>
          <layout class="QGridLayout" name="gridLayout_3">
@@ -491,19 +491,6 @@
                 </widget>
                </item>
               </layout>
-             </item>
-             <item>
-              <widget class="QCheckBox" name="cb_Imax">
-               <property name="enabled">
-                <bool>false</bool>
-               </property>
-               <property name="text">
-                <string>Сохранение максимальных токов по контролиремым ветвям сети.</string>
-               </property>
-               <property name="checked">
-                <bool>false</bool>
-               </property>
-              </widget>
              </item>
             </layout>
            </widget>
@@ -1079,6 +1066,28 @@
               <number>1</number>
              </property>
              <item>
+              <widget class="QCheckBox" name="cb_save_i">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Создать таблицы максимальную токовую загрузку контролируемых ветвей</string>
+               </property>
+               <property name="checked">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
               <widget class="QCheckBox" name="cb_tab_KO">
                <property name="minimumSize">
                 <size>
@@ -1175,7 +1184,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>Сохранить СРС в формате RG2</string>
+                <string>Сохранять СРС в формате RG2</string>
                </property>
                <property name="checked">
                 <bool>false</bool>
@@ -1632,7 +1641,6 @@
   <tabstop>le_XL_sheets</tabstop>
   <tabstop>cb_control_field</tabstop>
   <tabstop>le_control_field</tabstop>
-  <tabstop>cb_Imax</tabstop>
   <tabstop>b_main_choice</tabstop>
   <tabstop>b_set</tabstop>
   <tabstop>b_task_save</tabstop>
