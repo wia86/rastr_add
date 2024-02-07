@@ -1,0 +1,33 @@
+# help:
+# pip freeze > requirements.txt
+# pip install -r requirements.txt
+#  pyinstaller  --noconsole main.py --name Помощник_2024_02_02 -i fav.ico --add-data "help;help" # --onefile
+
+# Excel.Application https://memotut.com/en/150745ae0cc17cb5c866/
+# from urllib.request import urlopen
+
+# import webbrowser
+# webbrowser.open(notepad_path)  #  Открыть блокнотом лог-файл.
+
+# Если не работает терминал, то в  PowerShell ввести:
+# Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned –Force
+
+
+# self.save(full_name_new=r'I:\rastr_add\test\result\1.rg2')
+# rm.save(full_name_new=r'I:\rastr_add\test\result\1.rg2')
+
+# # import time
+# start_time = time.time()
+# for i in range(1000):
+#     pass
+#
+# print((time.time() - start_time))
+
+# setz - 0,5 мс лучше calc 0,8 мс - для 1 значения
+# для корректировки многих значений эффективен calc, через ip.uhom в 5 раз медленнее
+# calc в 4-10(узлы - ветви) раз быстрее чем writesafearray - ReadSafeArray
+# writesafearray > ReadSafeArray на 10 %
+# циклить через FindNextSel крайне медленно
+
+# todo по гост генераторы могут только аварийно отключаться
+# TODO в excel не более 1 048 576 строк и 16 384 столбца
