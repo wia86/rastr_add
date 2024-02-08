@@ -1,0 +1,92 @@
+'     Перед запуском нужно открыть вкладку "графика", сфокусировать на нужной части графики,
+'     "Запомнить кадр"(ctrl+0), а также отключить градиент.
+
+' Задание:
+'file_excel_path = rastr.SendCommandMain( COMM_OPEN_FILE, "Выберете файл excel", "Файлы Excel|*.xlsx;*.xls|Все файлы (*.*)|*.*", 0)
+file_excel_path = "папка с файлами"
+sheet_name = "Рисунки"
+' После работы макроса проверьте картинки в word, тк могут быть искажения. 
+' В этом случае попробуйте закрыть вкладку "Графика", открыть снова и повторно запустить макрос.
+
+' -----------------------------------------------------------------
+timer_start = timer
+Set Excel = CreateObject("Excel.Application")
+Excel.Visible = true
+Set book = Excel.Workbooks.Open(file_excel_path)
+Set sheet = book.sheets(sheet_name)
+
+format_doc = sheet.cells(1, 2).value
+orientation_doc = sheet.cells(2, 2).value
+path_rg2 = sheet.cells(3, 2). value
+
+set word_App = CreateObject("word.Application")
+Set objFSO = CreateObject("Scripting.FileSystemObject")
+word_App.Visible = true 
+Set doc = word_App.Documents.Add ()
+ 
+if format_doc = 3 then
+    doc.PageSetup.PageWidth = 42 * 28.35  ' 1 см = 28,35
+    doc.PageSetup.PageHeight = 29.7 * 28.35
+else
+    doc.PageSetup.PageWidth =  29.7 * 28.35
+    doc.PageSetup.PageHeight = 21.0 * 28.35
+end if
+doc.PageSetup.Orientation = orientation_doc 
+
+Set cursor = word_App.Selection
+cursor.Font.Size = 12
+cursor.Font.Name = "Times New Roman" 
+'cursor.ParagraphFormat.Alignment = 1  ' текст по центру
+set pic_doc = doc.Shapes
+
+for row = 6 to sheet.UsedRange.Rows.count
+    name_rg2 = sheet.cells(row, 1). value
+    name_pic = sheet.cells(row, 2). value
+    name_wmf = path_rg2 & "/" & replace (name_rg2, ".rg2", "") & ".wmf"
+    call rastr.printp(name_wmf)
+    for i_i = 1 to 15
+        call rastr.printp(vbtab & "итерация  " & cstr(i_i) )
+        call Rastr.Load (1 , path_rg2 & "/" & name_rg2, Rastr.SendCommandMain(3, "", "", 0) & "SHABLON\режим.rg2")
+        call Rastr.SendChangeData (0,"","",0)
+        call Rastr.SendCommandMain (23, "10", name_wmf, 100503)
+        
+        if objFSO.fileExists(name_wmf) then ' файл есть
+            set file_wmf = objFSO.getfile (name_wmf)
+            call rastr.printp(vbtab & "Размер файла:  " & cstr(file_wmf.size) )
+            if row = 6 then
+                file_wmf_size1 = file_wmf.size
+                if file_wmf_size1 > 2000 then
+                    exit for
+                end if
+            else
+                if file_wmf.size > file_wmf_size1 * 0.7 and file_wmf.size < file_wmf_size1 * 1.3 then
+                    exit for
+                end if
+            end if
+        end if
+    next
+    'Sleep 50000
+    call pic_doc.AddPicture(name_wmf)
+    pic_doc(1).ConvertToInlineShape()
+    call cursor.EndKey(6)
+    call cursor.TypeParagraph()
+    Call cursor.TypeText(vbtab)
+    call cursor.TypeText(name_pic)
+    call cursor.InsertBreak(0)
+next
+
+i = 0
+while i > -1
+    i = i + 1
+    word_file=replace(file_excel_path, ".xls", " (рисунки v" & cstr(i) & ").doc")
+    if not objFSO.FileExists(word_file) Then
+        i = -1
+    end if
+wend
+
+Excel.quit
+call doc.SaveAs2(word_file, 12)
+txt = "Рисунки сохранены в файле: " & word_file & "(время выполнения " & cstr(round(timer - timer_start, 1)) & " сек.)."
+call rastr.printp (txt)
+call msgbox (txt)
+

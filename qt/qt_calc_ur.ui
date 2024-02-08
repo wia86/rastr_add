@@ -1,0 +1,1675 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>calc_ur</class>
+ <widget class="QMainWindow" name="calc_ur">
+  <property name="enabled">
+   <bool>true</bool>
+  </property>
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>760</width>
+    <height>791</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Расчет установившихся режимов</string>
+  </property>
+  <widget class="QWidget" name="centralwidget">
+   <layout class="QGridLayout" name="gridLayout">
+    <property name="leftMargin">
+     <number>0</number>
+    </property>
+    <property name="topMargin">
+     <number>0</number>
+    </property>
+    <property name="rightMargin">
+     <number>0</number>
+    </property>
+    <property name="bottomMargin">
+     <number>0</number>
+    </property>
+    <property name="spacing">
+     <number>0</number>
+    </property>
+    <item row="0" column="0">
+     <layout class="QVBoxLayout" name="verticalLayout_3">
+      <item>
+       <widget class="QScrollArea" name="scrollArea">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+         </font>
+        </property>
+        <property name="widgetResizable">
+         <bool>true</bool>
+        </property>
+        <widget class="QWidget" name="scrollAreaWidgetContents">
+         <property name="geometry">
+          <rect>
+           <x>0</x>
+           <y>-288</y>
+           <width>739</width>
+           <height>1027</height>
+          </rect>
+         </property>
+         <layout class="QGridLayout" name="gridLayout_3">
+          <item row="6" column="0">
+           <widget class="QGroupBox" name="gb_disable_comb">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>100</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>110</height>
+             </size>
+            </property>
+            <property name="title">
+             <string>Параметры:</string>
+            </property>
+            <property name="checkable">
+             <bool>false</bool>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_6">
+             <property name="spacing">
+              <number>1</number>
+             </property>
+             <property name="leftMargin">
+              <number>1</number>
+             </property>
+             <property name="topMargin">
+              <number>1</number>
+             </property>
+             <property name="rightMargin">
+              <number>1</number>
+             </property>
+             <property name="bottomMargin">
+              <number>1</number>
+             </property>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_4">
+               <item>
+                <widget class="QLabel" name="label_2">
+                 <property name="text">
+                  <string>Количество отключаемых элементов сети в сочетании (температура по ГОСТ): </string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cb_n1">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>1,</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cb_n2_abv">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>2(а,б,в),</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cb_n2_gd">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>2(г,д),</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="cb_n3">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>3.</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_3">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_7">
+               <item>
+                <widget class="QCheckBox" name="cb_auto_disable">
+                 <property name="text">
+                  <string>Автоматический выбор отключаемых узлов и ветвей, выборка в таблице узлы:</string>
+                 </property>
+                 <property name="checked">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="le_auto_disable_choice">
+                 <property name="text">
+                  <string>na=1</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_22">
+               <item>
+                <widget class="QCheckBox" name="cb_comb_field">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>Выбор отключаемых ветвей, узлов и генераторов (имя поля):</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="le_comb_field">
+                 <property name="text">
+                  <string>disable</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_6">
+               <item>
+                <widget class="QCheckBox" name="cb_filter_comb">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Фильтры для сочетаний н-2, н-3:</string>
+                 </property>
+                 <property name="checked">
+                  <bool>false</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="sb_filter_comb_val">
+                 <property name="minimumSize">
+                  <size>
+                   <width>50</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                 <property name="value">
+                  <number>5</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_7">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>%</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer_4">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="8" column="0">
+           <widget class="QGroupBox" name="gb_disable_excel">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>60</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>80</height>
+             </size>
+            </property>
+            <property name="title">
+             <string>Параметры:</string>
+            </property>
+            <property name="checkable">
+             <bool>false</bool>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout">
+             <property name="spacing">
+              <number>1</number>
+             </property>
+             <property name="leftMargin">
+              <number>1</number>
+             </property>
+             <property name="topMargin">
+              <number>1</number>
+             </property>
+             <property name="rightMargin">
+              <number>1</number>
+             </property>
+             <property name="bottomMargin">
+              <number>1</number>
+             </property>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_8">
+               <property name="sizeConstraint">
+                <enum>QLayout::SetMaximumSize</enum>
+               </property>
+               <item>
+                <widget class="QPlainTextEdit" name="te_XL_path">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>400</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>500000</width>
+                   <height>22</height>
+                  </size>
+                 </property>
+                 <property name="baseSize">
+                  <size>
+                   <width>50</width>
+                   <height>22</height>
+                  </size>
+                 </property>
+                 <property name="plainText">
+                  <string>I:\rastr_add\test\пример задания.xlsx</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="b_choice_XL">
+                 <property name="maximumSize">
+                  <size>
+                   <width>44</width>
+                   <height>22</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Выбор</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLabel" name="label_10">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>22</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>22</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string> Лист:</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="le_XL_sheets">
+                 <property name="minimumSize">
+                  <size>
+                   <width>100</width>
+                   <height>22</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>120</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string/>
+                 </property>
+                 <property name="text">
+                  <string>НВ</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="10" column="0">
+           <widget class="QGroupBox" name="gb_control">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>80</height>
+             </size>
+            </property>
+            <property name="title">
+             <string>Параметры:</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_13">
+             <property name="spacing">
+              <number>2</number>
+             </property>
+             <property name="leftMargin">
+              <number>2</number>
+             </property>
+             <property name="topMargin">
+              <number>2</number>
+             </property>
+             <property name="rightMargin">
+              <number>2</number>
+             </property>
+             <property name="bottomMargin">
+              <number>2</number>
+             </property>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_11">
+               <item>
+                <widget class="QCheckBox" name="cb_control_field">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>Имя поля (типа переключатель) с отмеченными узлами и ветвями:</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="le_control_field">
+                 <property name="text">
+                  <string>control</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_13">
+               <item>
+                <widget class="QCheckBox" name="cb_control_sel">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="text">
+                  <string>Выборка в таблице узлы (примыкаемые к узлам ветви также контралируются):</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="le_control_sel">
+                 <property name="minimumSize">
+                  <size>
+                   <width>0</width>
+                   <height>18</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>na=1|na=2</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="0" column="0">
+           <widget class="QGroupBox" name="groupBox">
+            <property name="title">
+             <string>Меню</string>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout_10">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_2">
+               <item>
+                <widget class="QPushButton" name="b_main_choice">
+                 <property name="maximumSize">
+                  <size>
+                   <width>130</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string/>
+                 </property>
+                 <property name="text">
+                  <string>Главное меню</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="b_set">
+                 <property name="maximumSize">
+                  <size>
+                   <width>130</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="toolTip">
+                  <string/>
+                 </property>
+                 <property name="text">
+                  <string>Настройки</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="horizontalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Horizontal</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>40</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+               <item>
+                <widget class="QLabel" name="label">
+                 <property name="maximumSize">
+                  <size>
+                   <width>95</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>   Задание (.yaml):</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="b_task_save">
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>сохранить</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="b_task_load">
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>загрузить</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QGroupBox" name="gb_initial_models">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="minimumSize">
+             <size>
+              <width>100</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>180</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <weight>50</weight>
+              <bold>false</bold>
+             </font>
+            </property>
+            <property name="title">
+             <string>Путь к папке с расчетными файлами или к файлу:</string>
+            </property>
+            <property name="flat">
+             <bool>false</bool>
+            </property>
+            <property name="checkable">
+             <bool>false</bool>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_12">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <layout class="QHBoxLayout" name="horizontalLayout_3">
+               <item>
+                <widget class="QPlainTextEdit" name="te_path_initial_models">
+                 <property name="enabled">
+                  <bool>true</bool>
+                 </property>
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="minimumSize">
+                  <size>
+                   <width>300</width>
+                   <height>22</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>10000</width>
+                   <height>35</height>
+                  </size>
+                 </property>
+                 <property name="baseSize">
+                  <size>
+                   <width>0</width>
+                   <height>35</height>
+                  </size>
+                 </property>
+                 <property name="plainText">
+                  <string>I:\rastr_add\test</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="b_choice_path_folder">
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Выбор папки</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="b_choice_path_file">
+                 <property name="maximumSize">
+                  <size>
+                   <width>80</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>Выбор файла</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="cb_filter">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>14</height>
+                </size>
+               </property>
+               <property name="font">
+                <font>
+                 <weight>75</weight>
+                 <bold>true</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Выборка файлов</string>
+               </property>
+               <property name="checked">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QGroupBox" name="gb_filter">
+               <property name="minimumSize">
+                <size>
+                 <width>1</width>
+                 <height>60</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>70</height>
+                </size>
+               </property>
+               <property name="title">
+                <string>Параметры:</string>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_10">
+                <property name="spacing">
+                 <number>1</number>
+                </property>
+                <property name="sizeConstraint">
+                 <enum>QLayout::SetNoConstraint</enum>
+                </property>
+                <property name="leftMargin">
+                 <number>1</number>
+                </property>
+                <property name="topMargin">
+                 <number>1</number>
+                </property>
+                <property name="rightMargin">
+                 <number>1</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>1</number>
+                </property>
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout_23">
+                  <property name="spacing">
+                   <number>0</number>
+                  </property>
+                  <property name="sizeConstraint">
+                   <enum>QLayout::SetMinimumSize</enum>
+                  </property>
+                  <item>
+                   <widget class="QLabel" name="label_27">
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Количество расчетных файлов:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QSpinBox" name="sb_count_file">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>100</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                    <property name="maximum">
+                     <number>9999</number>
+                    </property>
+                    <property name="value">
+                     <number>9999</number>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_7">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout_5">
+                  <item>
+                   <widget class="QLabel" name="label_3">
+                    <property name="minimumSize">
+                     <size>
+                      <width>26</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Год:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="le_condition_file_years">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>200</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="label_4">
+                    <property name="minimumSize">
+                     <size>
+                      <width>50</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>, зим/лет:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QComboBox" name="le_condition_file_season">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>зим</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>лет</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>паводок</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="label_5">
+                    <property name="minimumSize">
+                     <size>
+                      <width>60</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>, макс/мин:</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QComboBox" name="le_condition_file_max_min">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <item>
+                     <property name="text">
+                      <string/>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>макс</string>
+                     </property>
+                    </item>
+                    <item>
+                     <property name="text">
+                      <string>мин</string>
+                     </property>
+                    </item>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLabel" name="label_6">
+                    <property name="minimumSize">
+                     <size>
+                      <width>60</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>30</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>, (доп имя):</string>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <widget class="QLineEdit" name="le_condition_file_add_name">
+                    <property name="minimumSize">
+                     <size>
+                      <width>0</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>22</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string/>
+                    </property>
+                   </widget>
+                  </item>
+                 </layout>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="13" column="0">
+           <widget class="QGroupBox" name="groupBox_3">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>0</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>330</height>
+             </size>
+            </property>
+            <property name="title">
+             <string>Результаты расчетов</string>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_7">
+             <property name="spacing">
+              <number>1</number>
+             </property>
+             <property name="leftMargin">
+              <number>1</number>
+             </property>
+             <property name="topMargin">
+              <number>1</number>
+             </property>
+             <property name="rightMargin">
+              <number>1</number>
+             </property>
+             <property name="bottomMargin">
+              <number>1</number>
+             </property>
+             <item>
+              <widget class="QCheckBox" name="cb_save_i">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Создать таблицы максимальную токовую загрузку контролируемых ветвей</string>
+               </property>
+               <property name="checked">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="cb_tab_KO">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>16</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>16</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Создать таблицы &quot;контролируемые - отключаемые&quot; элементы</string>
+               </property>
+               <property name="checked">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QGroupBox" name="gb_tab_KO">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>70</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>70</height>
+                </size>
+               </property>
+               <property name="title">
+                <string>Параметры:</string>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_11">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>3</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>3</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPlainTextEdit" name="te_tab_KO_info">
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>40</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>10</pointsize>
+                    <underline>false</underline>
+                    <strikeout>false</strikeout>
+                    <kerning>true</kerning>
+                   </font>
+                  </property>
+                  <property name="cursor" stdset="0">
+                   <cursorShape>IBeamCursor</cursorShape>
+                  </property>
+                  <property name="plainText">
+                   <string>Таблица И.[1] - Результаты расчетов нормального и послеаварийных режимов работы электрических сетей 35 кВ и выше. </string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="cb_results_pic">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>18</height>
+                </size>
+               </property>
+               <property name="text">
+                <string>Сохранять СРС в формате RG2</string>
+               </property>
+               <property name="checked">
+                <bool>false</bool>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QGroupBox" name="gb_results_pic">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>75</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>90</height>
+                </size>
+               </property>
+               <property name="title">
+                <string>Параметры:</string>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_9">
+                <property name="spacing">
+                 <number>1</number>
+                </property>
+                <property name="leftMargin">
+                 <number>1</number>
+                </property>
+                <property name="topMargin">
+                 <number>1</number>
+                </property>
+                <property name="rightMargin">
+                 <number>1</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>1</number>
+                </property>
+                <item>
+                 <layout class="QHBoxLayout" name="horizontalLayout_12">
+                  <item>
+                   <widget class="QCheckBox" name="cb_pic_overloads">
+                    <property name="maximumSize">
+                     <size>
+                      <width>16777215</width>
+                      <height>18</height>
+                     </size>
+                    </property>
+                    <property name="text">
+                     <string>Только СРС с отклонениями от доп. значений</string>
+                    </property>
+                    <property name="checked">
+                     <bool>true</bool>
+                    </property>
+                   </widget>
+                  </item>
+                  <item>
+                   <spacer name="horizontalSpacer_5">
+                    <property name="orientation">
+                     <enum>Qt::Horizontal</enum>
+                    </property>
+                    <property name="sizeHint" stdset="0">
+                     <size>
+                      <width>40</width>
+                      <height>20</height>
+                     </size>
+                    </property>
+                   </spacer>
+                  </item>
+                 </layout>
+                </item>
+                <item>
+                 <widget class="QPlainTextEdit" name="te_name_pic">
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>25</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <pointsize>10</pointsize>
+                    <underline>false</underline>
+                    <strikeout>false</strikeout>
+                    <kerning>true</kerning>
+                   </font>
+                  </property>
+                  <property name="cursor" stdset="0">
+                   <cursorShape>IBeamCursor</cursorShape>
+                  </property>
+                  <property name="plainText">
+                   <string>Рисунок К.[1] - Южный энергорайон. </string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <layout class="QVBoxLayout" name="verticalLayout_18">
+            <property name="spacing">
+             <number>1</number>
+            </property>
+            <property name="leftMargin">
+             <number>1</number>
+            </property>
+            <property name="topMargin">
+             <number>1</number>
+            </property>
+            <property name="rightMargin">
+             <number>1</number>
+            </property>
+            <property name="bottomMargin">
+             <number>1</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="cb_cor_txt">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>20</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Внести изменения в модели</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPlainTextEdit" name="te_cor_txt">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>140</height>
+               </size>
+              </property>
+              <property name="font">
+               <font>
+                <pointsize>10</pointsize>
+                <underline>false</underline>
+                <strikeout>false</strikeout>
+                <kerning>true</kerning>
+               </font>
+              </property>
+              <property name="cursor" stdset="0">
+               <cursorShape>IBeamCursor</cursorShape>
+              </property>
+              <property name="plainText">
+               <string># краткая справка:
+#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь 12,13,0 из всех моделей
+#изм[15148:name=Промплощадка: изм name; pg=qn*2+10] 
+#изм[(vetv);(area);(area2);(darea): Tc=0]
+#изм[(area);(area2);(darea): set_pop=0]
+#изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  
+#снять отметку{years: 2026&amp; season:лет&amp; max_min:макс &amp; add_name:0°C&amp; (ny=2:vras&gt;525.5)}
+#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]
+#текст[node: name, dname; vetv:dname; Generator: Name]  
+#СХН[na=11]{years : 2026...2029&amp; (ny=1: vras&gt;125)|(not (ny=1: na)==2)}
+#напряжения[na=11]  
+#СКРМ*[na=11]
+#импорт[папка: (I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v29\без МДП pop); таблица:node; тип:2; поле: pn,qn; выборка:]
+
+</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="7" column="0">
+           <widget class="QCheckBox" name="cb_disable_excel">
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <italic>false</italic>
+              <bold>true</bold>
+              <underline>false</underline>
+              <strikeout>false</strikeout>
+             </font>
+            </property>
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="text">
+             <string>Отключаемые элементы сети. Расчет сочетаний из книги EXCEL</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="14" column="0">
+           <spacer name="verticalSpacer">
+            <property name="orientation">
+             <enum>Qt::Vertical</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>20</width>
+              <height>40</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item row="3" column="0">
+           <layout class="QVBoxLayout" name="verticalLayout_2">
+            <property name="spacing">
+             <number>1</number>
+            </property>
+            <item>
+             <widget class="QCheckBox" name="cb_import_model">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Импорт из модели .rg2</string>
+              </property>
+              <property name="checked">
+               <bool>false</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QGroupBox" name="gb_import_model">
+              <property name="maximumSize">
+               <size>
+                <width>16777215</width>
+                <height>180</height>
+               </size>
+              </property>
+              <property name="title">
+               <string>Параметры:</string>
+              </property>
+              <layout class="QVBoxLayout" name="verticalLayout_8">
+               <property name="spacing">
+                <number>1</number>
+               </property>
+               <property name="leftMargin">
+                <number>1</number>
+               </property>
+               <property name="topMargin">
+                <number>1</number>
+               </property>
+               <property name="rightMargin">
+                <number>1</number>
+               </property>
+               <property name="bottomMargin">
+                <number>1</number>
+               </property>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout">
+                 <item>
+                  <widget class="QPlainTextEdit" name="te_path_import_rg2">
+                   <property name="enabled">
+                    <bool>true</bool>
+                   </property>
+                   <property name="sizePolicy">
+                    <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                     <horstretch>0</horstretch>
+                     <verstretch>0</verstretch>
+                    </sizepolicy>
+                   </property>
+                   <property name="minimumSize">
+                    <size>
+                     <width>508</width>
+                     <height>22</height>
+                    </size>
+                   </property>
+                   <property name="maximumSize">
+                    <size>
+                     <width>10000</width>
+                     <height>22</height>
+                    </size>
+                   </property>
+                   <property name="baseSize">
+                    <size>
+                     <width>0</width>
+                     <height>35</height>
+                    </size>
+                   </property>
+                   <property name="plainText">
+                    <string>I:\rastr_add\test\файлы импорта\файл задания на расчет.rg2</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="b_choice_path_import_folder">
+                   <property name="maximumSize">
+                    <size>
+                     <width>80</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Выбор папки</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QPushButton" name="b_choice_path_import_file">
+                   <property name="maximumSize">
+                    <size>
+                     <width>80</width>
+                     <height>16777215</height>
+                    </size>
+                   </property>
+                   <property name="text">
+                    <string>Выбор файла</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QPlainTextEdit" name="te_import_rg2">
+                 <property name="maximumSize">
+                  <size>
+                   <width>16777215</width>
+                   <height>110</height>
+                  </size>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <pointsize>10</pointsize>
+                   <underline>false</underline>
+                   <strikeout>false</strikeout>
+                   <kerning>true</kerning>
+                  </font>
+                 </property>
+                 <property name="cursor" stdset="0">
+                  <cursorShape>IBeamCursor</cursorShape>
+                 </property>
+                 <property name="plainText">
+                  <string>таблица:node, vetv; тип:2; поле: disable, control, repair_scheme, disable_scheme, double_repair_scheme, automation; выборка:
+таблица: Generator; тип:2; поле: disable, repair_scheme, disable_scheme, double_repair_scheme; выборка:
+
+таблица:automation, automation_pattern; тип:1; поле: ; выборка:
+
+# тип: &quot;обновить&quot;- 2 , &quot;загрузить&quot;- 1, &quot;присоединить&quot;- 0, &quot;присоединить-обновить&quot;- 3
+# поле: если не указано, то все поля
+# выборка: если не указано, то все строки</string>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </item>
+          <item row="9" column="0">
+           <widget class="QCheckBox" name="cb_control">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>14</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <bold>true</bold>
+             </font>
+            </property>
+            <property name="text">
+             <string>Контролируемые элементы сети.</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="5" column="0">
+           <widget class="QCheckBox" name="cb_disable_comb">
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>14</height>
+             </size>
+            </property>
+            <property name="font">
+             <font>
+              <weight>75</weight>
+              <italic>false</italic>
+              <bold>true</bold>
+              <underline>false</underline>
+              <strikeout>false</strikeout>
+             </font>
+            </property>
+            <property name="toolTip">
+             <string/>
+            </property>
+            <property name="text">
+             <string>Отключаемые элементы сети. Расчет всех возможных сочетаний.</string>
+            </property>
+            <property name="checked">
+             <bool>false</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="run_calc_rg2">
+        <property name="font">
+         <font>
+          <pointsize>9</pointsize>
+          <weight>75</weight>
+          <bold>true</bold>
+         </font>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">background-color: rgb(82, 189, 255);</string>
+        </property>
+        <property name="text">
+         <string>Выполнить</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+   </layout>
+  </widget>
+  <widget class="QStatusBar" name="statusbar"/>
+ </widget>
+ <tabstops>
+  <tabstop>cb_n1</tabstop>
+  <tabstop>le_condition_file_years</tabstop>
+  <tabstop>cb_cor_txt</tabstop>
+  <tabstop>cb_n3</tabstop>
+  <tabstop>cb_auto_disable</tabstop>
+  <tabstop>le_auto_disable_choice</tabstop>
+  <tabstop>cb_comb_field</tabstop>
+  <tabstop>le_comb_field</tabstop>
+  <tabstop>cb_filter_comb</tabstop>
+  <tabstop>te_XL_path</tabstop>
+  <tabstop>b_choice_XL</tabstop>
+  <tabstop>le_XL_sheets</tabstop>
+  <tabstop>cb_control_field</tabstop>
+  <tabstop>le_control_field</tabstop>
+  <tabstop>b_main_choice</tabstop>
+  <tabstop>b_set</tabstop>
+  <tabstop>b_task_save</tabstop>
+  <tabstop>b_task_load</tabstop>
+  <tabstop>te_path_initial_models</tabstop>
+  <tabstop>b_choice_path_folder</tabstop>
+  <tabstop>b_choice_path_file</tabstop>
+  <tabstop>cb_filter</tabstop>
+  <tabstop>sb_count_file</tabstop>
+  <tabstop>scrollArea</tabstop>
+  <tabstop>le_condition_file_season</tabstop>
+  <tabstop>le_condition_file_max_min</tabstop>
+  <tabstop>le_condition_file_add_name</tabstop>
+  <tabstop>cb_tab_KO</tabstop>
+  <tabstop>te_tab_KO_info</tabstop>
+  <tabstop>cb_results_pic</tabstop>
+  <tabstop>cb_pic_overloads</tabstop>
+  <tabstop>cb_n2_abv</tabstop>
+  <tabstop>te_cor_txt</tabstop>
+  <tabstop>cb_disable_excel</tabstop>
+  <tabstop>cb_import_model</tabstop>
+  <tabstop>te_path_import_rg2</tabstop>
+  <tabstop>b_choice_path_import_folder</tabstop>
+  <tabstop>b_choice_path_import_file</tabstop>
+  <tabstop>te_import_rg2</tabstop>
+  <tabstop>cb_control</tabstop>
+  <tabstop>cb_disable_comb</tabstop>
+  <tabstop>run_calc_rg2</tabstop>
+ </tabstops>
+ <resources/>
+ <connections/>
+</ui>

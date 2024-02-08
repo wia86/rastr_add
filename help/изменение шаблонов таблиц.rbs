@@ -1,0 +1,123 @@
+'закрыть все окна и книгу XL
+tip = 1 ' 0 чтение в  XL     1 запись в rastr(если в столбце Q стоит 1 то добавляется в растр)
+    'если 1 то 
+    File_XL = "I:\rastr_add\Rastrwin шаблоны\add fields rg2.xlsx"
+
+set XL = CreateObject("Excel.Application") 
+
+XL.Visible = false
+
+if tip = 0 then' 0 чтение в  XL 
+    Set Excel = XL.Workbooks.Add
+    set TABLs = Rastr.Tables
+    For n = 0 to TABLs.Count-1 ' цикл по таблицам
+        Excel.Sheets.Add
+        Set XL_Sheets = Excel.Worksheets(1)
+        XL_Sheets.Name = TABLs(n).Name
+        XL_Sheets.Cells(5 , 2).value = "Имя"
+        XL_Sheets.Cells(5 , 3).value = "Тип"
+        XL_Sheets.Cells(5 , 4).value = "Ширина"
+        XL_Sheets.Cells(5 , 5).value = "Точность"
+        XL_Sheets.Cells(5 , 6).value = "Заголовок"
+        XL_Sheets.Cells(5 , 7).value =  "Формула"  
+        XL_Sheets.Cells(5 , 8).value =  "FL_AFOR" 
+        XL_Sheets.Cells(5 , 9).value =  "FL_XRM" 
+        XL_Sheets.Cells(5 , 10).value =  "Перечисление – ссылка"
+        XL_Sheets.Cells(5 , 11).value =  "Описание"
+        XL_Sheets.Cells(5 , 12).value =  "Минимум"
+        XL_Sheets.Cells(5 , 13).value =  "Максимум"
+        XL_Sheets.Cells(5 , 14).value =  "Масштаб"
+        XL_Sheets.Cells(5 , 15).value =  "FF?"
+        XL_Sheets.Cells(5 , 16).value =  "Ед. измерения"
+        XL_Sheets.Cells(5 , 17).value =  "add"
+        XL_Sheets.Columns("B:N").AutoFit 
+        Set kCols = Rastr.Tables(n).Cols
+        For i = 0 to kCols.Count-1 ' цикл по Cols
+            XL_Sheets.Cells(6 + i , 1).value = kCols(i).Name
+            For ii = 0 to 14 ' цикл по параметрам Prop  Cols
+                XL_Sheets.Cells(6 + i , 2 + ii).value = cstr ( TABLs(n).Cols(i).Prop(ii) )
+            Next
+        Next
+        URange = XL_Sheets.UsedRange.address' используемы диапозон листа
+        XL_Sheets.ListObjects.Add 1,XL_Sheets.Range(URange)'.name = "таб"
+        XL_Sheets.Cells(1 , 1).value = "Name: " 
+        XL_Sheets.Cells(1 , 2).value = 	TABLs(n).Name 
+        XL_Sheets.Cells(2 , 1).value = "Description: "
+        XL_Sheets.Cells(2 , 2).value = 	TABLs(n).Description  
+        XL_Sheets.Cells(3 , 1).value =  "Key: "
+        XL_Sheets.Cells(3 , 2).value = 	TABLs(n).Key 
+        XL_Sheets.Cells(4 , 1).value = "TemplateName: " 
+        XL_Sheets.Cells(4 , 2).value = 	TABLs(n).TemplateName
+    Next
+    XL.Visible = true
+    msgbox ("Готово!")
+elseif tip = 1 then
+    Set book_id = XL.Workbooks.Open (File_XL)
+    for each Sheet in book_id.Sheets
+        test = 0 ' нет табл 
+        Set Tabs = Rastr.Tables
+        For i = 0 to Tabs.Count-1
+            if  tabs(i).Name = Sheet.name then 
+                test = 1
+                exit for
+            end if
+        Next
+        if test = 0 then
+            rastr.printp "Добавлена таблица: " + Sheet.name
+            Rastr.Tables.add(Sheet.name)
+            Rastr.Tables(Sheet.name).Description =  Sheet.Cells( 2 , "B").value
+            Rastr.Tables(Sheet.name).Key =          Sheet.Cells( 3 , "B").value
+            Rastr.Tables(Sheet.name).TemplateName = Sheet.Cells( 4 , "B").value
+        end if
+
+        for i = 6 to Sheet.UsedRange.rows.count
+            if cstr(Sheet.Cells(i , "Q").value) = "1" then ' добавляем параметр в таблицу
+                if Rastr.Tables(Sheet.name).Cols.Find(Sheet.Cells(i , "A").value) < 0 Then
+                    rastr.printp  Sheet.name +", добавлен параметр: " + Sheet.Cells(i , "A").value
+                    Rastr.Tables(Sheet.name).Cols.Add Sheet.Cells(i , "A").value, Sheet.Cells(i , "C").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(2)    =Sheet.Cells(i , "D").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(3)    =Sheet.Cells(i , "E").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(4)    =Sheet.Cells(i , "F").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(5)    =Sheet.Cells(i , "G").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(6)    =Sheet.Cells(i , "H").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(7)    =Sheet.Cells(i , "I").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(8)    =cstr(Sheet.Cells(i , "J").value)
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(9)    =Sheet.Cells(i , "K").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(10)   =Sheet.Cells(i , "L").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(11)   =Sheet.Cells(i , "M").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(12)   =Sheet.Cells(i , "N").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(13)   =Sheet.Cells(i , "O").value
+                    Rastr.Tables(Sheet.name).Cols(Sheet.Cells(i , "A").value).Prop(14)   =Sheet.Cells(i , "P").value
+                    Sheet.Cells(i , "S").value = 1
+                else
+                    rastr.printp  Sheet.name + ", параметр уже был добавлен: " + Sheet.Cells(i , "A").value
+                End If
+            end if
+        next
+    next
+    'book_id.close
+    XL.Visible = true
+    msgbox ("Готово! Сохраните изменения в шаблонах.")
+end if
+
+'PR_INT 0 Целый
+'PR_REAL 1 Вещественный
+'PR_STRING 2 Строка
+'PR_BOOL 3 Переключатель
+'PR_ENUM 4 Перечисление
+'PR_ENPIC 5 Перечисление картинок (не используется)
+'PR_COLOR 6 Цвет
+
+'FL_NAME 0 Имя
+'FL_TIP 1 Тип
+'FL_WIDTH 2 Ширина
+'FL_PREC 3 Точность
+'FL_ZAG 4 Заголовок
+'FL_FORMULA 5 Формула  nameu.Prop(FL_FORMULA) = "str(ip.name)+"+"+str(iq.name)+"_"+str(ip.uhom)"
+'FL_AFOR 6
+'FL_XRM 7
+'FL_NAMEREF 8 Перечисление – ссылка
+'FL_DESC 9 Описание
+'FL_MIN 10 Минимум
+'FL_MAX 11 Максимум
+'FL_MASH 12 Масштаб
