@@ -1,4 +1,6 @@
 import numpy as np
+import re
+
 
 def str_yeas_in_list(id_str: str):
     """
@@ -25,5 +27,34 @@ def str_yeas_in_list(id_str: str):
         return []
 
 
+def split_task_action(txt: str) -> list | bool:
+    """
+    Разделить строку по запятым, если запятая не внутри [] {}
+    :param txt: [15114,15011,0:sta=1],[15011,15012:sta=0]{15114,15011:sta==1},[15105,15131:sta=1],6
+    :return: [[15114,15011,0:sta=1],[15011,15012:sta=0]{15114,15011:sta==1},[15105,15131:sta=1],6]
+    или  False
+    """
+    if not txt:
+        return False
+    # Вычленить значения в [] и {}.
+    actions = re.findall(re.compile(r"\[(.+?)]"), txt)
+    conditions = re.findall(re.compile(r"\{(.+?)}"), txt)
+
+    # Заменить значения в [ ] и { } на act_cond_{n}
+    dict_key = {}  # замена, действие
+    for n, action in enumerate(actions + conditions):
+        dict_key[f'act_cond_{n}'] = action
+        txt = txt.replace(action, f'act_cond_{n}')
+
+    #  Заменить act_cond_{n} на значения в [ ] и { }.
+    result = []
+    for part in txt.split(','):
+        for key in dict_key:
+            if key in part:
+                part = part.replace(key, dict_key[key])
+        result.append(part)
+    return result
+
+
 if __name__ == '__main__':
-    to_str((1, 2))
+    pass

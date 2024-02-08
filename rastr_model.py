@@ -1,16 +1,13 @@
-__all__ = ['RastrModel']
-
 import logging
 import pandas as pd
 import re
 import os
 from collections import namedtuple, defaultdict, Counter
-import collection_func as cf
 from tkinter import messagebox as mb
 import win32com.client
 
-from import_rm import *
-
+from import_rm import ImportFromModel
+import collection_func as cf
 log_rm = logging.getLogger(f'__main__.{__name__}')
 
 
@@ -286,7 +283,7 @@ class RastrModel:
         :param disable_on: Отметить отключаемые элементы в поле field узлов и ветвей.
         :param field: Поле для отметки отключаемых элементов.
         :param selection_node_for_disable: Выборка в таблице узлы, для выбора отключаемых элементов.
-        например, района, территории, нагрузочной группы для расчета или "" - все узлы.
+        Например, района, территории, нагрузочной группы для расчета или "" - все узлы.
         """
         log_rm.info('Анализ графа сети с заполнением поля transit в таблице узлов и ветвей.')
         all_ny = [x[0] for x in self.rastr.tables('node').writesafearray("ny", "000")]
@@ -507,7 +504,7 @@ class RastrModel:
         """
         Отключить ветвь(группу ветвей, если groupid!=0), узел (с примыкающими ветвями) или генератор.
         Отключаемый элемент определяется по ndx или key_int.
-        :param table_name: 'node', 'vetv', 'Generator'
+        :param table_name: Имя таблицы: 'node', 'vetv', 'Generator'
         :param ndx:
         :param key_int: Например: узел 10 или ветвь (1, 2, 0).
         :return: False если элемент отключен в исходном состоянии.
@@ -848,7 +845,7 @@ class RastrModel:
         """
         Функция для выполнения задания в текстовом формате
         :param name: Имя функции.
-        :param all_task: [всё задание]
+        :param all_task: Всё задание внутри []
         :param sel: Выборка, нр, 15145; 12,13.
         :param value: Значение, нр, name=Промплощадка: изм name; pg=qn*2+10.
         :param cycle_condition: Если истина, то выполнять действие пока условие не станет ложным;
@@ -874,7 +871,7 @@ class RastrModel:
         elif 'добавить' in name:
             self.table_add_row(table=sel, tasks=value)
         elif 'текст' in name:
-            self.txt_field_right(tasks=sel)
+            self.txt_field_right(tasks=all_task)
             return "\tИсправить пробелы, заменить английские буквы на русские."
         elif 'схн' in name:
             self.shn(choice=sel)
@@ -945,7 +942,7 @@ class RastrModel:
     def node_include(self) -> str:
         """
         Восстановление питания узлов путем включения выключателей (r<0.011 & x<0.011).
-        :return: информация о включенных узлах
+        :return: Информация о включенных узлах
         """
         # self.ny_join_vetv
         log_rm.debug('Восстановление питания отключенных узлов.')
@@ -1324,8 +1321,8 @@ class RastrModel:
         Проверка номинального напряжения на соответствие ряду [6, 10, 35, 110, 220, 330, 500, 750].
         Если umax<uhom, то umax удаляется;
         Если umin>uhom, umin_av>uhom, то umin, umin_av удаляется.
-        :param choice: выборка в таблице узлы
-        :param edit:
+        :param choice: Выборка в таблице узлы
+        :param edit: Испраить значения в РМ
         """
         node = self.rastr.tables("node")
         if edit:
@@ -1370,7 +1367,7 @@ class RastrModel:
                 if edit and add:
                     data.append((name, ny, uhom, index, umax, umin, umin_av,))
 
-        if edit:
+        if edit and data:
             log_rm.warning(f"\tОшибки исправлены.")
             node.ReadSafeArray(2, fild_set, data)
 
@@ -1522,7 +1519,7 @@ class RastrModel:
         self.group_cor(tabl="node", param="nsx", selection=choice + "uhom>100", formula="1")
         self.group_cor(tabl="node", param="nsx", selection=choice + "uhom<100", formula="2")
 
-    def cor_pop(self, zone: str, new_pop: int, float) -> bool:
+    def cor_pop(self, zone: str, new_pop: int | float) -> bool:
         """
         Изменить потребление.
         :param zone: Например, "na=3", "npa=2" или "no=1"
@@ -1826,7 +1823,7 @@ class RastrModel:
     def index(self, table_name: str, key_int: int | tuple = 0, key_str: str = '') -> int:
         """
         Возвращает номер строки в таблице по ключу в одном из форматов.
-        :param table_name: 'vetv' ...
+        :param table_name: Имя таблицы:'vetv' ...
         :param key_int: Например: узел 10 или ветвь (1, 2, 0). При наличии t_key_i индекс берется из них.
         :param key_str: Например: 'ny=10' или 'ip=1&iq=2&np=3'
         :return: index

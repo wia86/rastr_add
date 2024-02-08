@@ -1,6 +1,6 @@
 import os
 import logging
-import configparser  # создать ini файл
+import configparser
 
 log_ini = logging.getLogger(f'__main__.{__name__}')
 
@@ -17,7 +17,7 @@ class Ini:
     def exists(self):
         return True if os.path.exists(self.name) else False
 
-    def save(self, info: dict, key: str):
+    def add(self, info: dict, key: str):
         """Записать info в файле ini по ключу"""
         config = configparser.ConfigParser()
         config.read(self.name)

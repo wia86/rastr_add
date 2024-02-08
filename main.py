@@ -1,18 +1,23 @@
-
 """Программа для автоматизации работы ПК RASTRWIN3"""
-
+import sys
+import yaml
+from datetime import datetime
+from tkinter import messagebox as mb
+import logging
+from PyQt5 import QtWidgets
 from qt.qt_choice import Ui_choice  # pyuic5 qt.qt_choice.ui -o qt.qt_choice.py
 from qt.qt_set import Ui_Settings  # pyuic5 qt_set.ui -o qt_set.py
 from qt.qt_cor import Ui_cor  # pyuic5 qt_cor.ui -o qt_cor.py
 from qt.qt_calc_ur import Ui_calc_ur  # pyuic5 qt_calc_ur.ui -o qt_calc_ur.py
 from qt.qt_calc_ur_set import Ui_calc_ur_set  # pyuic5 qt_calc_ur_set.ui -o qt_calc_ur_set.py
+# from urllib.request import urlopen
 # Мои модули
-from general_settings import *
+from calc_model import CalcModel
+from edit_model import EditModel
 from ini import Ini
-# import report
-# import loading_sections as ls
-# from my_error import *
 
+
+# from my_error import *
 
 class Window:
     """ Класс с общими методами для QT. """
@@ -90,6 +95,7 @@ class MainChoiceWindow(QtWidgets.QMainWindow, Ui_choice, Window):
     """
     Окно главного меню.
     """
+
     def __init__(self):
         super(MainChoiceWindow, self).__init__()
         self.setupUi(self)
@@ -102,6 +108,7 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
     """
     Окно задания и запуска УР.
     """
+
     def __init__(self):
         super(CalcWindow, self).__init__()
         self.setupUi(self)
@@ -227,8 +234,9 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         ini.write_ini(section='save_form_folder_calc',
                       key="path",
                       value=self.te_path_initial_models.toPlainText())
-
-        CalcModel(self.fill_task_calc(), ini.to_dict()).run_calc()
+        config = self.fill_task_calc() | ini.to_dict()
+        cm = CalcModel(config)
+        cm.run_calc()
 
     def fill_task_calc(self) -> dict:
         """ Возвращает данные с формы QT. """
@@ -317,12 +325,12 @@ class CalcSetWindow(QtWidgets.QMainWindow, Ui_calc_ur_set, Window):
             self.save_ini_ur()
 
     def save_ini_ur(self):
-        ini.save(info={"gost": self.cb_gost.isChecked(),
-                       "skrm": self.cb_skrm.isChecked(),
-                       "avr": self.cb_avr.isChecked(),
-                       "add_disabling_repair": self.cb_add_disabling_repair.isChecked(),
-                       "pa": self.cb_pa.isChecked()},
-                 key='CalcSetWindow')
+        ini.add(info={"gost": self.cb_gost.isChecked(),
+                      "skrm": self.cb_skrm.isChecked(),
+                      "avr": self.cb_avr.isChecked(),
+                      "add_disabling_repair": self.cb_add_disabling_repair.isChecked(),
+                      "pa": self.cb_pa.isChecked()},
+                key='CalcSetWindow')
 
 
 class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
@@ -355,13 +363,13 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
             self.save_ini()
 
     def save_ini(self):
-        ini.save(info={"шаблон rg2": self.LE_shablon_rg2.text(),
-                       "шаблон rst": self.LE_shablon_rst.text(),
-                       "шаблон sch": self.LE_shablon_sch.text(),
-                       "шаблон trn": self.LE_shablon_trn.text(),
-                       "шаблон anc": self.LE_shablon_anc.text(),
-                       "load_trn_anc": self.CB_load_trn_anc.isChecked()},
-                 key='DEFAULT')
+        ini.add(info={"шаблон rg2": self.LE_shablon_rg2.text(),
+                      "шаблон rst": self.LE_shablon_rst.text(),
+                      "шаблон sch": self.LE_shablon_sch.text(),
+                      "шаблон trn": self.LE_shablon_trn.text(),
+                      "шаблон anc": self.LE_shablon_anc.text(),
+                      "load_trn_anc": self.CB_load_trn_anc.isChecked()},
+                key='DEFAULT')
 
 
 class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
@@ -643,8 +651,9 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                       value=self.T_IzFolder.toPlainText())
         if self.print_tab_log_ar_tab.text() in ['area', 'area2', 'darea', 'sechen']:
             raise ValueError('В поле таблица на выбор нельзя задавать таблицы: area, area2, darea, sechen.')
-
-        EditModel(self.fill_task_ui(), ini.to_dict()).run_cor()
+        config = self.fill_task_ui() | ini.to_dict()
+        em = EditModel(config)
+        em.run_cor()
 
     def fill_task_ui(self) -> dict:
         """
@@ -842,7 +851,9 @@ def my_except_hook(func):
 
 if __name__ == '__main__':
     sys.excepthook = my_except_hook(sys.excepthook)
+    log_file = 'log_file.log'
     ini = Ini('settings.ini')
+    ini.write_ini(section='other', key='log_file', value=log_file)
     # DEBUG, INFO, WARNING, ERROR и CRITICAL
     # logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
     #                     format='%(asctime)s %(name)s  %(levelname)s:%(message)s')
@@ -851,7 +862,7 @@ if __name__ == '__main__':
     log.setLevel(logging.INFO)  # INFO DEBUG
     formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s:%(message)s')
 
-    file_handler = logging.FileHandler(filename=GeneralSettings.log_file, mode='w')
+    file_handler = logging.FileHandler(filename=log_file, mode='w')
     file_handler.setLevel(logging.INFO)  # INFO DEBUG
     file_handler.setFormatter(formatter)
     # file_handler.close()

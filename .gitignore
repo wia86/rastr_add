@@ -1,10 +1,11 @@
 /venv/
 /venv11/
 /build/
-/web/
-/dist/settings.ini
-/dist/log_file.log
-/test/temp/
-/test/test2/
-/test/файлы импорта/temp/
+/dist/
+/test/
 /.idea/
+/.git/
+/.mypy_cache/
+/__pycache__/
+/settings.ini
+/log_file.log

@@ -1,4 +1,3 @@
-__all__ = ['CorXL', 'CorSheet']
 """Модуль для изменения параметров РМ по заданию в таблице excel."""
 import logging
 import re
@@ -206,7 +205,8 @@ class CorSheet:
                         if new_val is not None:
                             # for short_key in short_keys.split(';'):
                             if param in ["pop", "pp"]:
-                                rm.cor_pop(zone=short_keys, new_pop=new_val)  # изменить потребление
+                                rm.cor_pop(zone=short_keys,
+                                           new_pop=new_val)  # изменить потребление
                             else:
                                 if self.calc_val == 1:
                                     rm.cor(keys=short_keys,
