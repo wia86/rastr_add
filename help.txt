@@ -1,7 +1,7 @@
 # help:
 # pip freeze > requirements.txt
 # pip install -r requirements.txt
-#  pyinstaller  --noconsole main.py --name Помощник_2024_02_02 -i fav.ico --add-data "help;help" # --onefile
+#  pyinstaller  --noconsole main.py --name Помощник_2024_02_12 -i fav.ico --add-data "help;help" # --onefile
 
 # Excel.Application https://memotut.com/en/150745ae0cc17cb5c866/
 # from urllib.request import urlopen
@@ -12,6 +12,11 @@
 # Если не работает терминал, то в  PowerShell ввести:
 # Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned –Force
 
+# pyuic5 qt/qt_choice.ui -o qt/qt_choice.py
+# pyuic5 qt/qt_set.ui -o qt/qt_set.py
+# pyuic5 qt/qt_cor.ui -o qt/qt_cor.py
+# pyuic5 qt/qt_calc_ur.ui -o qt/qt_calc_ur.py
+# pyuic5 qt/qt_calc_ur_set.ui -o qt/qt_calc_ur_set.py
 
 # self.save(full_name_new=r'I:\rastr_add\test\result\1.rg2')
 # rm.save(full_name_new=r'I:\rastr_add\test\result\1.rg2')

@@ -101,7 +101,7 @@ class CorSheet:
         for row in range(3, self.xls.max_row + 1):
             if self.xls.cell(row, 1).value and '#' not in self.xls.cell(row, 1).value:
                 """ ИД для импорта из модели(выполняется после блока начала)"""
-                ifm = ImportFromModel(RastrModel(self.xls.cell(row, 1).value),
+                ifm = ImportFromModel(RastrModel(full_name=self.xls.cell(row, 1).value, not_calculated=True),
                                       criterion_start={"years": self.xls.cell(row, 6).value,
                                                        "season": self.xls.cell(row, 7).value,
                                                        "max_min": self.xls.cell(row, 8).value,

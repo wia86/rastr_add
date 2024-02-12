@@ -5,11 +5,11 @@ from datetime import datetime
 from tkinter import messagebox as mb
 import logging
 from PyQt5 import QtWidgets
-from qt.qt_choice import Ui_choice  # pyuic5 qt.qt_choice.ui -o qt.qt_choice.py
-from qt.qt_set import Ui_Settings  # pyuic5 qt_set.ui -o qt_set.py
-from qt.qt_cor import Ui_cor  # pyuic5 qt_cor.ui -o qt_cor.py
-from qt.qt_calc_ur import Ui_calc_ur  # pyuic5 qt_calc_ur.ui -o qt_calc_ur.py
-from qt.qt_calc_ur_set import Ui_calc_ur_set  # pyuic5 qt_calc_ur_set.ui -o qt_calc_ur_set.py
+from qt.qt_choice import Ui_choice
+from qt.qt_set import Ui_Settings
+from qt.qt_cor import Ui_cor
+from qt.qt_calc_ur import Ui_calc_ur
+from qt.qt_calc_ur_set import Ui_calc_ur_set
 # from urllib.request import urlopen
 # Мои модули
 from calc_model import CalcModel
@@ -18,9 +18,35 @@ from ini import Ini
 
 
 # from my_error import *
-
 class Window:
     """ Класс с общими методами для QT. """
+
+    @staticmethod
+    def get_in_form(obj, task: dict, keys: tuple) -> None:
+        """
+        Присвоить значение объекту формы из задания. Если ключи в задании отсутствует, то выводится предупреждение.
+        :param obj: Функция объекта для присвоения значения, например cb_filter.setChecked.
+        :param task:
+        :param keys:
+        """
+        try:
+            for key in keys:
+                task = task[key]
+            match obj.__class__.__name__:
+                case 'QCheckBox':
+                    obj.setChecked(task)
+                case 'QSpainBox' | 'QSpinBox':
+                    obj.setValue(task)
+                case 'QComboBox':
+                    obj.setCurrentText(task)
+                case 'QLineEdit':
+                    obj.setText(task)
+                case 'QPlainTextEdit':
+                    obj.setPlainText(task)
+                case _:
+                    log.info(f'Добавить {obj.__class__.__name__}')
+        except KeyError:
+            mb.showerror("Ошибка чтения", f"Отсутствует ключ: {keys}")
 
     @staticmethod
     def check_status(set_checkbox_element: tuple):
@@ -160,14 +186,15 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
 
     def task_save_yaml(self):
         name_file_save = self.save_file(directory=self.te_path_initial_models.toPlainText(),
-                                        filter_="YAML Files (*.yaml)")
+                                        filter_="YAML Files (*.calc);;All files (*.*)")
         if name_file_save:
             with open(name_file_save, 'w') as f:
-                yaml.dump(data=self.fill_task_calc(), stream=f, default_flow_style=False, sort_keys=False)
+                yaml.dump(data=self.fill_task_calc() | ini.to_dict(),
+                          stream=f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
     def task_load_yaml(self):
         name_file_load = self.choice_file(directory=self.te_path_initial_models.toPlainText().replace('*', ''),
-                                          filter_="YAML Files (*.yaml)")
+                                          filter_="YAML Files (*.calc);;All files (*.*)")
         if not name_file_load:
             return
         with open(name_file_load) as f:
@@ -176,14 +203,14 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             return
 
         # Окно запуска расчета.
-        self.te_path_initial_models.setPlainText(task_yaml["calc_folder"])
+        self.get_in_form(self.te_path_initial_models, task_yaml, ("calc_folder",))
         # Выборка файлов.
-        self.cb_filter.setChecked(task_yaml["Filter_file"])  # QCheckBox
-        self.sb_count_file.setValue(task_yaml["file_count_max"])  # QSpainBox
-        self.le_condition_file_years.setText(task_yaml["calc_criterion"]["years"])  # QLineEdit text()
-        self.le_condition_file_season.setCurrentText(task_yaml["calc_criterion"]["season"])  # QComboBox
-        self.le_condition_file_max_min.setCurrentText(task_yaml["calc_criterion"]["max_min"])
-        self.le_condition_file_add_name.setText(task_yaml["calc_criterion"]["add_name"])
+        self.get_in_form(self.cb_filter, task_yaml, ("Filter_file",))
+        self.get_in_form(self.sb_count_file, task_yaml, ("file_count_max",))
+        self.get_in_form(self.le_condition_file_years, task_yaml, ("calc_criterion", "years"))
+        self.get_in_form(self.le_condition_file_season, task_yaml, ("calc_criterion", "season"))
+        self.get_in_form(self.le_condition_file_max_min,task_yaml, ("calc_criterion", "max_min"))
+        self.get_in_form(self.le_condition_file_add_name, task_yaml, ("calc_criterion", "years"))
         # Корректировка в txt.
         self.cb_cor_txt.setChecked(task_yaml["cor_rm"]['add'])
         self.te_cor_txt.setPlainText(task_yaml["cor_rm"]['txt'])
@@ -236,7 +263,7 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
                       value=self.te_path_initial_models.toPlainText())
         config = self.fill_task_calc() | ini.to_dict()
         cm = CalcModel(config)
-        cm.run_calc()
+        cm.run()
 
     def fill_task_calc(self) -> dict:
         """ Возвращает данные с формы QT. """
@@ -317,7 +344,7 @@ class CalcSetWindow(QtWidgets.QMainWindow, Ui_calc_ur_set, Window):
                 self.cb_avr.setChecked(eval(config["avr"]))
                 self.cb_add_disabling_repair.setChecked(eval(config["add_disabling_repair"]))
                 self.cb_pa.setChecked(eval(config["pa"]))
-            except LookupError:
+            except Exception:
                 log.error(f'Файл {ini.name} [CalcSetWindow] не читается, перезаписан.')
                 self.save_ini_ur()
         else:
@@ -347,7 +374,7 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
     def load_ini(self):
         """Загрузить, создать или перезаписать файл .ini """
         if ini.exists():
-            config = ini.read_ini(section='DEFAULT')
+            config = ini.read_ini(section='Settings')
             try:
                 self.LE_shablon_rg2.setText(config["шаблон rg2"])
                 self.LE_shablon_rst.setText(config["шаблон rst"])
@@ -355,8 +382,8 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
                 self.LE_shablon_trn.setText(config["шаблон trn"])
                 self.LE_shablon_anc.setText(config["шаблон anc"])
                 self.CB_load_trn_anc.setChecked(eval(config["load_trn_anc"]))
-            except LookupError:
-                log.error(f'Файл {ini.name} [DEFAULT] не читается, перезаписан.')
+            except Exception:
+                log.error(f'Файл {ini.name} [Settings] не читается, перезаписан.')
                 self.save_ini()
         else:
             log.info(f'Создан файл {ini.name}.')
@@ -369,7 +396,7 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
                       "шаблон trn": self.LE_shablon_trn.text(),
                       "шаблон anc": self.LE_shablon_anc.text(),
                       "load_trn_anc": self.CB_load_trn_anc.isChecked()},
-                key='DEFAULT')
+                key='Settings')
 
 
 class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
@@ -464,16 +491,17 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         self.CB_ImpRg2.setText(add_str)
 
     def task_save_yaml(self):
-        name_file_save = self.save_file(directory=self.T_IzFolder.toPlainText(), filter_="YAML Files (*.yaml)")
+        name_file_save = self.save_file(directory=self.T_IzFolder.toPlainText(),
+                                        filter_="YAML Files (*.cor);;All files (*.*)")
         if not name_file_save:
             raise ValueError('Не указан путь к сохраняемому файлу.')
         with open(name_file_save, 'w') as f:
-            yaml.dump(data=self.fill_task_ui(),
-                      stream=f, default_flow_style=False, sort_keys=False)
+            yaml.dump(data=self.fill_task_ui() | ini.to_dict(),
+                      stream=f, default_flow_style=False, sort_keys=False, allow_unicode=True)
 
     def task_load_yaml(self):
         name_file_load = self.choice_file(directory=self.T_IzFolder.toPlainText().replace('*', ''),
-                                          filter_="YAML Files (*.yaml)")
+                                          filter_="YAML Files (*.cor);;All files (*.*)")
         if not name_file_load:
             return
         with open(name_file_load) as f:
@@ -653,7 +681,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
             raise ValueError('В поле таблица на выбор нельзя задавать таблицы: area, area2, darea, sechen.')
         config = self.fill_task_ui() | ini.to_dict()
         em = EditModel(config)
-        em.run_cor()
+        em.run()
 
     def fill_task_ui(self) -> dict:
         """
@@ -872,6 +900,10 @@ if __name__ == '__main__':
 
     log.addHandler(file_handler)
     log.addHandler(console_handler)
+
+    # Быстрый старт из yaml файла
+    # with open(r'I:\rastr_add\test\test cor rm.cor') as f:
+    #     EditModel(yaml.safe_load(f)).run() #  EditModel CalcModel
 
     app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
 

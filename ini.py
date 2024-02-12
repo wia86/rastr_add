@@ -41,7 +41,7 @@ class Ini:
                     else:
                         return config
             except LookupError:
-                log_ini.error(f'Ошибка чтения файла {self}.')
+                log_ini.error(f'Ошибка чтения файла {self} {section} {key}')
                 return ''
 
     def write_ini(self, section: str, key: str, value):
@@ -64,10 +64,8 @@ class Ini:
                 for section in config:
                     pars[section] = {}
                     for key in config[section]:
-                        if config[section][key] == 'True':
-                            pars[section][key] = True
-                        elif config[section][key] == 'False':
-                            pars[section][key] = False
+                        if config[section][key] in ['True', 'False']:
+                            pars[section][key] = eval(config[section][key])
                         else:
                             pars[section][key] = config[section][key]
             except LookupError:

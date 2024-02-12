@@ -41,21 +41,27 @@ class RastrModel:
     def __repr__(self):
         return f'{self.__class__} {self.name_base}'
 
-    def __init__(self, full_name: str):
+    def __init__(self, full_name: str, not_calculated: bool = False):
+        """
+        :param full_name: Полное имя файла
+        :param not_calculated: Истина если это файл для импорта данных
+        """
         # Информация о файле.
-        RastrModel.rm_id += 1
         self.info_file = dict()
-        self.info_file['rm_id'] = RastrModel.rm_id
         self.full_name = full_name
         self.dir = os.path.dirname(full_name)
         self.Name = os.path.basename(full_name)  # Вернуть имя с расширением "2020 зим макс.rg2"
         self.name_base, self.type_file = self.Name.rsplit(sep='.', maxsplit=1)
         self.info_file['Имя файла'] = self.name_base
-
         self.pattern = self.config[f"шаблон {self.type_file}"]
+        self.rastr = None
+        if not_calculated:
+            return
+
+        RastrModel.rm_id += 1
+        self.info_file['rm_id'] = RastrModel.rm_id
         self.all_auto_shunt = {}
         self.info_file["Темп.(°C)"]: float = 0
-        self.rastr = None
         self.additional_name_list = None
         self.add_load = []  # Расширение дополнительных файлов из [trn, anc]
 
@@ -777,7 +783,7 @@ class RastrModel:
         :return: Информация
         """
         info = []
-
+        # todo re
         task_rows = task_txt.split('\n')
         for task_row in task_rows:
             task_row = task_row.split('#')[0]  # удалить текст после '#'
@@ -871,7 +877,7 @@ class RastrModel:
         elif 'добавить' in name:
             self.table_add_row(table=sel, tasks=value)
         elif 'текст' in name:
-            self.txt_field_right(tasks=all_task)
+            self.txt_field_right(tasks=(all_task if all_task else sel))
             return "\tИсправить пробелы, заменить английские буквы на русские."
         elif 'схн' in name:
             self.shn(choice=sel)
@@ -930,7 +936,7 @@ class RastrModel:
             if os.path.isfile(file_name):
                 path = file_name
         if os.path.isfile(path):
-            ifm = ImportFromModel(RastrModel(path),
+            ifm = ImportFromModel(RastrModel(full_name=path, not_calculated=True),
                                   **description_dict)
             ifm.import_data_in_rm(rm=self)
         else:
@@ -1809,7 +1815,7 @@ class RastrModel:
             if ':' in formula_i:
                 if any([txt in formula_i for txt in ['years', 'season', 'max_min', 'add_name']]):
                     continue
-                sel_all, field = formula_i.split(':')
+                sel_all, field = formula_i.replace(' ', '').split(':')
                 name_table, sel = self.recognize_key(sel_all, 'tab sel')
                 self.rgm(f'для определения значения {formula}')
                 index = self.index(table_name=name_table, key_str=sel)

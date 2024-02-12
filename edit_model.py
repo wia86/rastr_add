@@ -26,7 +26,7 @@ class EditModel(Common):
         """
         super(EditModel, self).__init__()
         self.config = config
-        RastrModel.config = config['DEFAULT']
+        RastrModel.config = config['Settings']
         RastrModel.overwrite_new_file = 'question'
         self.cor_xl = None
         self.print_xl = None
@@ -47,7 +47,8 @@ class EditModel(Common):
                                            "max_min": dict_tabl['max_min'],
                                            "add_name": dict_tabl['add_name']}
 
-                    ifm = ImportFromModel(export_rm=RastrModel(dict_tabl['import_file_name']),
+                    ifm = ImportFromModel(export_rm=RastrModel(full_name=dict_tabl['import_file_name'],
+                                                               not_calculated=True),
                                           criterion_start=criterion_start,
                                           tables=dict_tabl['tables'],
                                           param=dict_tabl['param'],
@@ -55,7 +56,7 @@ class EditModel(Common):
                                           calc=dict_tabl['calc'])
                     self.set_import_model.append(ifm)
 
-    def run_cor(self):
+    def run(self):
         """
         Запуск корректировки моделей.
         """
@@ -131,8 +132,8 @@ class EditModel(Common):
 
         notepad_path = self.config['name_time'] + ' протокол коррекции файлов.log'
         shutil.copyfile(self.config['other']['log_file'], notepad_path)
-        with open(self.config['name_time'] + ' задание на корректировку.yaml', 'w') as f:
-            yaml.dump(data=self.config, stream=f, default_flow_style=False, sort_keys=False)
+        with open(self.config['name_time'] + ' задание.cor', 'w') as f:
+            yaml.dump(data=self.config, stream=f, default_flow_style=False, sort_keys=False, allow_unicode=True)
         mb.showinfo("Инфо", self.set_info['end_info'])
 
     def for_file_in_dir(self, from_dir: str, in_dir: str):
@@ -180,4 +181,4 @@ class EditModel(Common):
         if self.config.get("printXL", False):
             if not isinstance(self.print_xl, PrintXL):
                 self.print_xl = PrintXL(self.config)
-                self.print_xl.add_val(rm)
+            self.print_xl.add_val(rm)

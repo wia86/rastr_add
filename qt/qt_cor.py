@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'qt_cor.ui'
+# Form implementation generated from reading ui file 'qt/qt_cor.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.9
 #
@@ -1524,7 +1524,7 @@ class Ui_cor(object):
         self.run_krg2.setText(_translate("cor", "Выполнить"))
         self.groupBox.setTitle(_translate("cor", "Меню"))
         self.b_main_choice.setText(_translate("cor", "Главное меню"))
-        self.label.setText(_translate("cor", "   Задание (.yaml):"))
+        self.label.setText(_translate("cor", "   Задание (.cor):"))
         self.task_save.setText(_translate("cor", "Сохранить"))
         self.task_load.setText(_translate("cor", "Загрузить"))
         self.GB_import_val_XL_2.setTitle(_translate("cor", "Выбор моделей"))
@@ -1762,9 +1762,9 @@ class Ui_cor(object):
         self.label_7.setText(_translate("cor", "Имя файла:"))
         self.T_PQN_XL_File.setPlainText(_translate("cor", "I:\\rastr_add\\test\\пример задания.xlsx"))
         self.choice_XL.setText(_translate("cor", "Выбор"))
-        self.label_8.setText(_translate("cor", "Имя листов:"))
+        self.label_8.setText(_translate("cor", "Имена листов:"))
         self.T_PQN_Sheets.setText(_translate("cor", " [XL->RastrWin][pop][cor]"))
-        self.CB_kontrol_rg2.setText(_translate("cor", "Расчет режима и ДТН (I(Тс))"))
+        self.CB_kontrol_rg2.setText(_translate("cor", "Расчет режима и ДТН (I(Тс)), проверка графа сети"))
         self.GB_control.setTitle(_translate("cor", "Проверка параметров режима (.rg2)"))
         self.CB_U.setText(_translate("cor", "Узлы: Uном, Umin < Uрасч. <  Uнаиб.раб."))
         self.CB_I.setText(_translate("cor", "Ветви: I < ДТН, наличие n_it, n_it_av."))

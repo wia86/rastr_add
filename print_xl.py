@@ -131,7 +131,7 @@ class PrintXL:
         Вывод заданных параметров в формате: "15105,15113;15038,15037,4:r;x;b / 15198:pg;qg / ns=1(sechen):psech".
         """
         if 'sechen' in self.task['print_parameters']['sel']:
-            if rm.rastr.tables('sechen').Find < 0:
+            if rm.rastr.tables.Find('sechen') < 0:
                 rm.downloading_additional_files(['sch'])
         date = pd.Series(dtype='object')
         for i in self.set_output_parameters:
@@ -141,7 +141,7 @@ class PrintXL:
                 date.loc[i] = str(rm.txt_field_return(table, sel, p))
             else:
                 date.loc[i] = rm.rastr.tables(table).cols.Item(p).ZS(rm.index(table_name=table, key_str=sel))
-        date = pd.concat([date, rm.info_file])
+        date = pd.concat([date, pd.Series(rm.info_file)])
         self.data_parameters = pd.concat([self.data_parameters, date], axis=1)
 
     def add_val_balance_q(self, rm):

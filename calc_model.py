@@ -34,7 +34,8 @@ class CalcModel(Common):
         """
         super(CalcModel, self).__init__()
         self.config = config
-        RastrModel.config = config['DEFAULT']
+        RastrModel.config = config['Settings']
+
         RastrModel.overwrite_new_file = 'question'
         self.info_srs = None  # СРС
         self.comb_id = 1
@@ -77,7 +78,7 @@ class CalcModel(Common):
         # Для хранения токовой загрузки контролируемых элементов в пределах одной РМ a формате df и добавления в db.
         self.save_i_rm = None
 
-    def run_calc(self):
+    def run(self):
         """
         Запуск расчета нормативных возмущений (НВ) в РМ.
         """
@@ -130,8 +131,8 @@ class CalcModel(Common):
         self.the_end()
         notepad_path = f'{self.config["name_time"]} протокол расчета РМ.log'
         shutil.copyfile(self.config['other']['log_file'], notepad_path)
-        with open(self.config['name_time'] + ' задание на расчет РМ.yaml', 'w') as f:
-            yaml.dump(data=self.config, stream=f, default_flow_style=False, sort_keys=False)
+        with open(self.config['name_time'] + ' задание.calc', 'w') as f:
+            yaml.dump(data=self.config, stream=f, default_flow_style=False, sort_keys=False, allow_unicode=True)
         mb.showinfo("Инфо", self.set_info['end_info'])
 
     @staticmethod
@@ -574,7 +575,7 @@ class CalcModel(Common):
 
         # Подготовка.
         rm.voltage_fix_frame()
-        # if self.config['skrm']:
+        # if self.config['CalcSetWindow']['skrm']:
         #     self.auto_shunt = rm.auto_shunt_rec(selection='')
 
         # Добавить поле index в таблицы.
@@ -613,10 +614,10 @@ class CalcModel(Common):
         # В поле all_disable складываем элементы авто отмеченные и отмеченные в поле comb_field
         rm.add_fields_in_table(name_tables='vetv,node,Generator', fields='all_disable', type_fields=3)
 
-        if self.config["pa"]:
+        if self.config['CalcSetWindow']['pa']:
             self.pa = Automation(rm)
             if not self.pa.exist:
-                self.config["pa"] = False
+                self.config['CalcSetWindow']['pa'] = False
 
         # Сохранить текущее состояние РМ
         rm.save_value_fields()
@@ -747,7 +748,7 @@ class CalcModel(Common):
             if self.config['SRS']['n-1']:
                 self.set_comb[1] = 'ДДТН'
             # н-2
-            if self.config['gost']:
+            if self.config['CalcSetWindow']['gost']:
                 if self.config['SRS']['n-2_abv'] and rm.gost_abv:
                     self.set_comb[2] = 'AДТН'
                 if self.config['SRS']['n-2_gd'] and rm.gost_gd:
@@ -757,7 +758,7 @@ class CalcModel(Common):
                     self.set_comb[2] = 'ДДТН'
             # н-3
             if self.config['SRS']['n-3']:
-                if self.config['gost']:
+                if self.config['CalcSetWindow']['gost']:
                     if rm.gost_gd:
                         self.set_comb[3] = 'АДТН'
                 else:
@@ -922,7 +923,7 @@ class CalcModel(Common):
             comb_xl = self.gen_comb_xl(rm, self.srs_xl)
             for comb in comb_xl:
                 self.info_srs['Контроль ДТН'] = 'ДДТН'
-                if self.config['gost']:
+                if self.config['CalcSetWindow']['gost']:
                     if comb.shape[0] == 3 or (comb.shape[0] == 2 and rm.gost_abv):
                         self.info_srs['Контроль ДТН'] = 'АДТН'
                     if rm.gost_abv and (comb.shape[0] == 3 or (comb.shape[0] == 2 and all(comb['status_repair']))):
@@ -1238,10 +1239,10 @@ class CalcModel(Common):
         # Цикл по действиям (ПА или ОП)
         while True:
             overloads = self.do_control(rm, comb)
-            if self.config["pa"] and self.pa.active(overloads):  # TODO overloads не задано
+            if self.config['CalcSetWindow']['pa'] and self.pa.active(overloads):  # TODO overloads не задано
                 self.info_action['Action'] += self.pa.execute_action_pa(rm)
             else:
-                if self.config["pa"]:
+                if self.config['CalcSetWindow']['pa']:
                     self.pa.reset()
                 self.info_action['End'] = True
 
@@ -1265,11 +1266,11 @@ class CalcModel(Common):
         log_g_s.debug(f'Проверка параметров УР.')
         violation = False
         test_rgm = rm.rgm('do_control')
-        if self.config['avr'] and len(comb):
+        if self.config['CalcSetWindow']['avr'] and len(comb):
             self.info_action['АРВ'] = rm.node_include()
             if 'Восстановлено' in self.info_action['АРВ']:
                 test_rgm = rm.rgm('Перерасчет после действия АВР.')
-        # if self.config['skrm']:
+        # if self.config['CalcSetWindow']['skrm']:
         #     self.info_action['СКРМ'] = rm.auto_shunt_cor(all_auto_shunt=self.auto_shunt)
         #     if self.info_action['СКРМ']:
         #         test_rgm = rm.rgm('do_control')

@@ -88,7 +88,7 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>-606</y>
+         <y>0</y>
          <width>931</width>
          <height>1437</height>
         </rect>
@@ -161,7 +161,7 @@
                 </size>
                </property>
                <property name="text">
-                <string>   Задание (.yaml):</string>
+                <string>   Задание (.cor):</string>
                </property>
               </widget>
              </item>
@@ -675,7 +675,7 @@
              <set>Qt::ImhNone</set>
             </property>
             <property name="currentIndex">
-             <number>6</number>
+             <number>0</number>
             </property>
             <widget class="QWidget" name="node">
              <attribute name="title">
@@ -722,7 +722,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\rastr_add\test\импорт2.rg2</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -807,7 +807,10 @@
                    </size>
                   </property>
                   <property name="currentText">
-                   <string>присоединить</string>
+                   <string>обновить</string>
+                  </property>
+                  <property name="currentIndex">
+                   <number>2</number>
                   </property>
                   <item>
                    <property name="text">
@@ -857,7 +860,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>sel</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -1090,7 +1093,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\rastr_add\test\импорт2.rg2</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -1175,7 +1178,10 @@
                    </size>
                   </property>
                   <property name="currentText">
-                   <string>присоединить</string>
+                   <string>обновить</string>
+                  </property>
+                  <property name="currentIndex">
+                   <number>2</number>
                   </property>
                   <item>
                    <property name="text">
@@ -1458,7 +1464,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\rastr_add\test\импорт2.rg2</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -1543,7 +1549,10 @@
                    </size>
                   </property>
                   <property name="currentText">
-                   <string>присоединить</string>
+                   <string>обновить</string>
+                  </property>
+                  <property name="currentIndex">
+                   <number>2</number>
                   </property>
                   <item>
                    <property name="text">
@@ -1826,7 +1835,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\rastr_add\test\импорт2.rg2</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -1911,7 +1920,10 @@
                    </size>
                   </property>
                   <property name="currentText">
-                   <string>присоединить</string>
+                   <string>обновить</string>
+                  </property>
+                  <property name="currentIndex">
+                   <number>2</number>
                   </property>
                   <item>
                    <property name="text">
@@ -2194,7 +2206,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\rastr_add\test\импорт2.rg2</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -2279,7 +2291,10 @@
                    </size>
                   </property>
                   <property name="currentText">
-                   <string>присоединить</string>
+                   <string>обновить</string>
+                  </property>
+                  <property name="currentIndex">
+                   <number>2</number>
                   </property>
                   <item>
                    <property name="text">
@@ -2562,7 +2577,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\rastr_add\test\импорт2.rg2</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -2647,7 +2662,10 @@
                    </size>
                   </property>
                   <property name="currentText">
-                   <string>присоединить</string>
+                   <string>обновить</string>
+                  </property>
+                  <property name="currentIndex">
+                   <number>2</number>
                   </property>
                   <item>
                    <property name="text">
@@ -2930,7 +2948,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\rastr_add\test\импорт2.rg2</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -3015,7 +3033,10 @@
                    </size>
                   </property>
                   <property name="currentText">
-                   <string>присоединить</string>
+                   <string>обновить</string>
+                  </property>
+                  <property name="currentIndex">
+                   <number>2</number>
                   </property>
                   <item>
                    <property name="text">
@@ -3298,7 +3319,7 @@
                    </size>
                   </property>
                   <property name="text">
-                   <string>I:\rastr_add\test\импорт2.rg2</string>
+                   <string/>
                   </property>
                  </widget>
                 </item>
@@ -3383,7 +3404,10 @@
                    </size>
                   </property>
                   <property name="currentText">
-                   <string>присоединить</string>
+                   <string>обновить</string>
+                  </property>
+                  <property name="currentIndex">
+                   <number>2</number>
                   </property>
                   <item>
                    <property name="text">
