@@ -664,7 +664,7 @@
              <item>
               <layout class="QHBoxLayout" name="horizontalLayout_3">
                <item>
-                <widget class="QPlainTextEdit" name="te_path_initial_models">
+                <widget class="QPlainTextEdit" name="path_rm">
                  <property name="enabled">
                   <bool>true</bool>
                  </property>
@@ -1645,7 +1645,7 @@
   <tabstop>b_set</tabstop>
   <tabstop>b_task_save</tabstop>
   <tabstop>b_task_load</tabstop>
-  <tabstop>te_path_initial_models</tabstop>
+  <tabstop>path_rm</tabstop>
   <tabstop>b_choice_path_folder</tabstop>
   <tabstop>b_choice_path_file</tabstop>
   <tabstop>cb_filter</tabstop>

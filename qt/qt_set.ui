@@ -25,7 +25,7 @@
    <property name="title">
     <string>Шаблоны</string>
    </property>
-   <widget class="QWidget" name="">
+   <widget class="QWidget" name="layoutWidget">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -115,7 +115,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QCheckBox" name="CB_load_trn_anc">
+   <widget class="QCheckBox" name="CB_load_add">
     <property name="geometry">
      <rect>
       <x>20</x>
@@ -125,7 +125,7 @@
      </rect>
     </property>
     <property name="text">
-     <string>При загрузке файла rst или rg2 загружать одноименные файлы trn и anc (из той же папки)</string>
+     <string>При загрузке файла rst или rg2 загружать одноименные файлы trn, sch и anc (из той же папки)</string>
     </property>
     <property name="checked">
      <bool>true</bool>

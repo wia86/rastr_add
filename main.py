@@ -20,33 +20,11 @@ from ini import Ini
 # from my_error import *
 class Window:
     """ Класс с общими методами для QT. """
-
-    @staticmethod
-    def get_in_form(obj, task: dict, keys: tuple) -> None:
-        """
-        Присвоить значение объекту формы из задания. Если ключи в задании отсутствует, то выводится предупреждение.
-        :param obj: Функция объекта для присвоения значения, например cb_filter.setChecked.
-        :param task:
-        :param keys:
-        """
-        try:
-            for key in keys:
-                task = task[key]
-            match obj.__class__.__name__:
-                case 'QCheckBox':
-                    obj.setChecked(task)
-                case 'QSpainBox' | 'QSpinBox':
-                    obj.setValue(task)
-                case 'QComboBox':
-                    obj.setCurrentText(task)
-                case 'QLineEdit':
-                    obj.setText(task)
-                case 'QPlainTextEdit':
-                    obj.setPlainText(task)
-                case _:
-                    log.info(f'Добавить {obj.__class__.__name__}')
-        except KeyError:
-            mb.showerror("Ошибка чтения", f"Отсутствует ключ: {keys}")
+    dict_obj = None
+    path_folder = None
+    path_file = None
+    section = None
+    check_status_visibility = None
 
     @staticmethod
     def check_status(set_checkbox_element: tuple):
@@ -96,25 +74,139 @@ class Window:
             log.info(f"GUI. Для сохранения выбран файл: {fileName_choose}, {_}")
             return fileName_choose
 
-    def choice(self, type_choice: str, insert, directory=None):
+    def choice(self,  insert, type_choice: str = 'file',directory=None):
         """
         Функция выбора папки или файла.
         :param type_choice: 'file', 'folder'
         :param insert: объект QT 'QPlainTextEdit' или 'QLineEdit' для вставки пути выбранного файла.
         :param directory: объект QT 'QPlainTextEdit' c начальной папкой для поиска.
         """
-        name = ''
-        if type_choice == 'file':
-            name = self.choice_file(directory=directory.toPlainText().replace('*', ''))
-        elif type_choice == 'folder':
-            name = self.choice_folder(directory=directory.toPlainText().replace('*', ''))
 
-        if name:
-            name = name.replace('/', '\\')
-            if insert.__class__.__name__ == 'QPlainTextEdit':
-                insert.setPlainText(name)
-            elif insert.__class__.__name__ == 'QLineEdit':
-                insert.setText(name)
+        def paste(txt, ins):
+            """
+            Вставка пути на форму
+            :param txt: Значение для вставки в объект.
+            :param ins: Объект
+            """
+            self.ins = ins
+            if txt:
+                txt = txt.replace('/', '\\')
+                if self.ins.__class__.__name__ == 'QPlainTextEdit':
+                    self.ins.setPlainText(txt)
+                elif self.ins.__class__.__name__ == 'QLineEdit':
+                    self.ins.setText(txt)
+
+        if type_choice == 'file':
+            self.path_file = self.choice_file(directory=directory.toPlainText().replace('*', ''))
+            paste(self.path_file, insert)
+        elif type_choice == 'folder':
+            self.path_folder = self.choice_folder(directory=directory.toPlainText().replace('*', ''))
+            paste(self.path_folder, insert)
+
+        # Сохранить в ini
+        ini.write_ini(section='save_form_folder_' + self.section,
+                      key="path",
+                      value=self.path_rm.toPlainText())
+
+    def task_from_form(self) -> dict:
+        """ Возвращает данные с формы QT. """
+        task = {}
+
+        def set_obj(obj):
+            match obj.__class__.__name__:
+                case 'QCheckBox':
+                    return obj.isChecked()
+                case 'QSpainBox' | 'QSpinBox':
+                    return obj.value()
+                case 'QComboBox':
+                    return obj.currentText()
+                case 'QLineEdit':
+                    return obj.text()
+                case 'QPlainTextEdit':
+                    return obj.toPlainText()
+                case 'str':
+                    return ""
+                case _:
+                    raise TypeError(f'Добавить {obj.__class__.__name__}')
+
+        for k1 in self.dict_obj:
+            if isinstance(self.dict_obj[k1], dict):
+                task[k1] = {}
+                for k2 in self.dict_obj[k1]:
+                    if isinstance(self.dict_obj[k1][k2], dict):
+                        task[k1][k2] = {}
+                        for k3 in self.dict_obj[k1][k2]:
+                            task[k1][k2][k3] = set_obj(self.dict_obj[k1][k2][k3])
+                    else:
+                        task[k1][k2] = set_obj(self.dict_obj[k1][k2])
+            else:
+                task[k1] = set_obj(self.dict_obj[k1])
+        return task
+
+    def task_from_yaml(self):
+        """ Загрузить данные из yaml на форму. """
+        _filter = None
+        field = self.path_rm
+        if self.section == 'calc':
+            _filter = "YAML Files (*.calc);;All files (*.*)"
+        elif self.section == 'edit':
+            _filter = "YAML Files (*.cor);;All files (*.*)"
+        name_file_load = self.choice_file(directory=field.toPlainText().replace('*', ''),
+                                          filter_=_filter)
+        if not name_file_load:
+            return
+        with open(name_file_load) as f:
+            task_yaml = yaml.safe_load(f)
+        if not task_yaml:
+            return
+
+        for k1 in self.dict_obj:
+            if isinstance(self.dict_obj[k1], dict):
+                for k2 in self.dict_obj[k1]:
+                    if isinstance(self.dict_obj[k1][k2], dict):
+                        for k3 in self.dict_obj[k1][k2]:
+                            self.get_in_form(self.dict_obj[k1][k2][k3], task_yaml, (k1, k2, k3))
+                    else:
+                        self.get_in_form(self.dict_obj[k1][k2], task_yaml, (k1, k2))
+            else:
+                self.get_in_form(self.dict_obj[k1], task_yaml, (k1,))
+
+        self.check_status(self.check_status_visibility)
+
+    @staticmethod
+    def get_in_form(obj, task: dict, keys: tuple) -> None:
+        """
+        Присвоить значение объекту формы из задания. Если ключи в задании отсутствует, то выводится предупреждение.
+        :param obj: Функция объекта для присвоения значения, например cb_filter.setChecked.
+        :param task:
+        :param keys:
+        """
+        try:
+            for key in keys:
+                task = task[key]
+            match obj.__class__.__name__:
+                case 'QCheckBox':
+                    if isinstance(task, bool):
+                        obj.setChecked(task)
+                    else:
+                        obj.setText(task)
+                case 'QSpainBox' | 'QSpinBox':
+                    obj.setValue(task)
+                case 'QComboBox':
+                    obj.setCurrentText(task)
+                case 'QLineEdit':
+                    obj.setText(task)
+                case 'QPlainTextEdit':
+                    obj.setPlainText(task)
+                case 'str':
+                    pass
+                case _:
+                    log.info(f'Добавить {obj.__class__.__name__}')
+        except KeyError:
+            mb.showerror("Ошибка чтения", f"Отсутствует ключ: {keys}")
+        except TypeError:
+            log.error(f"Неверное значение по ключу: {keys}")
+            mb.showerror("Ошибка чтения типа данных", f"Неверное значение по ключу: {keys}")
 
 
 class MainChoiceWindow(QtWidgets.QMainWindow, Ui_choice, Window):
@@ -126,21 +218,24 @@ class MainChoiceWindow(QtWidgets.QMainWindow, Ui_choice, Window):
         super(MainChoiceWindow, self).__init__()
         self.setupUi(self)
         self.settings.clicked.connect(lambda: gui_set.show())
-        self.correction.clicked.connect(lambda: self.hide_show((gui_choice_window,), (gui_edit,)))
-        self.calc_ur.clicked.connect(lambda: self.hide_show((gui_choice_window,), (gui_calc_ur,)))
+        self.correction.clicked.connect(lambda: self.hide_show((gui_choice_window,),
+                                                               (gui_edit,)))
+        self.calc_ur.clicked.connect(lambda: self.hide_show((gui_choice_window,),
+                                                            (gui_calc_ur,)))
 
 
 class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
     """
-    Окно задания и запуска УР.
+    Форма задания и запуска расчетов УР.
     """
 
     def __init__(self):
         super(CalcWindow, self).__init__()
+        self.section = 'calc'
         self.setupUi(self)
         self.b_set.clicked.connect(lambda: gui_calc_ur_set.show())
-        self.b_main_choice.clicked.connect(lambda: self.hide_show((gui_calc_ur,), (gui_choice_window,)))
-
+        self.b_main_choice.clicked.connect(lambda: self.hide_show((gui_calc_ur,),
+                                                                  (gui_choice_window,)))
         # Скрыть параметры при старте.
         self.check_status_visibility = (
             (self.cb_filter, self.gb_filter),
@@ -159,100 +254,86 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             CB.clicked.connect(lambda: self.check_status(self.check_status_visibility))
 
         # Функциональные кнопки
-
         self.b_task_save.clicked.connect(self.task_save_yaml)
-        self.b_task_load.clicked.connect(self.task_load_yaml)
+        self.b_task_load.clicked.connect(self.task_from_yaml)
 
         self.b_choice_path_folder.clicked.connect(lambda: self.choice(type_choice='folder',
-                                                                      insert=self.te_path_initial_models,
-                                                                      directory=self.te_path_initial_models))
-        self.b_choice_path_file.clicked.connect(lambda: self.choice(type_choice='file',
-                                                                    insert=self.te_path_initial_models,
-                                                                    directory=self.te_path_initial_models))
-        self.b_choice_XL.clicked.connect(lambda: self.choice(type_choice='file', insert=self.te_XL_path,
-                                                             directory=self.te_path_initial_models))
+                                                                      insert=self.path_rm,
+                                                                      directory=self.path_rm))
+        self.b_choice_path_file.clicked.connect(lambda: self.choice(insert=self.path_rm,
+                                                                    directory=self.path_rm))
+        self.b_choice_XL.clicked.connect(lambda: self.choice(insert=self.te_XL_path,
+                                                             directory=self.path_rm))
         self.b_choice_path_import_folder.clicked.connect(lambda: self.choice(type_choice='folder',
                                                                              insert=self.te_path_import_rg2,
-                                                                             directory=self.te_path_initial_models))
-        self.b_choice_path_import_file.clicked.connect(lambda: self.choice(type_choice='file',
-                                                                           insert=self.te_path_import_rg2,
-                                                                           directory=self.te_path_initial_models))
+                                                                             directory=self.path_rm))
+        self.b_choice_path_import_file.clicked.connect(lambda: self.choice(insert=self.te_path_import_rg2,
+                                                                           directory=self.path_rm))
 
         self.run_calc_rg2.clicked.connect(lambda: self.start())
-        self.te_path_initial_models.setPlainText(ini.read_ini(section='save_form_folder_calc', key="path"))
+        self.path_rm.setPlainText(ini.read_ini(section='save_form_folder_calc', key="path"))
         # Подсказки
         self.le_control_sel.setToolTip("Если поле не заполнено, то контролируются все ветви и узлы РМ")
-        self.te_path_initial_models.setToolTip("Для расчета файлов во всех вложенных папках нужно в конце поставить *")
+        self.path_rm.setToolTip("Для расчета файлов во всех вложенных папках нужно в конце поставить *")
+
+        self.dict_obj = {
+            # Окно запуска расчета.
+            'calc_folder': self.path_rm,
+            # Выборка файлов.
+            'Filter_file': self.cb_filter,
+            'file_count_max': self.sb_count_file,
+            'calc_criterion': {'years': self.le_condition_file_years,
+                               'season': self.le_condition_file_season,
+                               'max_min': self.le_condition_file_max_min,
+                               'add_name': self.le_condition_file_add_name},
+            # Корректировка в txt.
+            'cor_rm': {'add': self.cb_cor_txt,
+                       'txt': self.te_cor_txt},
+            # Импорт ИД для расчетов УР из моделей.
+            'CB_Import_Rg2': self.cb_import_model,
+            'Import_file': self.te_path_import_rg2,
+            'txt_Import_Rg2': self.te_import_rg2,
+            # Расчет всех возможных сочетаний. Отключаемые элементы.
+            'cb_disable_comb': self.cb_disable_comb,
+            'SRS': {'n-1': self.cb_n1,
+                    'n-2_abv': self.cb_n2_abv,
+                    'n-2_gd': self.cb_n2_gd,
+                    'n-3': self.cb_n3},
+
+            'cb_auto_disable': self.cb_auto_disable,
+            'auto_disable_choice': self.le_auto_disable_choice,
+
+            'cb_comb_field': self.cb_comb_field,
+            "comb_field": self.le_comb_field,
+
+            'filter_comb': self.cb_filter_comb,
+            'filter_comb_val': self.sb_filter_comb_val,
+            # Импорт перечня расчетных сочетаний из EXCEL
+            'cb_disable_excel': self.cb_disable_excel,
+            'srs_XL_path': self.te_XL_path,
+            'srs_XL_sheets': self.le_XL_sheets,
+            # Расчет всех возможных сочетаний. Контролируемые элементы.
+            'cb_control': self.cb_control,
+            'cb_control_field': self.cb_control_field,
+            'cb_control_sel': self.cb_control_sel,
+            'control_field': self.le_control_field,
+            'control_sel': self.le_control_sel,
+            # Результаты в EXCEL: таблицы контролируемые - отключаемые элементы
+            'cb_save_i': self.cb_save_i,
+            'cb_tab_KO': self.cb_tab_KO,
+            'te_tab_KO_info': self.te_tab_KO_info,
+            # Результаты в RG2
+            'results_RG2': self.cb_results_pic,
+            'pic_overloads': self.cb_pic_overloads,
+            'name_pic': self.te_name_pic, }
 
     def task_save_yaml(self):
-        name_file_save = self.save_file(directory=self.te_path_initial_models.toPlainText(),
+        name_file_save = self.save_file(directory=self.path_rm.toPlainText(),
                                         filter_="YAML Files (*.calc);;All files (*.*)")
         if name_file_save:
             with open(name_file_save, 'w') as f:
-                yaml.dump(data=self.fill_task_calc() | ini.to_dict(),
+                yaml.dump(data=self.task_from_form() | ini.to_dict(),
                           stream=f, default_flow_style=False, sort_keys=False, allow_unicode=True)
-
-    def task_load_yaml(self):
-        name_file_load = self.choice_file(directory=self.te_path_initial_models.toPlainText().replace('*', ''),
-                                          filter_="YAML Files (*.calc);;All files (*.*)")
-        if not name_file_load:
-            return
-        with open(name_file_load) as f:
-            task_yaml = yaml.safe_load(f)
-        if not task_yaml:
-            return
-
-        # Окно запуска расчета.
-        self.get_in_form(self.te_path_initial_models, task_yaml, ("calc_folder",))
-        # Выборка файлов.
-        self.get_in_form(self.cb_filter, task_yaml, ("Filter_file",))
-        self.get_in_form(self.sb_count_file, task_yaml, ("file_count_max",))
-        self.get_in_form(self.le_condition_file_years, task_yaml, ("calc_criterion", "years"))
-        self.get_in_form(self.le_condition_file_season, task_yaml, ("calc_criterion", "season"))
-        self.get_in_form(self.le_condition_file_max_min,task_yaml, ("calc_criterion", "max_min"))
-        self.get_in_form(self.le_condition_file_add_name, task_yaml, ("calc_criterion", "years"))
-        # Корректировка в txt.
-        self.cb_cor_txt.setChecked(task_yaml["cor_rm"]['add'])
-        self.te_cor_txt.setPlainText(task_yaml["cor_rm"]['txt'])
-        # Импорт ИД для расчетов УР из моделей.
-        self.cb_import_model.setChecked(task_yaml['CB_Import_Rg2'])
-        self.te_path_import_rg2.setPlainText(task_yaml["Import_file"])
-        self.te_import_rg2.setPlainText(task_yaml['txt_Import_Rg2'])
-        # Расчет всех возможных сочетаний. Отключаемые элементы.
-        self.cb_disable_comb.setChecked(task_yaml['cb_disable_comb'])
-        self.cb_n1.setChecked(task_yaml['SRS']['n-1'])
-        self.cb_n2_abv.setChecked(task_yaml['SRS']['n-2_abv'])
-        self.cb_n2_gd.setChecked(task_yaml['SRS']['n-2_gd'])
-        self.cb_n3.setChecked(task_yaml['SRS']['n-3'])
-
-        self.cb_auto_disable.setChecked(task_yaml['cb_auto_disable'])
-        self.le_auto_disable_choice.setText(task_yaml['auto_disable_choice'])
-
-        self.cb_comb_field.setChecked(task_yaml['cb_comb_field'])
-        self.le_comb_field.setText(task_yaml['comb_field'])
-
-        self.cb_filter_comb.setChecked(task_yaml['filter_comb'])
-        self.sb_filter_comb_val.setValue(task_yaml['filter_comb_val'])
-        # Импорт перечня расчетных сочетаний из EXCEL
-        self.cb_disable_excel.setChecked(task_yaml['cb_disable_excel'])
-        self.te_XL_path.setPlainText(task_yaml['srs_XL_path'])
-        self.le_XL_sheets.setText(task_yaml['srs_XL_sheets'])
-        # Расчет всех возможных сочетаний. Контролируемые элементы.
-        self.cb_control.setChecked(task_yaml['cb_control'])
-        self.cb_control_field.setChecked(task_yaml['cb_control_field'])
-        self.le_control_field.setText(task_yaml['control_field'])
-        self.cb_control_sel.setChecked(task_yaml['cb_control_sel'])
-        self.le_control_sel.setText(task_yaml['control_sel'])
-        # Результаты в EXCEL: таблицы контролируемые - отключаемые элементы
-        self.cb_save_i.setChecked(task_yaml['cb_save_i'])
-        self.cb_tab_KO.setChecked(task_yaml['cb_tab_KO'])
-        self.te_tab_KO_info.setPlainText(task_yaml['te_tab_KO_info'])
-        # Результаты в RG2
-        self.cb_results_pic.setChecked(task_yaml['results_RG2'])
-        self.cb_pic_overloads.setChecked(task_yaml['pic_overloads'])
-        self.te_name_pic.setPlainText(task_yaml['name_pic'])
-
-        self.check_status(self.check_status_visibility)
 
     def start(self):
         """
@@ -260,67 +341,10 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         """
         ini.write_ini(section='save_form_folder_calc',
                       key="path",
-                      value=self.te_path_initial_models.toPlainText())
-        config = self.fill_task_calc() | ini.to_dict()
+                      value=self.path_rm.toPlainText())
+        config = self.task_from_form() | ini.to_dict()
         cm = CalcModel(config)
         cm.run()
-
-    def fill_task_calc(self) -> dict:
-        """ Возвращает данные с формы QT. """
-        task_calc = {
-            # Окно запуска расчета.
-            'calc_folder': self.te_path_initial_models.toPlainText().strip(),
-            # Выборка файлов.
-            'Filter_file': self.cb_filter.isChecked(),  # QCheckBox
-            'file_count_max': self.sb_count_file.value(),  # QSpainBox
-            'calc_criterion': {'years': self.le_condition_file_years.text(),  # QLineEdit text()
-                               'season': self.le_condition_file_season.currentText(),  # QComboBox
-                               'max_min': self.le_condition_file_max_min.currentText(),
-                               'add_name': self.le_condition_file_add_name.text()},
-            # Корректировка в txt.
-            'cor_rm': {'add': self.cb_cor_txt.isChecked(),
-                       'txt': self.te_cor_txt.toPlainText()},
-            # Импорт ИД для расчетов УР из моделей.
-            'CB_Import_Rg2': self.cb_import_model.isChecked(),
-            'Import_file': self.te_path_import_rg2.toPlainText(),
-            'txt_Import_Rg2': self.te_import_rg2.toPlainText(),
-            # Расчет всех возможных сочетаний. Отключаемые элементы.
-            'cb_disable_comb': self.cb_disable_comb.isChecked(),
-            'SRS': {'n-1': self.cb_n1.isChecked(),
-                    'n-2_abv': self.cb_n2_abv.isChecked(),
-                    'n-2_gd': self.cb_n2_gd.isChecked(),
-                    'n-3': self.cb_n3.isChecked()},
-
-            'cb_auto_disable': self.cb_auto_disable.isChecked(),
-            'auto_disable_choice': self.le_auto_disable_choice.text(),
-
-            'cb_comb_field': self.cb_comb_field.isChecked(),
-            "comb_field": self.le_comb_field.text(),
-
-            'filter_comb': self.cb_filter_comb.isChecked(),
-            'filter_comb_val': self.sb_filter_comb_val.value(),
-            # Импорт перечня расчетных сочетаний из EXCEL
-            'cb_disable_excel': self.cb_disable_excel.isChecked(),
-            'srs_XL_path': self.te_XL_path.toPlainText(),
-            'srs_XL_sheets': self.le_XL_sheets.text(),
-            # Расчет всех возможных сочетаний. Контролируемые элементы.
-            'cb_control': self.cb_control.isChecked(),
-            'cb_control_field': self.cb_control_field.isChecked(),
-            'cb_control_sel': self.cb_control_sel.isChecked(),
-            'control_field': self.le_control_field.text(),
-            'control_sel': self.le_control_sel.text(),
-
-            # Результаты в EXCEL: таблицы контролируемые - отключаемые элементы
-            'cb_save_i': self.cb_save_i.isChecked(),
-            'cb_tab_KO': self.cb_tab_KO.isChecked(),
-            'te_tab_KO_info': self.te_tab_KO_info.toPlainText(),
-
-            # Результаты в RG2
-            'results_RG2': self.cb_results_pic.isChecked(),
-            'pic_overloads': self.cb_pic_overloads.isChecked(),
-            'name_pic': self.te_name_pic.toPlainText(),
-        }
-        return task_calc
 
 
 class CalcSetWindow(QtWidgets.QMainWindow, Ui_calc_ur_set, Window):
@@ -381,7 +405,7 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
                 self.LE_shablon_sch.setText(config["шаблон sch"])
                 self.LE_shablon_trn.setText(config["шаблон trn"])
                 self.LE_shablon_anc.setText(config["шаблон anc"])
-                self.CB_load_trn_anc.setChecked(eval(config["load_trn_anc"]))
+                self.CB_load_add.setChecked(eval(config["load_add"]))
             except Exception:
                 log.error(f'Файл {ini.name} [Settings] не читается, перезаписан.')
                 self.save_ini()
@@ -395,7 +419,7 @@ class SetWindow(QtWidgets.QMainWindow, Ui_Settings, Window):
                       "шаблон sch": self.LE_shablon_sch.text(),
                       "шаблон trn": self.LE_shablon_trn.text(),
                       "шаблон anc": self.LE_shablon_anc.text(),
-                      "load_trn_anc": self.CB_load_trn_anc.isChecked()},
+                      "load_add": self.CB_load_add.isChecked()},
                 key='Settings')
 
 
@@ -406,6 +430,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
 
     def __init__(self):
         super(EditWindow, self).__init__()  # *args, **kwargs
+        self.section = 'edit'
         self.setupUi(self)
         self.check_import = (
             (self.CB_N, 'узлы'),
@@ -417,7 +442,7 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
             (self.CB_PQ, 'PQ'),
             (self.CB_IT, 'I(T)'),)
 
-        # Скрыть параметры при старте.
+        # Набор соотношения: проверяемый на отметку элемент, элемент у которого меняется видимость.
         self.check_status_visibility = (
             (self.CB_KFilter_file, self.GB_sel_file),
             (self.CB_cor_b, self.TE_cor_b),
@@ -436,9 +461,9 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
             (self.CB_print_tab_log, self.GB_sel_tabl),
             (self.CB_print_parametr, self.TA_parametr_vibor),
             (self.CB_print_balance_Q, self.balance_Q_vibor),)
-        self.check_status(self.check_status_visibility)
+        self.check_status(self.check_status_visibility)  # Скрыть при старте
 
-        # CB показать / скрыть параметры.
+        # CB показать / скрыть параметры при переключении.
         for CB, element in self.check_status_visibility:
             CB.clicked.connect(lambda: self.check_status(self.check_status_visibility))
         # CB показать список импортируемых моделей.
@@ -447,38 +472,178 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
 
         # Функциональные кнопки
         self.task_save.clicked.connect(self.task_save_yaml)
-        self.task_load.clicked.connect(self.task_load_yaml)
-        self.choice_from_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_IzFolder,
-                                                                    directory=self.T_IzFolder))
-        self.choice_from_file.clicked.connect(lambda: self.choice(type_choice='file', insert=self.T_IzFolder,
-                                                                  directory=self.T_IzFolder))
-        self.choice_in_folder.clicked.connect(lambda: self.choice(type_choice='folder', insert=self.T_InFolder,
-                                                                  directory=self.T_IzFolder))
-        self.choice_XL.clicked.connect(lambda: self.choice(type_choice='file', insert=self.T_PQN_XL_File,
-                                                           directory=self.T_IzFolder))
-        self.choice_N.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_N,
-                                                          directory=self.T_IzFolder))
-        self.choice_V.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_V,
-                                                          directory=self.T_IzFolder))
-        self.choice_G.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_G,
-                                                          directory=self.T_IzFolder))
-        self.choice_A.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_A,
-                                                          directory=self.T_IzFolder))
-        self.choice_A2.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_A2,
-                                                           directory=self.T_IzFolder))
-        self.choice_D.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_D,
-                                                          directory=self.T_IzFolder))
-        self.choice_PQ.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_PQ,
-                                                           directory=self.T_IzFolder))
-        self.choice_IT.clicked.connect(lambda: self.choice(type_choice='file', insert=self.file_IT,
-                                                           directory=self.T_IzFolder))
+        self.task_load.clicked.connect(self.task_from_yaml)
+        self.choice_XL.clicked.connect(lambda: self.choice(insert=self.T_PQN_XL_File,
+                                                           directory=self.path_rm))
+        self.choice_N.clicked.connect(lambda: self.choice(insert=self.file_N,
+                                                          directory=self.path_rm))
+        self.choice_V.clicked.connect(lambda: self.choice(insert=self.file_V,
+                                                          directory=self.path_rm))
+        self.choice_G.clicked.connect(lambda: self.choice(insert=self.file_G,
+                                                          directory=self.path_rm))
+        self.choice_A.clicked.connect(lambda: self.choice(insert=self.file_A,
+                                                          directory=self.path_rm))
+        self.choice_A2.clicked.connect(lambda: self.choice(insert=self.file_A2,
+                                                           directory=self.path_rm))
+        self.choice_D.clicked.connect(lambda: self.choice(insert=self.file_D,
+                                                          directory=self.path_rm))
+        self.choice_PQ.clicked.connect(lambda: self.choice(insert=self.file_PQ,
+                                                           directory=self.path_rm))
+        self.choice_IT.clicked.connect(lambda: self.choice(insert=self.file_IT,
+                                                           directory=self.path_rm))
+        self.choice_from_file.clicked.connect(lambda: self.choice(insert=self.path_rm,
+                                                                  directory=self.path_rm))
+
+        self.choice_from_folder.clicked.connect(lambda: self.choice(type_choice='folder',
+                                                                    insert=self.path_rm,
+                                                                    directory=self.path_rm))
+        self.choice_in_folder.clicked.connect(lambda: self.choice(type_choice='folder',
+                                                                  insert=self.T_InFolder,
+                                                                  directory=self.path_rm))
 
         self.run_krg2.clicked.connect(lambda: self.start())
         self.b_main_choice.clicked.connect(lambda: self.hide_show((gui_edit,), (gui_choice_window,)))
         # Подсказки
-        self.T_IzFolder.setToolTip("Для корректировки файлов во всех вложенных папках нужно в конце поставить *")
-        # Загрузить из .ini начальный путь для T_IzFolder
-        self.T_IzFolder.setPlainText(ini.read_ini(section='save_form_folder_edit', key="path"))
+        self.path_rm.setToolTip("Для корректировки файлов во всех вложенных папках нужно в конце поставить *")
+        # Загрузить из .ini начальный путь для path_rm
+        self.path_rm.setPlainText(ini.read_ini(section='save_form_folder_edit', key="path"))
+
+        self.dict_obj = {
+            "KIzFolder": self.path_rm,
+            "KInFolder": self.T_InFolder,
+            # Выборка файлов.
+            "KFilter_file": self.CB_KFilter_file,
+            "max_file_count": self.D_count_file,
+            "cor_criterion_start": {"years": self.condition_file_years,
+                                    "season": self.condition_file_season,
+                                    "max_min": self.condition_file_max_min,
+                                    "add_name": self.condition_file_add_name},
+            # Корректировка в начале.
+            "cor_beginning_qt": {'add': self.CB_cor_b,
+                                 'txt': self.TE_cor_b},
+            # Задание из 'EXCEL'
+            "import_val_XL": self.CB_import_val_XL,
+            "excel_cor_file": self.T_PQN_XL_File,
+            "excel_cor_sheet": self.T_PQN_Sheets,
+
+            # Расчет режима и контроль параметров режима
+            "checking_parameters_rg2": self.CB_kontrol_rg2,
+            "control_rg2_task": {'node': self.CB_U,
+                                 'vetv': self.CB_I,
+                                 'Gen': self.CB_gen,
+                                 'sel_node': self.kontrol_rg2_Sel},
+            # Выводить данные из моделей в XL
+            "printXL": self.CB_printXL,
+            "set_printXL": {
+                "sechen": {'add': self.CB_print_sech},
+                "area": {'add': self.CB_print_area},
+                "area2": {'add': self.CB_print_area2},
+                "darea": {'add': self.CB_print_darea},
+                'таблица на выбор': {'tab_name': self.print_tab_log_ar_tab,
+                                     'add': self.CB_print_tab_log,
+                                     "sel": self.print_tab_log_ar_set,
+                                     'par': self.print_tab_log_ar_cols,
+                                     "rows": self.print_tab_log_rows,  # поля строк в сводной
+                                     "columns": self.print_tab_log_cols,  # поля столбцов в сводной
+                                     "values": self.print_tab_log_vals}},  # поля значений в свод
+            "print_parameters": {'add': self.CB_print_parametr,
+                                 "sel": self.TA_parametr_vibor},
+            "print_balance_q": {'add': self.CB_print_balance_Q,
+                                "sel": self.balance_Q_vibor},
+            # только для UI
+            'CB_ImpRg2_name': self.CB_ImpRg2,
+            'CB_ImpRg2': self.CB_ImpRg2,
+            'Imp_add': {
+                'node': {'add': self.CB_N,
+                         'import_file_name': self.file_N,
+                         "selection": self.CB_Filtr_N,
+                         "years": self.Filtr_god_N,
+                         "season": self.Filtr_sez_N,
+                         "max_min": self.Filtr_max_min_N,
+                         "add_name": self.Filtr_dop_name_N,
+                         'tables': self.tab_N,
+                         'param': self.param_N,
+                         'sel': self.sel_N,
+                         'calc': self.tip_N, },
+                'vetv': {'add': self.CB_V,
+                         'import_file_name': self.file_V,
+                         "selection": self.CB_Filtr_V,
+                         "years": self.Filtr_god_V,
+                         "season": self.Filtr_sez_V,
+                         "max_min": self.Filtr_max_min_V,
+                         "add_name": self.Filtr_dop_name_V,
+                         'tables': self.tab_V,
+                         'param': self.param_V,
+                         'sel': self.sel_V,
+                         'calc': self.tip_V, },
+                'gen': {'add': self.CB_G,
+                        'import_file_name': self.file_G,
+                        "selection": self.CB_Filtr_G,
+                        "years": self.Filtr_god_G,
+                        "season": self.Filtr_sez_G,
+                        "max_min": self.Filtr_max_min_G,
+                        "add_name": self.Filtr_dop_name_G,
+                        'tables': self.tab_G,
+                        'param': self.param_G,
+                        'sel': self.sel_G,
+                        'calc': self.tip_G, },
+                'area': {'add': self.CB_A,
+                         'import_file_name': self.file_A,
+                         "selection": self.CB_Filtr_A,
+                         "years": self.Filtr_god_A,
+                         "season": self.Filtr_sez_A,
+                         "max_min": self.Filtr_max_min_A,
+                         "add_name": self.Filtr_dop_name_A,
+                         'tables': self.tab_A,
+                         'param': self.param_A,
+                         'sel': self.sel_A,
+                         'calc': self.tip_A, },
+                'area2': {'add': self.CB_A2,
+                          'import_file_name': self.file_A2,
+                          "selection": self.CB_Filtr_A2,
+                          "years": self.Filtr_god_A2,
+                          "season": self.Filtr_sez_A2,
+                          "max_min": self.Filtr_max_min_A2,
+                          "add_name": self.Filtr_dop_name_A2,
+                          'tables': self.tab_A2,
+                          'param': self.param_A2,
+                          'sel': self.sel_A2,
+                          'calc': self.tip_A2, },
+                'darea': {'add': self.CB_D,
+                          'import_file_name': self.file_D,
+                          "selection": self.CB_Filtr_D,
+                          "years": self.Filtr_god_D,
+                          "season": self.Filtr_sez_D,
+                          "max_min": self.Filtr_max_min_D,
+                          "add_name": self.Filtr_dop_name_D,
+                          'tables': self.tab_D,
+                          'param': self.param_D,
+                          'sel': self.sel_D,
+                          'calc': self.tip_D, },
+                'PQ': {'add': self.CB_PQ,
+                       'import_file_name': self.file_PQ,
+                       "selection": self.CB_Filtr_PQ,
+                       "years": self.Filtr_god_PQ,
+                       "season": self.Filtr_sez_PQ,
+                       "max_min": self.Filtr_max_min_PQ,
+                       "add_name": self.Filtr_dop_name_PQ,
+                       'tables': self.tab_PQ,
+                       'param': self.param_PQ,
+                       'sel': self.sel_PQ,
+                       'calc': self.tip_PQ, },
+                'IT': {'add': self.CB_IT,
+                       'import_file_name': self.file_IT,
+                       "selection": self.CB_Filtr_IT,
+                       "years": self.Filtr_god_IT,
+                       "season": self.Filtr_sez_IT,
+                       "max_min": self.Filtr_max_min_IT,
+                       "add_name": self.Filtr_dop_name_IT,
+                       'tables': self.tab_IT,
+                       'param': self.param_IT,
+                       'sel': self.sel_IT,
+                       'calc': self.tip_IT, },
+            }
+        }
 
     def import_name_table(self):
         """
@@ -491,184 +656,13 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         self.CB_ImpRg2.setText(add_str)
 
     def task_save_yaml(self):
-        name_file_save = self.save_file(directory=self.T_IzFolder.toPlainText(),
+        name_file_save = self.save_file(directory=self.path_rm.toPlainText(),
                                         filter_="YAML Files (*.cor);;All files (*.*)")
         if not name_file_save:
             raise ValueError('Не указан путь к сохраняемому файлу.')
         with open(name_file_save, 'w') as f:
-            yaml.dump(data=self.fill_task_ui() | ini.to_dict(),
+            yaml.dump(data=self.task_from_form() | ini.to_dict(),
                       stream=f, default_flow_style=False, sort_keys=False, allow_unicode=True)
-
-    def task_load_yaml(self):
-        name_file_load = self.choice_file(directory=self.T_IzFolder.toPlainText().replace('*', ''),
-                                          filter_="YAML Files (*.cor);;All files (*.*)")
-        if not name_file_load:
-            return
-        with open(name_file_load) as f:
-            task_yaml = yaml.safe_load(f)
-        if not task_yaml:
-            return
-
-        self.T_IzFolder.setPlainText(task_yaml["KIzFolder"])
-        self.T_InFolder.setPlainText(task_yaml["KInFolder"])
-
-        self.CB_KFilter_file.setChecked(task_yaml["KFilter_file"])  # QCheckBox
-        self.D_count_file.setValue(task_yaml["max_file_count"])  # QSpainBox
-        self.condition_file_years.setText(task_yaml["cor_criterion_start"]["years"])  # QLineEdit text()
-        self.condition_file_season.setCurrentText(task_yaml["cor_criterion_start"]["season"])  # QComboBox
-        self.condition_file_max_min.setCurrentText(task_yaml["cor_criterion_start"]["max_min"])
-        self.condition_file_add_name.setText(task_yaml["cor_criterion_start"]["add_name"])
-
-        self.CB_cor_b.setChecked(task_yaml["cor_beginning_qt"]['add'])
-        self.TE_cor_b.setPlainText(task_yaml["cor_beginning_qt"]['txt'])
-
-        self.CB_import_val_XL.setChecked(task_yaml["import_val_XL"])
-        self.T_PQN_XL_File.setPlainText(task_yaml["excel_cor_file"])
-        self.T_PQN_Sheets.setText(task_yaml["excel_cor_sheet"])
-
-        self.CB_kontrol_rg2.setChecked(task_yaml["checking_parameters_rg2"])
-        self.CB_U.setChecked(task_yaml["control_rg2_task"]['node'])
-        self.CB_I.setChecked(task_yaml["control_rg2_task"]['vetv'])
-        self.CB_gen.setChecked(task_yaml["control_rg2_task"]['Gen'])
-        self.kontrol_rg2_Sel.setText(task_yaml["control_rg2_task"]['sel_node'])
-
-        self.CB_printXL.setChecked(task_yaml["printXL"])
-        self.CB_print_sech.setChecked(task_yaml['set_printXL']["sechen"]['add'])
-        self.CB_print_area.setChecked(task_yaml['set_printXL']["area"]['add'])
-        self.CB_print_area2.setChecked(task_yaml['set_printXL']["area2"]['add'])
-        self.CB_print_darea.setChecked(task_yaml['set_printXL']["darea"]['add'])
-        for key in task_yaml['set_printXL']:
-            if key not in ["sechen", "area", "area2", "darea"]:
-                self.CB_print_tab_log.setChecked(task_yaml['set_printXL'][key]['add'])
-                self.print_tab_log_ar_set.setText(task_yaml['set_printXL'][key]["sel"])
-                self.print_tab_log_ar_cols.setText(task_yaml['set_printXL'][key]['par'])
-                self.print_tab_log_rows.setText(task_yaml['set_printXL'][key]['rows'])
-                self.print_tab_log_cols.setText(task_yaml['set_printXL'][key]['columns'])
-                self.print_tab_log_vals.setText(task_yaml['set_printXL'][key]['values'])
-                break
-
-        self.CB_print_parametr.setChecked(task_yaml['print_parameters']['add'])
-        self.TA_parametr_vibor.setPlainText(task_yaml['print_parameters']['sel'])
-
-        self.CB_print_balance_Q.setChecked(task_yaml['print_balance_q']['add'])
-        self.balance_Q_vibor.setText(task_yaml['print_balance_q']['sel'])
-
-        self.CB_ImpRg2.setChecked(task_yaml['CB_ImpRg2'])
-        self.CB_ImpRg2.setText(task_yaml['CB_ImpRg2_name'])
-
-        dict_ = task_yaml['Imp_add']['node']
-        self.CB_N.setChecked(dict_['add'])
-        self.file_N.setText(dict_['import_file_name'])
-        if 'selection' in dict_:
-            self.CB_Filtr_N.setChecked(dict_['selection'])
-        self.Filtr_god_N.setText(dict_["years"])
-        self.Filtr_sez_N.setCurrentText(dict_["season"])
-        self.Filtr_max_min_N.setCurrentText(dict_["max_min"])
-        self.Filtr_dop_name_N.setText(dict_["add_name"])
-        self.tab_N.setText(dict_['tables'])
-        self.param_N.setText(dict_['param'])
-        self.sel_N.setText(dict_['sel'])
-        self.tip_N.setCurrentText(dict_['calc'])
-
-        dict_ = task_yaml['Imp_add']['vetv']
-        self.CB_V.setChecked(dict_['add'])
-        self.file_V.setText(dict_['import_file_name'])
-        if 'selection' in dict_:
-            self.CB_Filtr_V.setChecked(dict_['selection'])
-        self.Filtr_god_V.setText(dict_["years"])
-        self.Filtr_sez_V.setCurrentText(dict_["season"])
-        self.Filtr_max_min_V.setCurrentText(dict_["max_min"])
-        self.Filtr_dop_name_V.setText(dict_["add_name"])
-        self.tab_V.setText(dict_['tables'])
-        self.param_V.setText(dict_['param'])
-        self.sel_V.setText(dict_['sel'])
-        self.tip_V.setCurrentText(dict_['calc'])
-
-        dict_ = task_yaml['Imp_add']['gen']
-        self.CB_G.setChecked(dict_['add'])
-        self.file_G.setText(dict_['import_file_name'])
-        if 'selection' in dict_:
-            self.CB_Filtr_G.setChecked(dict_['selection'])
-        self.Filtr_god_G.setText(dict_["years"])
-        self.Filtr_sez_G.setCurrentText(dict_["season"])
-        self.Filtr_max_min_G.setCurrentText(dict_["max_min"])
-        self.Filtr_dop_name_G.setText(dict_["add_name"])
-        self.tab_G.setText(dict_['tables'])
-        self.param_G.setText(dict_['param'])
-        self.sel_G.setText(dict_['sel'])
-        self.tip_G.setCurrentText(dict_['calc'])
-
-        dict_ = task_yaml['Imp_add']['area']
-        self.CB_A.setChecked(dict_['add'])
-        self.file_A.setText(dict_['import_file_name'])
-        if 'selection' in dict_:
-            self.CB_Filtr_A.setChecked(dict_['selection'])
-        self.Filtr_god_A.setText(dict_["years"])
-        self.Filtr_sez_A.setCurrentText(dict_["season"])
-        self.Filtr_max_min_A.setCurrentText(dict_["max_min"])
-        self.Filtr_dop_name_A.setText(dict_["add_name"])
-        self.tab_A.setText(dict_['tables'])
-        self.param_A.setText(dict_['param'])
-        self.sel_A.setText(dict_['sel'])
-        self.tip_A.setCurrentText(dict_['calc'])
-
-        dict_ = task_yaml['Imp_add']['area2']
-        self.CB_A2.setChecked(dict_['add'])
-        self.file_A2.setText(dict_['import_file_name'])
-        if 'selection' in dict_:
-            self.CB_Filtr_A2.setChecked(dict_['selection'])
-        self.Filtr_god_A2.setText(dict_["years"])
-        self.Filtr_sez_A2.setCurrentText(dict_["season"])
-        self.Filtr_max_min_A2.setCurrentText(dict_["max_min"])
-        self.Filtr_dop_name_A2.setText(dict_["add_name"])
-        self.tab_A2.setText(dict_['tables'])
-        self.param_A2.setText(dict_['param'])
-        self.sel_A2.setText(dict_['sel'])
-        self.tip_A2.setCurrentText(dict_['calc'])
-
-        dict_ = task_yaml['Imp_add']['darea']
-        self.CB_D.setChecked(dict_['add'])
-        if 'selection' in dict_:
-            self.CB_Filtr_D.setChecked(dict_['selection'])
-        self.file_D.setText(dict_['import_file_name'])
-        self.Filtr_god_D.setText(dict_["years"])
-        self.Filtr_sez_D.setCurrentText(dict_["season"])
-        self.Filtr_max_min_D.setCurrentText(dict_["max_min"])
-        self.Filtr_dop_name_D.setText(dict_["add_name"])
-        self.tab_D.setText(dict_['tables'])
-        self.param_D.setText(dict_['param'])
-        self.sel_D.setText(dict_['sel'])
-        self.tip_D.setCurrentText(dict_['calc'])
-
-        dict_ = task_yaml['Imp_add']['PQ']
-        self.CB_PQ.setChecked(dict_['add'])
-        self.file_PQ.setText(dict_['import_file_name'])
-        if 'selection' in dict_:
-            self.CB_Filtr_PQ.setChecked(dict_['selection'])
-        self.Filtr_god_PQ.setText(dict_["years"])
-        self.Filtr_sez_PQ.setCurrentText(dict_["season"])
-        self.Filtr_max_min_PQ.setCurrentText(dict_["max_min"])
-        self.Filtr_dop_name_PQ.setText(dict_["add_name"])
-        self.tab_PQ.setText(dict_['tables'])
-        self.param_PQ.setText(dict_['param'])
-        self.sel_PQ.setText(dict_['sel'])
-        self.tip_PQ.setCurrentText(dict_['calc'])
-
-        dict_ = task_yaml['Imp_add']['IT']
-        self.CB_IT.setChecked(dict_['add'])
-        self.file_IT.setText(dict_['import_file_name'])
-        if 'selection' in dict_:
-            self.CB_Filtr_IT.setChecked(dict_['selection'])
-        self.Filtr_god_IT.setText(dict_["years"])
-        self.Filtr_sez_IT.setCurrentText(dict_["season"])
-        self.Filtr_max_min_IT.setCurrentText(dict_["max_min"])
-        self.Filtr_dop_name_IT.setText(dict_["add_name"])
-        self.tab_IT.setText(dict_['tables'])
-        self.param_IT.setText(dict_['param'])
-        self.sel_IT.setText(dict_['sel'])
-        self.tip_IT.setCurrentText(dict_['calc'])
-
-        self.check_status(self.check_status_visibility)
 
     def start(self):
         """
@@ -676,173 +670,18 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         """
         ini.write_ini(section='save_form_folder_edit',
                       key="path",
-                      value=self.T_IzFolder.toPlainText())
+                      value=self.path_rm.toPlainText())
         if self.print_tab_log_ar_tab.text() in ['area', 'area2', 'darea', 'sechen']:
-            raise ValueError('В поле таблица на выбор нельзя задавать таблицы: area, area2, darea, sechen.')
-        config = self.fill_task_ui() | ini.to_dict()
+            mb.showerror("Ошибка",
+                         "В поле таблица на выбор нельзя задавать таблицы: area, area2, darea, sechen.'")
+            return
+        config = self.task_from_form() | ini.to_dict()
+        name_tab = config["set_printXL"]['таблица на выбор']['tab_name']
+        config["set_printXL"][name_tab] = config["set_printXL"]['таблица на выбор']
+        del config["set_printXL"]['таблица на выбор']
+
         em = EditModel(config)
         em.run()
-
-    def fill_task_ui(self) -> dict:
-        """
-        Возвращает данные с формы QT в формате dict.
-        """
-        task_ui = {
-            "KIzFolder": self.T_IzFolder.toPlainText(),  # QPlainTextEdit
-            "KInFolder": self.T_InFolder.toPlainText(),
-            # Выборка файлов.
-            "KFilter_file": self.CB_KFilter_file.isChecked(),  # QCheckBox
-            "max_file_count": self.D_count_file.value(),  # QSpainBox
-            "cor_criterion_start": {"years": self.condition_file_years.text(),  # QLineEdit text()
-                                    "season": self.condition_file_season.currentText(),  # QComboBox
-                                    "max_min": self.condition_file_max_min.currentText(),
-                                    "add_name": self.condition_file_add_name.text()},
-            # Корректировка в начале.
-            "cor_beginning_qt": {'add': self.CB_cor_b.isChecked(),
-                                 'txt': self.TE_cor_b.toPlainText()},
-            # Задание из 'EXCEL'
-            "import_val_XL": self.CB_import_val_XL.isChecked(),
-            "excel_cor_file": self.T_PQN_XL_File.toPlainText(),
-            "excel_cor_sheet": self.T_PQN_Sheets.text(),
-
-            # Расчет режима и контроль параметров режима
-            "checking_parameters_rg2": self.CB_kontrol_rg2.isChecked(),
-            "control_rg2_task": {'node': self.CB_U.isChecked(),
-                                 'vetv': self.CB_I.isChecked(),
-                                 'Gen': self.CB_gen.isChecked(),
-                                 'sel_node': self.kontrol_rg2_Sel.text()},
-            # Выводить данные из моделей в XL
-            "printXL": self.CB_printXL.isChecked(),
-            "set_printXL": {
-                "sechen": {'add': self.CB_print_sech.isChecked(),
-                           "sel": 'ns>0',
-                           'par': '',  # "ns,name,pmin,pmax,psech",
-                           "rows": "ns,name",  # поля строк в сводной
-                           "columns": "Год,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля столбцов в сводной
-                           "values": "psech,pmax,difference_p"},
-                "area": {'add': self.CB_print_area.isChecked(),
-                         "sel": 'na>0',
-                         'par': '',  # 'na,name,no,pg,pn,pn_sum,dp,pop,set_pop,qn_sum,pg_max,pg_min,poq,qn,qg,dev_pop',
-                         "rows": "na,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля строк в сводной
-                         "columns": "Год",  # поля столбцов в сводной
-                         "values": "pop,difference_p"},
-                "area2": {'add': self.CB_print_area2.isChecked(),
-                          "sel": 'npa>0',
-                          'par': '',  # 'npa,name,pg,pn,dp,pop,vnp,qg,qn,dq,poq,vnq,pn_sum,qn_sum,set_pop,dev_pop',
-                          "rows": "npa,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля строк в сводной
-                          "columns": "Год",  # поля столбцов в сводной
-                          "values": "pop,difference_p"},
-                "darea": {'add': self.CB_print_darea.isChecked(),
-                          "sel": 'no>0',
-                          'par': '',  # 'no,name,pg,pp,pvn,qn_sum,pnr_sum,pn_sum,set_pop,qvn,qp,qg,dev_pop',
-                          "rows": "no,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля строк в сводной
-                          "columns": "Год",  # поля столбцов в сводной
-                          "values": "pp,difference_p"},
-                self.print_tab_log_ar_tab.text(): {'add': self.CB_print_tab_log.isChecked(),
-                                                   "sel": self.print_tab_log_ar_set.text(),
-                                                   'par': self.print_tab_log_ar_cols.text(),
-                                                   "rows": self.print_tab_log_rows.text(),  # поля строк в сводной
-                                                   "columns": self.print_tab_log_cols.text(),  # поля столбцов в сводной
-                                                   "values": self.print_tab_log_vals.text()}},  # поля значений в свод
-            "print_parameters": {'add': self.CB_print_parametr.isChecked(),
-                                 "sel": self.TA_parametr_vibor.toPlainText()},
-            "print_balance_q": {'add': self.CB_print_balance_Q.isChecked(),
-                                "sel": self.balance_Q_vibor.text()},
-            # только для UI
-            'CB_ImpRg2_name': self.CB_ImpRg2.text(),
-            'CB_ImpRg2': self.CB_ImpRg2.isChecked(),
-            'Imp_add': {
-                'node': {'add': self.CB_N.isChecked(),
-                         'import_file_name': self.file_N.text(),
-                         "selection": self.CB_Filtr_N.isChecked(),
-                         "years": self.Filtr_god_N.text(),
-                         "season": self.Filtr_sez_N.currentText(),
-                         "max_min": self.Filtr_max_min_N.currentText(),
-                         "add_name": self.Filtr_dop_name_N.text(),
-                         'tables': self.tab_N.text(),
-                         'param': self.param_N.text(),
-                         'sel': self.sel_N.text(),
-                         'calc': self.tip_N.currentText(), },
-                'vetv': {'add': self.CB_V.isChecked(),
-                         'import_file_name': self.file_V.text(),
-                         "selection": self.CB_Filtr_V.isChecked(),
-                         "years": self.Filtr_god_V.text(),
-                         "season": self.Filtr_sez_V.currentText(),
-                         "max_min": self.Filtr_max_min_V.currentText(),
-                         "add_name": self.Filtr_dop_name_V.text(),
-                         'tables': self.tab_V.text(),
-                         'param': self.param_V.text(),
-                         'sel': self.sel_V.text(),
-                         'calc': self.tip_V.currentText(), },
-                'gen': {'add': self.CB_G.isChecked(),
-                        'import_file_name': self.file_G.text(),
-                        "selection": self.CB_Filtr_G.isChecked(),
-                        "years": self.Filtr_god_G.text(),
-                        "season": self.Filtr_sez_G.currentText(),
-                        "max_min": self.Filtr_max_min_G.currentText(),
-                        "add_name": self.Filtr_dop_name_G.text(),
-                        'tables': self.tab_G.text(),
-                        'param': self.param_G.text(),
-                        'sel': self.sel_G.text(),
-                        'calc': self.tip_G.currentText(), },
-                'area': {'add': self.CB_A.isChecked(),
-                         'import_file_name': self.file_A.text(),
-                         "selection": self.CB_Filtr_A.isChecked(),
-                         "years": self.Filtr_god_A.text(),
-                         "season": self.Filtr_sez_A.currentText(),
-                         "max_min": self.Filtr_max_min_A.currentText(),
-                         "add_name": self.Filtr_dop_name_A.text(),
-                         'tables': self.tab_A.text(),
-                         'param': self.param_A.text(),
-                         'sel': self.sel_A.text(),
-                         'calc': self.tip_A.currentText(), },
-                'area2': {'add': self.CB_A2.isChecked(),
-                          'import_file_name': self.file_A2.text(),
-                          "selection": self.CB_Filtr_A2.isChecked(),
-                          "years": self.Filtr_god_A2.text(),
-                          "season": self.Filtr_sez_A2.currentText(),
-                          "max_min": self.Filtr_max_min_A2.currentText(),
-                          "add_name": self.Filtr_dop_name_A2.text(),
-                          'tables': self.tab_A2.text(),
-                          'param': self.param_A2.text(),
-                          'sel': self.sel_A2.text(),
-                          'calc': self.tip_A2.currentText(), },
-                'darea': {'add': self.CB_D.isChecked(),
-                          'import_file_name': self.file_D.text(),
-                          "selection": self.CB_Filtr_D.isChecked(),
-                          "years": self.Filtr_god_D.text(),
-                          "season": self.Filtr_sez_D.currentText(),
-                          "max_min": self.Filtr_max_min_D.currentText(),
-                          "add_name": self.Filtr_dop_name_D.text(),
-                          'tables': self.tab_D.text(),
-                          'param': self.param_D.text(),
-                          'sel': self.sel_D.text(),
-                          'calc': self.tip_D.currentText(), },
-                'PQ': {'add': self.CB_PQ.isChecked(),
-                       'import_file_name': self.file_PQ.text(),
-                       "selection": self.CB_Filtr_PQ.isChecked(),
-                       "years": self.Filtr_god_PQ.text(),
-                       "season": self.Filtr_sez_PQ.currentText(),
-                       "max_min": self.Filtr_max_min_PQ.currentText(),
-                       "add_name": self.Filtr_dop_name_PQ.text(),
-                       'tables': self.tab_PQ.text(),
-                       'param': self.param_PQ.text(),
-                       'sel': self.sel_PQ.text(),
-                       'calc': self.tip_PQ.currentText(), },
-                'IT': {'add': self.CB_IT.isChecked(),
-                       'import_file_name': self.file_IT.text(),
-                       "selection": self.CB_Filtr_IT.isChecked(),
-                       "years": self.Filtr_god_IT.text(),
-                       "season": self.Filtr_sez_IT.currentText(),
-                       "max_min": self.Filtr_max_min_IT.currentText(),
-                       "add_name": self.Filtr_dop_name_IT.text(),
-                       'tables': self.tab_IT.text(),
-                       'param': self.param_IT.text(),
-                       'sel': self.sel_IT.text(),
-                       'calc': self.tip_IT.currentText(), },
-            }
-        }
-        return task_ui
 
 
 def test_run(source):
@@ -887,7 +726,7 @@ if __name__ == '__main__':
     #                     format='%(asctime)s %(name)s  %(levelname)s:%(message)s')
 
     log = logging.getLogger(__name__)
-    log.setLevel(logging.INFO)  # INFO DEBUG
+    log.setLevel(logging.DEBUG)  # INFO DEBUG
     formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s:%(message)s')
 
     file_handler = logging.FileHandler(filename=log_file, mode='w')
@@ -901,9 +740,9 @@ if __name__ == '__main__':
     log.addHandler(file_handler)
     log.addHandler(console_handler)
 
-    # Быстрый старт из yaml файла
-    # with open(r'I:\rastr_add\test\test cor rm.cor') as f:
-    #     EditModel(yaml.safe_load(f)).run() #  EditModel CalcModel
+    # Быстрый пуск из yaml файла
+    with open(r'I:\rastr_add\test\test section.cor') as f:
+        EditModel(yaml.safe_load(f)).run() # EditModel CalcModel
 
     app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
 

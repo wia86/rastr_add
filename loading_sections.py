@@ -1,128 +1,113 @@
 """Модуль загрузки сечения """
 import logging
-from typing import Union
 
 log_ls = logging.getLogger('__main__.' + __name__)
 
-def loading_section(self, ns: int, p_new: Union[float, str], type_correction: str = 'pg'):
+
+def loading_section(rm,
+                    ns: int,
+                    p_new: float | str,
+                    method: str = 'pg',
+                    max_cycle: int = 30,
+                    accuracy: float = 0.05,
+                    dr_p_set: float = 0.01) -> bool:
     """
     Изменить переток мощности в сечении номер ns до величины p_new за счет изменения нагрузки('pn') или
-    генерации ('qn') в отмеченных узлах и генераторах
-    :param ns: номер сечения
-    :param p_new:
-    :param type_correction:  'pn' изменения нагрузки или 'pg' генерации
+    генерации ('qn') в отмеченных узлах и генераторах.
+    :param rm: RastrModel
+    :param ns: Номер сечения
+    :param p_new: Требуемая мощность в сечении
+    :param method: Изменения нагрузки 'pn' или генерации 'pg'.
+    :param max_cycle: Максимальное количество циклов.
+    :param accuracy: Процент, точность задания мощности сечения, но не превышает заданную.
+    :param dr_p_set: Начальная величина реакции в узле.
+    :return: True если заданный переток в сечении достигнут.
     """
-    # --------------настройки----------
-    choice = 'sel&!sta'
-    max_cycle = 30  # максимальное количество циклов
-    accuracy = 0.05  # процент, точность задания мощности сечения, но не превышает заданную
-    dr_p_zad = 0.01  # величина реакции начальная
-
-    log_ls.info(f'\tИзменить переток мощности в сечении {ns=}: P={p_new}, выборка: {choice}, тип: {type_correction}.')
-    if self.rastr.tables.Find("sechen") == -1:
-        self.downloading_additional_files(['sch'])
-
-    index_ns = self.index(table_name='sechen', key_int=ns)
-    if index_ns == -1:
+    choice_node = 'sel&!sta'
+    log_ls.info(f'\tИзменить переток мощности в сечении {ns=}, {p_new=}, {method=}.')
+    if rm.rastr.tables.Find("sechen") == -1:
+        rm.downloading_additional_files('sch')
+    try:
+        i_ns = rm.index(table_name='sechen', key_int=ns)
+    except ValueError:
         raise ValueError(f'Сечение {ns=} отсутствует в файле сечений.')
-    grline = self.rastr.Tables("grline")
-    sechen = self.rastr.tables('sechen')
-    name_ns = sechen.cols('name').ZS(index_ns)
+
+    grline = rm.rastr.Tables("grline")
+    section_tab = rm.rastr.tables('sechen')
+    name_ns = section_tab.cols('name').ZS(i_ns)
     if p_new in ['pmax', 'pmin']:
-        p_new = sechen.cols(p_new).Z(index_ns)
+        p_new = section_tab.cols(p_new).Z(i_ns)
+
     try:
         p_new = float(p_new)
     except ValueError:
         raise ValueError(f'Заданная величина перетока мощности не распознано {p_new!r}')
+
     if not p_new:
         p_new = 0.01
-    p_current = round(self.rastr.Calc("sum", "sechen", "psech", f"ns={ns}"), 2)
-    log_ls.info(f'\tТекущий переток мощности в сечении {name_ns!r}: {p_current}.')
 
-    self.rastr.sensiv_start("")
+    rm.rastr.sensiv_start("")
     grline.SetSel(f'ns={ns}')
-    index_grline = grline.FindNextSel(-1)
-    while not index_grline == -1:
-        self.rastr.sensiv_back(4, 1., grline.Cols("ip").Z(index_grline), grline.Cols("iq").Z(index_grline), 0)
-        index_grline = grline.FindNextSel(index_grline)
+    data_grline = grline.writesafearray('ip,iq', "000")
+    for ip, iq in data_grline:
+        rm.rastr.sensiv_back(4, 1., ip, iq, 0)
 
-    self.rastr.sensiv_write("")
-    self.rastr.sensiv_end()
+    rm.rastr.sensiv_write("")
+    rm.rastr.sensiv_end()
 
-    node = self.rastr.tables("node")
-    change_p = round(p_new - p_current, 2)
-    db = 0
-    # 'pn'
-    p_sum = 0
-    dr_p_sum = 0
-    # 'pg'
-    node_all = {}
-
-    if type_correction == 'pn':  # изменение нагрузки
-
-        choice_dr_p = f"!sta & abs(dr_p) > {dr_p_zad}"  # !sta вкл
-        db = abs(self.rastr.Calc("sum", "node", "dr_p", choice_dr_p + "&dr_p>0"))
-        db += abs(self.rastr.Calc("sum", "node", "dr_p", choice_dr_p + "&dr_p<0"))
-
-    elif type_correction == 'pg':
-
-        if self.rastr.Tables("Generator").cols.Find("sel") < 0:
-            log_ls.info('В таблицу Generator добавляется отсутствующее поле sel')
-            self.rastr.Tables("Generator").Cols.Add('sel', 3)
-
-        # Доотметить узлы и генераторы которые нужно корректировать
-        # отметить генераторы у отмеченных узлов
-        node.SetSel("sel")
-        i = node.FindNextSel(-1)
-        while i >= 0:
-            self.group_cor(tabl="Generator", param="sel", selection=f"Node={node.cols('ny').ZS(i)}", formula="1")
-            i = node.FindNextSel(i)
-        # отметить узлы у отмеченных генераторов
-        generators = self.rastr.tables("Generator")
-        generators.SetSel("sel")
-        i = generators.FindNextSel(-1)
-        while i >= 0:
-            self.group_cor(tabl="node", param="sel", selection=f"ny={generators.cols('Node').ZS(i)}", formula="1")
-            i = generators.FindNextSel(i)
-        choice_dr_p = f"tip>1 &!sta & abs(dr_p) > {dr_p_zad}"  # tip>1 ген   !sta вкл
-        db = abs(self.rastr.Calc("sum", "node", "dr_p", choice_dr_p + "&dr_p>0"))
-        db += abs(self.rastr.Calc("sum", "node", "dr_p", choice_dr_p + "&dr_p<0"))
-
-        node.SetSel(choice)
-        i = node.FindNextSel(-1)
-
-        while i >= 0:
-            nd = NodeGeneration(rastr=self.rastr, i=i)
-            node_all[node.cols("ny").Z(i)] = nd
-            i = node.FindNextSel(i)
-
-    if db < dr_p_zad:
-        log_ls.error("Невозможно изменить мощность по сечению (с учетом отмеченных узлов и/или генераторов)")
+    node = rm.rastr.tables("node")
+    node.SetSel(choice_node)
+    select_add = "tip>1 &" if method == 'pg' else ''
+    # Сумма реакций в узле.
+    db = abs(rm.rastr.Calc("sum", "node", "dr_p", f"{select_add}!sta & (abs(dr_p)>{dr_p_set}) & dr_p>0"))
+    db += abs(rm.rastr.Calc("sum", "node", "dr_p", f"{select_add}!sta & (abs(dr_p)>{dr_p_set}) & dr_p<0"))
+    if db < dr_p_set:
+        log_ls.error("Невозможно изменить переток мощности в сечении.")
         return False
 
-    for cycle in range(max_cycle):
+    set_gen = []
+    if method == 'pg':
+        if rm.rastr.Tables("Generator").cols.Find("sel") < 0:
+            rm.rastr.Tables("Generator").Cols.Add('sel', 3)
 
-        p_current = round(self.rastr.Calc("sum", "sechen", "psech", f"ns={ns}"), 2)
-        change_p = round(p_new - p_current, 2)
-        log_ls.debug(f'\t{cycle=}, {p_current=}, {p_new=}, {change_p=} МВт ({round(abs(change_p / p_new) * 100)} %)')
+        # Анализ генераторов и узлов РМ.
+        gen_sect = []  # Выборка отмеченных генераторов и генераторов в отмеченных узлах.
+        node_sel = set([x[0] for x in node.writesafearray('ny', "000")])
+        gen_all = rm.rastr.Tables("Generator").writesafearray('Node,Num,sel', "000")
+        node_with_gen = set()
+        for index, (node_i, num, sel) in enumerate(gen_all):
+            node_with_gen.add(node_i)
+            if sel or (node_i in node_sel):  # отмечен узел или генератор
+                gen_sect.append((num, index))
+        # Выборка отмеченных узлов без генераторов.
+        node_sect = [node_i for node_i in node_sel if node_i not in node_with_gen]
 
-        if abs(change_p / p_new) * 100 < accuracy:
-            if (p_current < p_new and p_new > 0) or (p_current > p_new and p_new < 0):
-                log_ls.info(f'\tЗаданная точность достигнута P={p_current},'
-                         f' отклонение {change_p}. {cycle + 1} итераций')
-                break
+        for g, i in gen_sect:
+            set_gen.append(GGen(rm, key=g, i=i))
+        for n in node_sect:
+            set_gen.append(NGen(rm, key=n, i=rm.index(table_name='node', key_int=n)))
 
-        # изменение нагрузки
-        if type_correction == 'pn':
-            node.SetSel(choice)
-            i = node.FindNextSel(-1)
-            while not i == -1:
-                p_sum += node.cols("pn").Z(i)
-                dr_p_sum += node.cols("dr_p").Z(i)
-                i = node.FindNextSel(i)
+    p_section = section_tab.cols('psech')
+    for cycle in range(1, max_cycle):
+        p_sect_cur = p_section.Z(i_ns)
+        if cycle == 1:
+            log_ls.info(f'\tНачальный переток мощности в сечении {name_ns}: {p_sect_cur:.2f}.')
+        change_p = p_new - p_sect_cur
+        dev_percentage = abs(change_p / p_new) * 100
+        log_ls.debug(f'\t{cycle=}, {p_sect_cur=:.2f}, {p_new=}, {change_p=:.2f} МВт.')
+
+        if dev_percentage < accuracy:
+            if (p_sect_cur < p_new and p_new > 0) or (p_sect_cur > p_new and p_new < 0):
+                log_ls.info(f'\tЗаданная точность достигнута psech={p_sect_cur:.2f},'
+                            f' отклонение {change_p:.2f} МВт, количество итераций: {cycle - 1}.')
+                return True
+
+        if method == 'pn':
+            p_sum = sum((x[0] for x in node.writesafearray('pn', "000")))
+            dr_p_sum = sum((x[0] for x in node.writesafearray('dr_p', "000")))
             if not p_sum:
                 log_ls.error('Изменение мощности сечения: сумма нагрузки узлов равна 0')
-                break
+                return False
             if dr_p_sum < 0:
                 coefficient = 1 + (1 - (p_sum - change_p) / p_sum)
             else:
@@ -130,207 +115,170 @@ def loading_section(self, ns: int, p_new: Union[float, str], type_correction: st
             node.cols("pn").Calc(f"pn*({coefficient})")
             node.cols("qn").Calc(f"qn*({coefficient})")
 
-        # изменение генерации
-        elif type_correction == 'pg':
-            NodeGeneration.change_p = change_p
+        elif method == 'pg':
             section_up_sum = 0
             section_down_sum = 0
-            for nd in node_all:
-                if nd.use:
-                    nd.reserve_p()
-                    if change_p * nd.dr_p > 0:
-                        if nd.reserve_p_up:
-                            section_up_sum += nd.reserve_p_up
-                            nd.up_pgen = True
-                    elif change_p * nd.dr_p < 0:
-                        if nd.reserve_p_down:
-                            section_down_sum += nd.reserve_p_down
-                            nd.up_pgen = False
-            log_ls.debug(f'')
-            if not (section_up_sum and section_down_sum):
-                log_ls.error(f'Не удалось добиться заданной точности в сечении')
+            for gen in set_gen:
+                gen.reserve_p()
+                gen.direction = ''
+                if change_p * gen.info['dr_p'] > 0:
+                    if gen.reserve_p_up:
+                        section_up_sum += gen.reserve_p_up
+                        gen.direction = 'up'
+                elif change_p * gen.info['dr_p'] < 0:
+                    if gen.reserve_p_down:
+                        section_down_sum += gen.reserve_p_down
+                        gen.direction = 'down'
 
-            # на сколько МВт нужно снизить Р
-            reduce_p = abs(section_down_sum / (section_down_sum + section_up_sum) * change_p)
-            if section_down_sum < reduce_p:
-                reduce_p = section_down_sum
-            # на сколько МВт нужно увеличить Р
-            increase_p = abs(abs(change_p) - reduce_p)
-            if section_up_sum < increase_p:
-                increase_p = section_up_sum
+            sum_reserve = section_up_sum + section_down_sum
+
+            if not sum_reserve:
+                log_ls.error(f'Исчерпан резерв мощности.')
+                return False
+
+            # На сколько МВт нужно снизить Р.
+            reduce_p = min(abs(section_down_sum / sum_reserve * change_p), section_down_sum)
+            # На сколько МВт нужно увеличить Р.
+            increase_p = min(abs(abs(change_p) - reduce_p), section_up_sum)
 
             if (section_down_sum + section_up_sum) < change_p:
                 log_ls.info("Генерации не хватает")
-            # Коэффициент на сколько нужно умножить резерв Рген и прибавить к резерву Рген, для снижения генерации
-            koef_p_down = 0
-            # Коэффициент: на сколько нужно умножить резерв Рген и прибавить его к резерву Рген,
-            # для увеличения генерации
-            koef_p_up = 0
-            if section_down_sum:
-                koef_p_down = 1 - (section_down_sum - reduce_p) / section_down_sum
-            if section_up_sum:
-                koef_p_up = 1 - (section_up_sum - increase_p) / section_up_sum
+            # На сколько нужно умножить резерв Рген и прибавить к резерву Рген, для снижения генерации.
+            koef_p_down = (1 - (section_down_sum - reduce_p) / section_down_sum) if section_down_sum else 0
+            # На сколько нужно умножить резерв Рген и прибавить его к резерву Рген, для увеличения генерации.
+            koef_p_up = (1 - (section_up_sum - increase_p) / section_up_sum) if section_up_sum else 0
 
-            for nd in node_all:
-                if nd.use:
-                    nd.change(koef_p_down=koef_p_down, koef_p_up=koef_p_up)
+            for gen in set_gen:
+                match gen.direction:
+                    case "up":
+                        gen.ratio = koef_p_up
+                    case "down":
+                        gen.ratio = koef_p_down
+                gen.change_generation()
+        rm.rgm('loading_section')
 
-        self.rgm('loading_section')
-    else:
-        log_ls.info(f'Заданная точность не достигнута P={p_current}, отклонение {change_p}.')
+    p_sect_cur = p_section.Z(i_ns)
+    log_ls.info(f'Заданная точность не достигнута P={p_sect_cur:.2f}, '
+                f'отклонение {p_new - p_sect_cur:.2f}.')
+    return False
 
 
-class NodeGeneration:
-    """Класс для хранения информации об узле для изменения мощности в сечении."""
-    dr_p_koeff = 0  # если 1, то умножаем дополнительно на dr_p в этом случае больше загружаются
-    # генераторы которые меньше влияют на изменение мощности в сечении
+class ObjectGeneration:
+    """Для описания общих свойств генераторов и генерации в узле."""
+    # no_pmin = True  # todo не учитывать Pmin
+    # dr_p_koeff = 0  # если 1, то умножаем дополнительно на dr_p в этом случае больше загружаются
+    # # генераторы которые меньше влияют на изменение мощности в сечении
+    reserve_p_up = 0  # Резерв Р на увеличение генерации.
+    reserve_p_down = 0  # Резерв Р на снижение генерации.
+    pg = None  # Текущее значение генерации.
+    direction = ''  # Нужно увеличивать 'up' или уменьшать генерацию 'down'.
+    sta = 0  # 1 отключен, 0 включен.
+    ratio = 0  # Соотношение для получения требуемой мощности генерации.
+    info = None
+    rm = None
+    table_name = None  # 'node' или 'Generator'
+    pg_name = None  # 'pg' или 'P'
+    i = None  # Индекс в таблице rastr
+    key_name = None  # 'Num' or 'ny'
+    key = None  # Значение Num или ny
 
-    no_pmin = True  # ' не учитывать Pmin
-    abs_change_p = None  # todo что это?
-    change_p = 0
-    unbalance_p = 0
-
-    def __init__(self, i: int, rastr):
-        """
-        :param i: Индекс в таблице узлы
-        :param rastr:
-        """
-        self.gen_available = False  # Узел с генераторами
-        self.use = True
-        self.up_pgen = True
-        self.reserve_p_up = 0
-        self.reserve_p_down = 0
-        self.rastr = rastr
+    def __init__(self, rm, key: int, i: int):
+        self.key = key
         self.i = i
-        self.node_t = self.rastr.tables("node")
-        gen_t = self.rastr.tables("Generator")
-        self.ny = self.node_t.Cols("ny").Z(self.i)
-        self.dr_p = self.node_t.Cols("dr_p").Z(self.i)
-        self.gen_all = {}
-        dr_p = self.node_t.Cols("dr_p").Z(self.i)
-        self.name = self.node_t.Cols("name").ZS(self.i)
-        txt = f'\t\tУзел {self.ny}: {self.name}'
-        gen_t.SetSel(f"Node={self.ny}")
-        if gen_t.count:
-            gen_t.SetSel(f"Node={self.ny}&sel")  # все генераторы дб отмечены, если не отмечен то не используем
-            i = gen_t.FindNextSel(-1)
-            while i >= 0:  # ЦИКЛ ген
-                self.gen_available = True  # узел с генераторами
-                gen = Gen(rastr=self.rastr, i=i)
-                self.gen_all[gen.Num] = gen
-                i = gen_t.FindNextSel(i)
-        else:
-            self.pg_max = self.node_t.Cols("pg_max").Z(self.i)
-            self.pg_min = self.node_t.Cols("pg_min").Z(self.i)
+        self.rm = rm
 
     def reserve_p(self):
-        self.reserve_p_up = 0
-        self.reserve_p_down = 0
-        if self.gen_available:
-            for gen in self.gen_all:
-                if gen.use:
-                    gen.reserve_p()
-                    self.reserve_p_up += gen.reserve_p_up
-                    self.reserve_p_down += gen.reserve_p_down
-        else:
-            if self.pg_max:
-                self.reserve_p_up = self.pg_max - self.node_t.Cols("pg").Z(self.i)
-            else:
-                log_ls.info(f"в узле {self.ny} {self.name} не задано поле pg_max")
-            self.reserve_p_down = self.node_t.Cols("pg").Z(self.i)
+        self.sta = self.rm.rastr.Calc("val",
+                                      self.table_name,
+                                      "sta",
+                                      f"{self.key_name}={self.key}")
+        if self.sta:  # Отключен > 0.
+            self.pg = 0
+            self.reserve_p_up = self.info['pg_max']
+            self.reserve_p_down = 0
+        else:  # Включен 0.
+            self.pg = self.rm.rastr.Calc("val",
+                                         self.table_name,
+                                         self.pg_name,
+                                         f"{self.key_name}={self.key}")
+            self.reserve_p_up = self.info['pg_max'] - self.pg
+            self.reserve_p_down = self.pg
 
-    def change(self, koef_p_down: float = 0, koef_p_up: float = 0):
-        # --------------настройки----------
-        change_p = abs(NodeGeneration.abs_change_p)
-        unbalance_p = NodeGeneration.unbalance_p
-        pg_node = self.node_t.Cols("pg").Z(self.i)
+    def change_generation(self):
 
-        if self.up_pgen:
-            deviation_pg = koef_p_up * self.reserve_p_up  # На сколько нужно изменить генерацию в узле
-        else:
-            deviation_pg = pg_node * koef_p_down
+        deviation_pg = None  # На сколько нужно изменить генерацию в узле
+        pg_new = None
+        match self.direction:
+            case 'up':
+                deviation_pg = self.ratio * self.reserve_p_up
+                pg_new = self.pg + deviation_pg
+            case 'down':
+                deviation_pg = self.ratio * self.pg
+                pg_new = self.pg - deviation_pg
 
         if not deviation_pg:
             return False
 
-        if unbalance_p > 0:
-            if unbalance_p > deviation_pg:
-                unbalance_p = unbalance_p - deviation_pg
-                deviation_pg = 0
-            if unbalance_p < deviation_pg:
-                deviation_pg = deviation_pg - unbalance_p
-                unbalance_p = 0
+        pg_new = self.pg_correction(pg_new)
+        # Включить если отключен.
+        if pg_new and self.sta:
+            self.sta = 0
+            self.rm.rastr.tables(self.table_name).cols.Item('sta').SetZ(self.i, self.sta)
+        self.rm.rastr.tables(self.table_name).cols.Item(self.pg_name).SetZ(self.i, pg_new)
 
-        if not self.gen_available:  # нет генераторов
-            if self.up_pgen:  # увеличиваем генерацию узла, koef_p_up
-                if self.pg_max and self.pg_max > pg_node:
-                    if self.pg_min > pg_node + deviation_pg:  # (от 0 до pg_min)
-                        if self.pg_min and not self.no_pmin:  # если есть Рмин и учитываем Рмин то
-                            if change_p > self.pg_min:
-                                self.node_t.cols.Item("pg").SetZ(self.i, self.pg_min)
-                                # unbalance_p = unbalance_p + (self.pg_min - deviation_pg)
-                                change_p = change_p - self.pg_min
-                        else:  # нет Рмин или не учитываем Рмин
-                            self.node_t.cols.Item("pg").SetZ(self.i, pg_node + deviation_pg)
-                            change_p = change_p - deviation_pg
-                    elif self.pg_max > pg_node + deviation_pg and (
-                            self.pg_min < pg_node + deviation_pg or self.pg_min == pg_node + deviation_pg):
-                        # (от pg_min (включительно) до pg_max)v
-                        self.node_t.cols.Item("pg").SetZ(self.i, pg_node + deviation_pg)
-                        change_p = change_p - deviation_pg
-                    elif self.pg_max < pg_node + deviation_pg or self.pg_max == pg_node + deviation_pg:
-                        # (больше или равно pg_max)
-                        self.node_t.cols.Item("pg").SetZ(self.i, self.pg_max)
-                        change_p = change_p - (self.pg_max - pg_node)
-
-            else:  # снижаем генерацию узла,KefPG_Down
-                if self.pg_min < pg_node - deviation_pg or self.pg_min == pg_node - deviation_pg:
-                    # (от pg_min (включительно) до pg_node)
-                    self.node_t.cols.Item("pg").SetZ(self.i, pg_node - deviation_pg)
-                    change_p = change_p - deviation_pg
-
-                elif self.pg_min > pg_node - deviation_pg and (pg_node - deviation_pg) > 0:  # (от 0 до pg_min)
-                    if self.pg_min > 0 and not self.no_pmin:  # если есть Рмин и учитываем Рмин то
-                        self.node_t.cols.Item("pg").SetZ(self.i, self.pg_min)
-                        change_p = change_p - (pg_node - self.pg_min)
-                        deviation_pg = deviation_pg - (pg_node - self.pg_min)
-                        if change_p > self.pg_min:
-                            self.node_t.cols.Item("sta").SetZ(self.i, True)
-                            # unbalance_p = unbalance_p + (self.pg_min - deviation_pg)
-                            change_p = change_p - self.pg_min
-
-                    else:  # если Рмин не учитываем
-                        self.node_t.cols.Item("pg").SetZ(self.i, pg_node - deviation_pg)
-                        change_p = change_p - deviation_pg
-
-                elif pg_node - deviation_pg < 0 or pg_node == deviation_pg:  # (меньше или равно 0)
-                    self.node_t.cols.Item("pg").SetZ(self.i, 0)
-                    change_p = change_p - pg_node
+    def pg_correction(self, pg_new: float) -> float:
+        if pg_new > self.info['pg_max']:
+            pg_new = self.info['pg_max']
+        if pg_new < 0:
+            pg_new = 0
+        if 0 < pg_new < self.info['pg_min']:
+            pg_new = self.pg
+        return pg_new
 
 
+class GGen(ObjectGeneration):
+    table_name = 'Generator'
+    pg_name = 'P'
+    key_name = 'Num'
+    """Генератор для изменения мощности в сечении."""
 
-class Gen:
-    """Класс для хранения информации о генераторах в узле для изменения мощности в сечении."""
+    def __init__(self, rm, key: int, i: int):
+        super().__init__(rm, key, i)
+        self.info = rm.df_from_table(table_name=self.table_name,
+                                     fields='Name,Pmin,Pmax,Num,Node',
+                                     setsel=f'{self.key_name}={self.key}')
+        self.info.rename(columns={'Name': 'name',
+                                  'Node': 'ny',
+                                  'Pmin': 'pg_min',
+                                  'Pmax': 'pg_max'},
+                         inplace=True)
+        self.info = self.info.loc[0].to_dict()
 
-    def __init__(self, i: int, rastr):
-        self.reserve_p_up = 0
-        self.reserve_p_down = 0
-        self.use = True
-        self.rastr = rastr
-        self.i = i
-        self.gen_t = self.rastr.tables("Generator")
-        self.Num = self.gen_t.Cols("Num").Z(self.i)
-        self.gen_name = self.gen_t.Cols("Name").Z(self.i)
-        self.Pmax = self.gen_t.Cols("Pmax").Z(self.i)
-        if not self.Pmax:
-            log_ls.debug(f"У генератора {self.Num!r}: {self.gen_name!r}  не задано Pmax")
-        self.Pmin = self.gen_t.Cols("Pmin").Z(self.i)
+        self.info['dr_p'] = self.rm.rastr.Calc("val", "node", "dr_p", f"ny={self.info['ny']}")
+        if not self.info['pg_max']:
+            raise ValueError(f"В генераторе [{self.info['Num']}] {self.info['name']} не задано поле [Pmax].")
 
-    def reserve_p(self):
-        if self.gen_t.Cols("sta").Z(self.i):
-            self.reserve_p_up = self.Pmax
-        else:  # если генератор включен
-            self.reserve_p_down = self.gen_t.Cols("P").Z(self.i)
-            if self.Pmax:
-                self.reserve_p_up = self.Pmax - self.gen_t.Cols("P").Z(self.i)
+    def __str__(self):
+        return f'g={self.key}'
+
+
+class NGen(ObjectGeneration):
+    """Узел для изменения мощности в сечении."""
+    table_name = 'node'
+    pg_name = 'pg'
+    key_name = 'ny'
+
+    def __init__(self, rm, key: int, i: int):
+        super().__init__(rm, key, i)
+
+        self.info = rm.df_from_table(table_name=self.table_name,
+                                     fields='name,pg_min,pg_max,ny,dr_p',
+                                     setsel=f'{self.key_name}={self.key}'
+                                     ).loc[0].to_dict()
+        self.info['dr_p'] = self.rm.rastr.Calc("val", "node", "dr_p", f"ny={self.info['ny']}")
+        if not self.info['pg_max']:
+            raise ValueError(f"В узле [{self.info['ny']}] {self.info['name']} не задано поле [pg_max].")
+
+    def __str__(self):
+        return f'ny={self.key}'
 

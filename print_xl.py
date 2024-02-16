@@ -22,8 +22,28 @@ class PrintXL:
                          'no': 'darea',
                          'nga': 'ngroup',
                          'ns': 'sechen'}
-
-    #  ...._log лист протокол для сводной
+    set_param = {
+        "sechen": {"sel": 'ns>0',
+                   'par': '',  # "ns,name,pmin,pmax,psech",
+                   "rows": "ns,name",  # поля строк в сводной
+                   "columns": "Год,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля столбцов в сводной
+                   "values": "psech,pmax,difference_p"},
+        "area": {"sel": 'na>0',
+                 'par': '',  # 'na,name,no,pg,pn,pn_sum,dp,pop,set_pop,qn_sum,pg_max,pg_min,poq,qn,qg,dev_pop'
+                 "rows": "na,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля строк в сводной
+                 "columns": "Год",  # поля столбцов в сводной
+                 "values": "pop,difference_p"},
+        "area2": {"sel": 'npa>0',
+                  'par': '',  # 'npa,name,pg,pn,dp,pop,vnp,qg,qn,dq,poq,vnq,pn_sum,qn_sum,set_pop,dev_pop'
+                  "rows": "npa,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля строк в сводной
+                  "columns": "Год",  # поля столбцов в сводной
+                  "values": "pop,difference_p"},
+        "darea": {"sel": 'no>0',
+                  'par': '',  # 'no,name,pg,pp,pvn,qn_sum,pnr_sum,pn_sum,set_pop,qvn,qp,qg,dev_pop',
+                  "rows": "no,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля строк в сводной
+                  "columns": "Год",  # поля столбцов в сводной
+                  "values": "pp,difference_p"}
+    }
 
     def __init__(self, task):
         """
@@ -33,6 +53,10 @@ class PrintXL:
         self.data_table = {}  # Для хранения ссылок на листы excel {'имя листа=имя таблицы': fd c данными}
         self.data_parameters = pd.DataFrame()
         self.task = task
+        for tb in self.task['set_printXL']:
+            if tb in self.set_param:
+                self.task['set_printXL'][tb] = self.task['set_printXL'][tb] | self.set_param[tb]
+
         self.book = Workbook()
         #  Создать лист xl и присвоить ссылку на него
         for name_table in self.task['set_printXL']:
@@ -106,7 +130,7 @@ class PrintXL:
             # проверка наличия таблицы
             if rm.rastr.Tables.Find(name_table) < 0:
                 if name_table == 'sechen':
-                    rm.downloading_additional_files(['sch'])
+                    rm.downloading_additional_files('sch')
             # Считать данные из таблиц растр.
 
             fields = self.task['set_printXL'][name_table]['par'].replace(' ', '')
@@ -132,7 +156,7 @@ class PrintXL:
         """
         if 'sechen' in self.task['print_parameters']['sel']:
             if rm.rastr.tables.Find('sechen') < 0:
-                rm.downloading_additional_files(['sch'])
+                rm.downloading_additional_files('sch')
         date = pd.Series(dtype='object')
         for i in self.set_output_parameters:
             k, p = i.split(':')

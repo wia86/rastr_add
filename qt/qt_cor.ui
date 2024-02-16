@@ -260,7 +260,7 @@
            <item>
             <layout class="QHBoxLayout" name="horizontalLayout_11">
              <item>
-              <widget class="QPlainTextEdit" name="T_IzFolder">
+              <widget class="QPlainTextEdit" name="path_rm">
                <property name="enabled">
                 <bool>true</bool>
                </property>

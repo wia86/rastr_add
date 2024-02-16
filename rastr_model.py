@@ -7,6 +7,7 @@ from tkinter import messagebox as mb
 import win32com.client
 
 from import_rm import ImportFromModel
+from loading_sections import loading_section
 import collection_func as cf
 log_rm = logging.getLogger(f'__main__.{__name__}')
 
@@ -62,7 +63,7 @@ class RastrModel:
         self.info_file['rm_id'] = RastrModel.rm_id
         self.all_auto_shunt = {}
         self.info_file["Темп.(°C)"]: float = 0
-        self.additional_name_list = None
+        self.additional_name_list = []
         self.add_load = []  # Расширение дополнительных файлов из [trn, anc]
 
         # Для хранения исходной схемы и параметров сети
@@ -605,27 +606,28 @@ class RastrModel:
         log_rm.info(f"Загружен файл: {self.full_name}")
 
         # При загрузке файла rst или rg2 загружать одноименные файлы trn и anc (из той же папки)
-        if self.config['load_trn_anc']:
-            for type_file_add in ['trn', 'anc']:
+        if self.config['load_add']:
+            for type_file_add in ['trn', 'anc', 'sch']:
                 name_file_add = f'{self.dir}\\{self.name_base}.{type_file_add}'
                 if os.path.exists(name_file_add):
                     self.add_load.append(type_file_add)
                     self.rastr.Load(1, name_file_add, self.config[f'шаблон {type_file_add}'])
                     log_rm.info(f"Загружен файл: {name_file_add}")
 
-    def downloading_additional_files(self, load_additional: list = None):
+    def downloading_additional_files(self, load_additional: str) -> str:
         """
         Загрузка в Rastr дополнительных файлов из папки с РМ.
-        :param load_additional: ['amt','sch','trn']
+        :param load_additional: 'amt','sch','trn'
         """
-        for extension in load_additional:
-            files = os.listdir(self.dir)
-            names = list(filter(lambda x: x.endswith('.' + extension), files))
-            if len(names) > 0:
-                self.rastr.Load(1, f'{self.dir}\\{names[0]}', self.config[f"шаблон {extension}"])
-                log_rm.info(f"Загружен файл: {names[0]}")
-            else:
-                raise ValueError(f'Файл с расширением {extension!r} не найден в папке {self.dir}')
+        files = os.listdir(self.dir)
+        names = list(filter(lambda x: x.endswith('.' + load_additional), files))
+        if len(names) > 0:
+            self.rastr.Load(1, f'{self.dir}\\{names[0]}',
+                            self.config[f"шаблон {load_additional}"])
+            log_rm.info(f"Загружен файл: {names[0]}")
+        else:
+            raise ValueError(f'Файл с расширением {load_additional!r} не найден в папке {self.dir}')
+        return names[0]
 
     def save(self, full_name_new: str = '', file_name: str = '', folder_name: str = ''):
         """
@@ -877,22 +879,16 @@ class RastrModel:
         elif 'добавить' in name:
             self.table_add_row(table=sel, tasks=value)
         elif 'текст' in name:
-            self.txt_field_right(tasks=(all_task if all_task else sel))
+            self.txt_field_right(tasks=(all_task or sel))
             return "\tИсправить пробелы, заменить английские буквы на русские."
         elif 'схн' in name:
             self.shn(choice=sel)
         elif 'сечение' in name:
-            raise ValueError('Функция загрузки сечений не реализована.')
-            # sel = sel.replace(' ', '')
-            # for i in ['ns:', 'psech:', 'выбор:', 'тип:']:
-            #     if i not in sel:
-            #         raise ValueError(f'В задании "сечение": {sel!r} отсутствует ключ {i!r}')
-            # sel = sel.split(';')
-            # sd = {}
-            # for _ in sel:
-            #     key, val = _.split(':')
-            #     sd[key] = val
-            # ls.loading_section(ns=sd['ns'], p_new=sd['psech'], type_correction=sd['тип'])
+            sd = {}
+            for i in (all_task or sel).replace(' ', '').split(';'):
+                key, val = i.split(':')
+                sd[key] = val
+            loading_section(self, **sd)
         elif 'напряжения' in name:
             self.voltage_error(choice=sel, edit=True)
 
@@ -1758,8 +1754,6 @@ class RastrModel:
         """
         table = self.rastr.tables(table_name)
         table.setsel(setsel)
-        # if not table.count:
-        #     return False
         if not fields:
             fields = self.all_cols(table_name)
         fields = fields.replace(' ', '').replace(',,', ',').strip(',')
