@@ -30,9 +30,8 @@ def str_yeas_in_list(id_str: str):
 def split_task_action(txt: str) -> list | bool:
     """
     Разделить строку по запятым, если запятая не внутри [] {}
-    :param txt: [15114,15011,0:sta=1],[15011,15012:sta=0]{15114,15011:sta==1},[15105,15131:sta=1],6
-    :return: [[15114,15011,0:sta=1],[15011,15012:sta=0]{15114,15011:sta==1},[15105,15131:sta=1],6]
-    или  False
+    :param txt: '[1,2,0:sta=1],[2,3:sta=0]{5,7:sta==1},[9,8:sta=1],6'
+    :return: ['[1,2,0:sta=1]', '[2,3:sta=0]{5,7:sta==1}', '[9,8:sta=1]', '6'] или  False
     """
     if not txt:
         return False
@@ -57,5 +56,5 @@ def split_task_action(txt: str) -> list | bool:
 
 
 if __name__ == '__main__':
-    str_yeas_in_list('2021..2025')
-    # str_yeas_in_list((2021, 2025,))
+    # print(str_yeas_in_list('2021...2025'))
+    print(split_task_action('[1,2,0:sta=1],[2,3:sta=0]{5,7:sta==1},[9,8:sta=1],6'))

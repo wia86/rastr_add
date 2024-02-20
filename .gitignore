@@ -2,10 +2,10 @@
 /venv11/
 /build/
 /dist/
-/test/
 /.idea/
 /.git/
 /.mypy_cache/
 /__pycache__/
 /settings.ini
 /log_file.log
+/test_rm/РМ v1/result/

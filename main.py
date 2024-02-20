@@ -1,4 +1,5 @@
 """Программа для автоматизации работы ПК RASTRWIN3"""
+import os
 import sys
 import yaml
 from datetime import datetime
@@ -11,7 +12,7 @@ from qt.qt_cor import Ui_cor
 from qt.qt_calc_ur import Ui_calc_ur
 from qt.qt_calc_ur_set import Ui_calc_ur_set
 # from urllib.request import urlopen
-# Мои модули
+
 from calc_model import CalcModel
 from edit_model import EditModel
 from ini import Ini
@@ -345,6 +346,7 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
         config = self.task_from_form() | ini.to_dict()
         cm = CalcModel(config)
         cm.run()
+        cm.save_log(name_file_source=log_file)
 
 
 class CalcSetWindow(QtWidgets.QMainWindow, Ui_calc_ur_set, Window):
@@ -676,12 +678,10 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                          "В поле таблица на выбор нельзя задавать таблицы: area, area2, darea, sechen.'")
             return
         config = self.task_from_form() | ini.to_dict()
-        name_tab = config["set_printXL"]['таблица на выбор']['tab_name']
-        config["set_printXL"][name_tab] = config["set_printXL"]['таблица на выбор']
-        del config["set_printXL"]['таблица на выбор']
 
         em = EditModel(config)
         em.run()
+        em.save_log(name_file_source=log_file)
 
 
 def test_run(source):
@@ -718,9 +718,8 @@ def my_except_hook(func):
 
 if __name__ == '__main__':
     sys.excepthook = my_except_hook(sys.excepthook)
-    log_file = 'log_file.log'
+    log_file = f'log_file.log'
     ini = Ini('settings.ini')
-    ini.write_ini(section='other', key='log_file', value=log_file)
     # DEBUG, INFO, WARNING, ERROR и CRITICAL
     # logging.basicConfig(filename="log_file.log", level=logging.DEBUG, filemode='w',
     #                     format='%(asctime)s %(name)s  %(levelname)s:%(message)s')
@@ -740,9 +739,6 @@ if __name__ == '__main__':
     log.addHandler(file_handler)
     log.addHandler(console_handler)
 
-    # Быстрый пуск из yaml файла EditModel CalcModel
-    # with open(r'I:\ОЭС Урала\Тюм_ЭС\КПР Тюменьэнерго до 2030 года\ИД СО\2-2 t-u.cor') as f:
-    #     EditModel(yaml.safe_load(f)).run()
 
     app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
 

@@ -11,8 +11,8 @@ def test_str_yeas_in_list(t, result):
     assert all(str_yeas_in_list(t) == result)
 
 
-@pytest.mark.parametrize("id_str, expected_exception", [('2021..2023', ValueError),
-                                                        ((2021, 2023,), AttributeError)])
-def test_str_yeas_in_list_error(id_str, expected_exception):
+@pytest.mark.parametrize("t, expected_exception", [('2021..2023', ValueError),
+                                                   ((2021, 2023,), AttributeError)])
+def test_str_yeas_in_list_error(t, expected_exception):
     with pytest.raises(expected_exception):
-        str_yeas_in_list(id_str)
+        str_yeas_in_list(t)

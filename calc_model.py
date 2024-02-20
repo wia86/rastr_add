@@ -1,7 +1,6 @@
 from openpyxl import Workbook, load_workbook
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
-import shutil
 from itertools import combinations
 from datetime import datetime
 import os
@@ -12,7 +11,6 @@ import pandas as pd
 from tabulate import tabulate
 from collections import namedtuple, defaultdict
 import win32com.client
-import yaml
 
 import collection_func as cf
 from rastr_model import RastrModel
@@ -33,7 +31,7 @@ class CalcModel(Common):
         :param config: Задание и настройки программы
         """
         super(CalcModel, self).__init__()
-        self.config = config
+        self.config = self.config | config
         RastrModel.config = config['Settings']
 
         RastrModel.overwrite_new_file = 'question'
@@ -129,11 +127,8 @@ class CalcModel(Common):
                 self.run_calc_task()
 
         self.the_end()
-        notepad_path = f'{self.config["name_time"]} протокол расчета РМ.log'
-        shutil.copyfile(self.config['other']['log_file'], notepad_path)
-        with open(self.config['name_time'] + ' задание.calc', 'w') as f:
-            yaml.dump(data=self.config, stream=f, default_flow_style=False, sort_keys=False, allow_unicode=True)
-        mb.showinfo("Инфо", self.set_info['end_info'])
+        self.save_config(self.config, 'calc')
+        mb.showinfo("Инфо", self.config['end_info'])
 
     @staticmethod
     def gen_comb_xl(rm, df: pd.DataFrame) -> pd.DataFrame:

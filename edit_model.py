@@ -1,4 +1,3 @@
-import shutil
 from datetime import datetime
 import os
 import logging
@@ -8,7 +7,6 @@ from rastr_model import RastrModel
 from import_rm import ImportFromModel
 from cor_xl import CorXL
 from print_xl import PrintXL
-import yaml
 
 from common import Common
 # import loading_sections as ls
@@ -25,7 +23,12 @@ class EditModel(Common):
         :param config: Задание и настройки программы
         """
         super(EditModel, self).__init__()
-        self.config = config
+        self.config = self.config | config
+
+        name_tab = self.config["set_printXL"]['таблица на выбор']['tab_name']
+        self.config["set_printXL"][name_tab] = self.config["set_printXL"]['таблица на выбор']
+        del self.config["set_printXL"]['таблица на выбор']
+
         RastrModel.config = config['Settings']
         RastrModel.overwrite_new_file = 'question'
         self.cor_xl = None
@@ -126,15 +129,11 @@ class EditModel(Common):
             self.print_xl.finish()
 
         self.the_end()
-        if self.set_info['collapse']:
-            t = f',\n'.join(self.set_info['collapse'])
-            self.set_info['end_info'] += f"\nВНИМАНИЕ! Развалились модели:\n[{t}]."
-
-        notepad_path = self.config['name_time'] + ' протокол коррекции файлов.log'
-        shutil.copyfile(self.config['other']['log_file'], notepad_path)
-        with open(self.config['name_time'] + ' задание.cor', 'w') as f:
-            yaml.dump(data=self.config, stream=f, default_flow_style=False, sort_keys=False, allow_unicode=True)
-        mb.showinfo("Инфо", self.set_info['end_info'])
+        if self.config['collapse']:
+            t = f',\n'.join(self.config['collapse'])
+            self.set_inconfigfo['end_info'] += f"\nВНИМАНИЕ! Развалились модели:\n[{t}]."
+        self.save_config(self.config, 'cor')
+        mb.showinfo("Инфо", self.config['end_info'])
 
     def for_file_in_dir(self, from_dir: str, in_dir: str):
         files = os.listdir(from_dir)  # список всех файлов в папке
@@ -176,7 +175,7 @@ class EditModel(Common):
 
         if self.config.get("checking_parameters_rg2", False):
             if not rm.checking_parameters_rg2(self.config['control_rg2_task']):  # Расчет и контроль параметров режима.
-                self.set_info['collapse'].append(rm.name_base)
+                self.config['collapse'].append(rm.name_base)
 
         if self.config.get("printXL", False):
             if not isinstance(self.print_xl, PrintXL):

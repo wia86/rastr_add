@@ -1,0 +1,174 @@
+KIzFolder: I:\rastr_add\test_rm\РМ v1
+KInFolder: I:\rastr_add\test_rm\РМ v2
+KFilter_file: true
+max_file_count: 1004
+cor_criterion_start:
+  years: 2026...2027
+  season: ''
+  max_min: ''
+  add_name: ''
+cor_beginning_qt:
+  add: true
+  txt: "анализ[na>0] # [-] только анализ\nудалить*[15181; 15105,15113]{years : 2025...2026&\
+    \ season:зим& max_min:макс& add_name:0°C}  \nизм[15105:name=Новое имя; pn=qn*2+10]\
+    \ \nизм[15106:qn=100] {years : 2026&(ny=15106:vras>110)}  \nизм[15106:qn=100]\
+    \ {years : 2026&(ny=15037:vras<110)}  \nизм[(vetv);(area);(area2);(darea): Tc=0]\n\
+    изм[15512,15518: x=(10+15511,15517:r)+ip.uhom]  \nснять отметку\nдобавить[vetv:ip=15113;iq=15105;np=3;x=2;r=1.5;b=-0,000182]\n\
+    текст[node: name, dname; vetv:dname; Generator: Name]  \nСХН[na=11]{add_name:AutoBsh}\
+    \  \nнапряжения[na=11]  \nСКРМ*[na=11]\nимпорт[папка: (I:\\rastr_add\\test_rm\\\
+    файлы импорта\\файл для импорта.rg2); таблица:Generator; тип:2; поле: Pmax; выборка:Num=300]\n\
+    \n"
+import_val_XL: true
+excel_cor_file: I:\rastr_add\test_rm\пример задания.xlsx
+excel_cor_sheet: ' [ТФ пример 1 (pn, qn)][ТФ пример 2 (pop)][импорт из моделей(ИМ)][строковая
+  форма(СФ)][импорт таблиц(ИТ)]'
+checking_parameters_rg2: true
+control_rg2_task:
+  node: true
+  vetv: true
+  Gen: true
+  sel_node: ''
+printXL: true
+set_printXL:
+  sechen:
+    add: true
+  area:
+    add: true
+  area2:
+    add: true
+  darea:
+    add: true
+  таблица на выбор:
+    tab_name: Generator
+    add: true
+    sel: Num>0
+    par: Num,Name,sta,Node,P,Pmax,Pmin,value
+    rows: Num,Name
+    columns: Год,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3
+    values: P,Pmax
+print_parameters:
+  add: true
+  sel: 15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech
+print_balance_q:
+  add: true
+  sel: na=11
+CB_ImpRg2_name: true
+CB_ImpRg2: true
+Imp_add:
+  node:
+    add: true
+    import_file_name: I:\rastr_add\test_rm\файлы импорта\файл для импорта.rg2
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: node,vetv
+    param: ''
+    sel: sel
+    calc: обновить
+  vetv:
+    add: false
+    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: vetv
+    param: ''
+    sel: ''
+    calc: присоединить
+  gen:
+    add: true
+    import_file_name: I:\rastr_add\test_rm\файлы импорта\файл для импорта.rg2
+    selection: true
+    years: '2027'
+    season: зим
+    max_min: макс
+    add_name: 0°C
+    tables: Generator
+    param: Pmax
+    sel: Num=301
+    calc: обновить
+  area:
+    add: false
+    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: area
+    param: ''
+    sel: ''
+    calc: присоединить
+  area2:
+    add: false
+    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: area2
+    param: ''
+    sel: ''
+    calc: присоединить
+  darea:
+    add: false
+    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: darea
+    param: ''
+    sel: ''
+    calc: присоединить
+  PQ:
+    add: false
+    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: graphik2
+    param: ''
+    sel: ''
+    calc: присоединить
+  IT:
+    add: false
+    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: graphikIT
+    param: ''
+    sel: ''
+    calc: присоединить
+DEFAULT: {}
+other:
+  log_file: log_file.log
+CalcSetWindow:
+  gost: true
+  skrm: true
+  avr: true
+  add_disabling_repair: true
+  pa: true
+Settings:
+  шаблон rg2: C:\Users\User\Documents\RastrWin3\SHABLON\режим.rg2
+  шаблон rst: C:\Users\User\Documents\RastrWin3\SHABLON\динамика.rst
+  шаблон sch: C:\Users\User\Documents\RastrWin3\SHABLON\сечения.sch
+  шаблон trn: C:\Users\User\Documents\RastrWin3\SHABLON\трансформаторы.trn
+  шаблон anc: C:\Users\User\Documents\RastrWin3\SHABLON\анцапфы.anc
+  load_add: true
+save_form_folder_calc:
+  path: I:\ОЭС Урала\Тюм_ЭС\КПР Тюменьэнерго до 2030 года\Замер\ИД\Иной замер от 11.12.23
+    ТЭС, СурЭС, СевЭС
+save_form_folder_edit:
+  path: I:\rastr_add\test_rm\РМ v1

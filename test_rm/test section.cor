@@ -1,0 +1,167 @@
+KIzFolder: I:\rastr_add\test_rm\РМ v1
+KInFolder: I:\rastr_add\test_rm\РМ v2
+KFilter_file: false
+max_file_count: 9999
+cor_criterion_start:
+  years: ''
+  season: ''
+  max_min: ''
+  add_name: ''
+cor_beginning_qt:
+  add: true
+  txt: "снять\n\nизм[g=907;g=909;g=908:sel=1;Pmax=400]\nизм[g=904;g=903;g=900;g=899;g=902;g=901;g=898;g=897;g=301;g=300:Pmax=20]\n\
+    изм[15514:pg_max=200]\n\nизм[15136;15128;15169;15168;15514:sel=1]\n\nсечение[ns:2;\
+    \ method:pg; p_new:300] \n"
+import_val_XL: false
+excel_cor_file: I:\rastr_add\test\?????? ???????.xlsx
+excel_cor_sheet: ' [XL->RastrWin][pop][cor]'
+checking_parameters_rg2: false
+control_rg2_task:
+  node: false
+  vetv: false
+  Gen: false
+  sel_node: ''
+printXL: false
+set_printXL:
+  sechen:
+    add: false
+  area:
+    add: false
+  area2:
+    add: false
+  darea:
+    add: false
+  таблица на выбор:
+    tab_name: Generator
+    add: false
+    sel: Num>0
+    par: Num,Name,sta,Node,P,Pmax,Pmin,value
+    rows: Num,Name
+    columns: Год,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3
+    values: P,Pmax
+print_parameters:
+  add: false
+  sel: 15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech
+print_balance_q:
+  add: false
+  sel: ''
+CB_ImpRg2_name: false
+CB_ImpRg2: false
+Imp_add:
+  node:
+    add: false
+    import_file_name: ''
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: node
+    param: ''
+    sel: ''
+    calc: обновить
+  vetv:
+    add: false
+    import_file_name: ''
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: vetv
+    param: ''
+    sel: ''
+    calc: обновить
+  gen:
+    add: false
+    import_file_name: ''
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: Generator
+    param: ''
+    sel: ''
+    calc: обновить
+  area:
+    add: false
+    import_file_name: ''
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: area
+    param: ''
+    sel: ''
+    calc: обновить
+  area2:
+    add: false
+    import_file_name: ''
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: area2
+    param: ''
+    sel: ''
+    calc: обновить
+  darea:
+    add: false
+    import_file_name: ''
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: darea
+    param: ''
+    sel: ''
+    calc: обновить
+  PQ:
+    add: false
+    import_file_name: ''
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: graphik2
+    param: ''
+    sel: ''
+    calc: обновить
+  IT:
+    add: false
+    import_file_name: ''
+    selection: false
+    years: ''
+    season: ''
+    max_min: ''
+    add_name: ''
+    tables: graphikIT
+    param: ''
+    sel: ''
+    calc: обновить
+DEFAULT: {}
+other:
+  log_file: log_file.log
+CalcSetWindow:
+  gost: true
+  skrm: true
+  avr: true
+  add_disabling_repair: true
+  pa: true
+Settings:
+  шаблон rg2: C:\Users\User\Documents\RastrWin3\SHABLON\режим.rg2
+  шаблон rst: C:\Users\User\Documents\RastrWin3\SHABLON\динамика.rst
+  шаблон sch: C:\Users\User\Documents\RastrWin3\SHABLON\сечения.sch
+  шаблон trn: C:\Users\User\Documents\RastrWin3\SHABLON\трансформаторы.trn
+  шаблон anc: C:\Users\User\Documents\RastrWin3\SHABLON\анцапфы.anc
+  load_add: true
+save_form_folder_calc:
+  path: I:\ОЭС Урала\Тюм_ЭС\КПР Тюменьэнерго до 2030 года\Замер\ИД\Иной замер от 11.12.23
+    ТЭС, СурЭС, СевЭС
+save_form_folder_edit:
+  path: I:\rastr_add\test_rm\РМ v1
