@@ -740,9 +740,9 @@ if __name__ == '__main__':
     log.addHandler(file_handler)
     log.addHandler(console_handler)
 
-    # Быстрый пуск из yaml файла
-    with open(r'I:\rastr_add\test\test section.cor') as f:
-        EditModel(yaml.safe_load(f)).run() # EditModel CalcModel
+    # Быстрый пуск из yaml файла EditModel CalcModel
+    # with open(r'I:\ОЭС Урала\Тюм_ЭС\КПР Тюменьэнерго до 2030 года\ИД СО\2-2 t-u.cor') as f:
+    #     EditModel(yaml.safe_load(f)).run()
 
     app = QtWidgets.QApplication([])  # Новый экземпляр QApplication
 

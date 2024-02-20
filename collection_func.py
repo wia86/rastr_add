@@ -57,4 +57,5 @@ def split_task_action(txt: str) -> list | bool:
 
 
 if __name__ == '__main__':
-    pass
+    str_yeas_in_list('2021..2025')
+    # str_yeas_in_list((2021, 2025,))

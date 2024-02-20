@@ -8,8 +8,9 @@ def loading_section(rm,
                     ns: int,
                     p_new: float | str,
                     method: str = 'pg',
+                    ignore_pmin: bool = True,
                     max_cycle: int = 30,
-                    accuracy: float = 0.05,
+                    accuracy: float = 0.5,
                     dr_p_set: float = 0.01) -> bool:
     """
     Изменить переток мощности в сечении номер ns до величины p_new за счет изменения нагрузки('pn') или
@@ -18,8 +19,9 @@ def loading_section(rm,
     :param ns: Номер сечения
     :param p_new: Требуемая мощность в сечении
     :param method: Изменения нагрузки 'pn' или генерации 'pg'.
+    :param ignore_pmin: Поле Pmin генераторов и pg_min узлов не учитывается если True.
     :param max_cycle: Максимальное количество циклов.
-    :param accuracy: Процент, точность задания мощности сечения, но не превышает заданную.
+    :param accuracy: Точность задания мощности сечения, но не превышает заданную.
     :param dr_p_set: Начальная величина реакции в узле.
     :return: True если заданный переток в сечении достигнут.
     """
@@ -45,8 +47,8 @@ def loading_section(rm,
 
     if not p_new:
         p_new = 0.01
-
     rm.rastr.sensiv_start("")
+
     grline.SetSel(f'ns={ns}')
     data_grline = grline.writesafearray('ip,iq', "000")
     for ip, iq in data_grline:
@@ -83,9 +85,11 @@ def loading_section(rm,
         node_sect = [node_i for node_i in node_sel if node_i not in node_with_gen]
 
         for g, i in gen_sect:
-            set_gen.append(GGen(rm, key=g, i=i))
+            set_gen.append(Gen(rm, key=g, i=i, ignore_pmin=ignore_pmin))
         for n in node_sect:
-            set_gen.append(NGen(rm, key=n, i=rm.index(table_name='node', key_int=n)))
+            set_gen.append(NodeGen(rm, key=n,
+                                   i=rm.index(table_name='node', key_int=n),
+                                   ignore_pmin=ignore_pmin))
 
     p_section = section_tab.cols('psech')
     for cycle in range(1, max_cycle):
@@ -93,14 +97,12 @@ def loading_section(rm,
         if cycle == 1:
             log_ls.info(f'\tНачальный переток мощности в сечении {name_ns}: {p_sect_cur:.2f}.')
         change_p = p_new - p_sect_cur
-        dev_percentage = abs(change_p / p_new) * 100
         log_ls.debug(f'\t{cycle=}, {p_sect_cur=:.2f}, {p_new=}, {change_p=:.2f} МВт.')
 
-        if dev_percentage < accuracy:
-            if (p_sect_cur < p_new and p_new > 0) or (p_sect_cur > p_new and p_new < 0):
-                log_ls.info(f'\tЗаданная точность достигнута psech={p_sect_cur:.2f},'
-                            f' отклонение {change_p:.2f} МВт, количество итераций: {cycle - 1}.')
-                return True
+        if abs(change_p) < accuracy:
+            log_ls.info(f'\tЗаданная точность достигнута psech={p_sect_cur:.2f},'
+                        f' отклонение {change_p:.2f} МВт, количество итераций: {cycle - 1}.')
+            return True
 
         if method == 'pn':
             p_sum = sum((x[0] for x in node.writesafearray('pn', "000")))
@@ -165,8 +167,8 @@ def loading_section(rm,
 
 class ObjectGeneration:
     """Для описания общих свойств генераторов и генерации в узле."""
-    # no_pmin = True  # todo не учитывать Pmin
-    # dr_p_koeff = 0  # если 1, то умножаем дополнительно на dr_p в этом случае больше загружаются
+    ignore_pmin = None  # Не учитывать Pmin
+    # dr_p_koeff = 0 # если 1, то умножаем дополнительно на dr_p в этом случае больше загружаются
     # # генераторы которые меньше влияют на изменение мощности в сечении
     reserve_p_up = 0  # Резерв Р на увеличение генерации.
     reserve_p_down = 0  # Резерв Р на снижение генерации.
@@ -175,32 +177,33 @@ class ObjectGeneration:
     sta = 0  # 1 отключен, 0 включен.
     ratio = 0  # Соотношение для получения требуемой мощности генерации.
     info = None
-    rm = None
+    _rm = None
+    _pg_name = None  # 'pg' или 'P'
     table_name = None  # 'node' или 'Generator'
-    pg_name = None  # 'pg' или 'P'
-    i = None  # Индекс в таблице rastr
-    key_name = None  # 'Num' or 'ny'
+    _i = None  # Индекс в таблице rastr
+    _key_name = None  # 'Num' or 'ny'
     key = None  # Значение Num или ny
 
-    def __init__(self, rm, key: int, i: int):
+    def __init__(self, rm, key: int, i: int, ignore_pmin: bool):
+        self.ignore_pmin = ignore_pmin
         self.key = key
-        self.i = i
-        self.rm = rm
+        self._i = i
+        self._rm = rm
 
     def reserve_p(self):
-        self.sta = self.rm.rastr.Calc("val",
-                                      self.table_name,
-                                      "sta",
-                                      f"{self.key_name}={self.key}")
+        self.sta = self._rm.rastr.Calc("val",
+                                       self.table_name,
+                                       "sta",
+                                       f"{self._key_name}={self.key}")
         if self.sta:  # Отключен > 0.
             self.pg = 0
             self.reserve_p_up = self.info['pg_max']
             self.reserve_p_down = 0
         else:  # Включен 0.
-            self.pg = self.rm.rastr.Calc("val",
-                                         self.table_name,
-                                         self.pg_name,
-                                         f"{self.key_name}={self.key}")
+            self.pg = self._rm.rastr.Calc("val",
+                                          self.table_name,
+                                          self._pg_name,
+                                          f"{self._key_name}={self.key}")
             self.reserve_p_up = self.info['pg_max'] - self.pg
             self.reserve_p_down = self.pg
 
@@ -219,14 +222,14 @@ class ObjectGeneration:
         if not deviation_pg:
             return False
 
-        pg_new = self.pg_correction(pg_new)
+        pg_new = self._pg_correction(pg_new)
         # Включить если отключен.
         if pg_new and self.sta:
             self.sta = 0
-            self.rm.rastr.tables(self.table_name).cols.Item('sta').SetZ(self.i, self.sta)
-        self.rm.rastr.tables(self.table_name).cols.Item(self.pg_name).SetZ(self.i, pg_new)
+            self._rm.rastr.tables(self.table_name).cols.Item('sta').SetZ(self._i, self.sta)
+        self._rm.rastr.tables(self.table_name).cols.Item(self._pg_name).SetZ(self._i, pg_new)
 
-    def pg_correction(self, pg_new: float) -> float:
+    def _pg_correction(self, pg_new: float) -> float:
         if pg_new > self.info['pg_max']:
             pg_new = self.info['pg_max']
         if pg_new < 0:
@@ -236,17 +239,17 @@ class ObjectGeneration:
         return pg_new
 
 
-class GGen(ObjectGeneration):
+class Gen(ObjectGeneration):
     table_name = 'Generator'
-    pg_name = 'P'
-    key_name = 'Num'
+    _pg_name = 'P'
+    _key_name = 'Num'
     """Генератор для изменения мощности в сечении."""
 
-    def __init__(self, rm, key: int, i: int):
-        super().__init__(rm, key, i)
-        self.info = rm.df_from_table(table_name=self.table_name,
-                                     fields='Name,Pmin,Pmax,Num,Node',
-                                     setsel=f'{self.key_name}={self.key}')
+    def __init__(self, rm, key: int, i: int, ignore_pmin: bool):
+        super().__init__(rm, key, i, ignore_pmin)
+        self.info = self._rm.df_from_table(table_name=self.table_name,
+                                           fields='Name,Pmin,Pmax,Num,Node',
+                                           setsel=f'{self._key_name}={self.key}')
         self.info.rename(columns={'Name': 'name',
                                   'Node': 'ny',
                                   'Pmin': 'pg_min',
@@ -254,31 +257,30 @@ class GGen(ObjectGeneration):
                          inplace=True)
         self.info = self.info.loc[0].to_dict()
 
-        self.info['dr_p'] = self.rm.rastr.Calc("val", "node", "dr_p", f"ny={self.info['ny']}")
+        self.info['dr_p'] = self._rm.rastr.Calc("val", "node", "dr_p", f"ny={self.info['ny']}")
         if not self.info['pg_max']:
             raise ValueError(f"В генераторе [{self.info['Num']}] {self.info['name']} не задано поле [Pmax].")
 
     def __str__(self):
-        return f'g={self.key}'
+        return f'g={self.key} {self.info["name"]}'
 
 
-class NGen(ObjectGeneration):
+class NodeGen(ObjectGeneration):
     """Узел для изменения мощности в сечении."""
     table_name = 'node'
-    pg_name = 'pg'
-    key_name = 'ny'
+    _pg_name = 'pg'
+    _key_name = 'ny'
 
-    def __init__(self, rm, key: int, i: int):
-        super().__init__(rm, key, i)
+    def __init__(self, rm, key: int, i: int, ignore_pmin: bool):
+        super().__init__(rm, key, i, ignore_pmin)
 
-        self.info = rm.df_from_table(table_name=self.table_name,
-                                     fields='name,pg_min,pg_max,ny,dr_p',
-                                     setsel=f'{self.key_name}={self.key}'
-                                     ).loc[0].to_dict()
-        self.info['dr_p'] = self.rm.rastr.Calc("val", "node", "dr_p", f"ny={self.info['ny']}")
+        self.info = self._rm.df_from_table(table_name=self.table_name,
+                                           fields='name,pg_min,pg_max,ny,dr_p',
+                                           setsel=f'{self._key_name}={self.key}'
+                                           ).loc[0].to_dict()
+        self.info['dr_p'] = self._rm.rastr.Calc("val", "node", "dr_p", f"ny={self.info['ny']}")
         if not self.info['pg_max']:
             raise ValueError(f"В узле [{self.info['ny']}] {self.info['name']} не задано поле [pg_max].")
 
     def __str__(self):
-        return f'ny={self.key}'
-
+        return f'ny={self.key} {self.info["name"]}'
