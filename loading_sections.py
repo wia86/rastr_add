@@ -27,14 +27,14 @@ def loading_section(rm,
     """
     choice_node = 'sel&!sta'
     log_ls.info(f'\tИзменить переток мощности в сечении {ns=}, {p_new=}, {method=}.')
-    if rm.rastr.tables.Find("sechen") == -1:
+    if rm.rastr.tables.Find('sechen') == -1:
         rm.downloading_additional_files('sch')
     try:
         i_ns = rm.index(table_name='sechen', key_int=ns)
     except ValueError:
         raise ValueError(f'Сечение {ns=} отсутствует в файле сечений.')
 
-    grline = rm.rastr.Tables("grline")
+    grline = rm.rastr.Tables('grline')
     section_tab = rm.rastr.tables('sechen')
     name_ns = section_tab.cols('name').ZS(i_ns)
     if p_new in ['pmax', 'pmin']:
@@ -50,32 +50,32 @@ def loading_section(rm,
     rm.rastr.sensiv_start("")
 
     grline.SetSel(f'ns={ns}')
-    data_grline = grline.writesafearray('ip,iq', "000")
+    data_grline = grline.writesafearray('ip,iq', '000')
     for ip, iq in data_grline:
         rm.rastr.sensiv_back(4, 1., ip, iq, 0)
 
     rm.rastr.sensiv_write("")
     rm.rastr.sensiv_end()
 
-    node = rm.rastr.tables("node")
+    node = rm.rastr.tables('node')
     node.SetSel(choice_node)
-    select_add = "tip>1 &" if method == 'pg' else ''
+    select_add = 'tip>1 &' if method == 'pg' else ''
     # Сумма реакций в узле.
-    db = abs(rm.rastr.Calc("sum", "node", "dr_p", f"{select_add}!sta & (abs(dr_p)>{dr_p_set}) & dr_p>0"))
-    db += abs(rm.rastr.Calc("sum", "node", "dr_p", f"{select_add}!sta & (abs(dr_p)>{dr_p_set}) & dr_p<0"))
+    db = abs(rm.rastr.Calc('sum', 'node', 'dr_p', f'{select_add}!sta & (abs(dr_p)>{dr_p_set}) & dr_p>0'))
+    db += abs(rm.rastr.Calc('sum', 'node', 'dr_p', f'{select_add}!sta & (abs(dr_p)>{dr_p_set}) & dr_p<0'))
     if db < dr_p_set:
-        log_ls.error("Невозможно изменить переток мощности в сечении.")
+        log_ls.error('Невозможно изменить переток мощности в сечении.')
         return False
 
     set_gen = []
     if method == 'pg':
-        if rm.rastr.Tables("Generator").cols.Find("sel") < 0:
-            rm.rastr.Tables("Generator").Cols.Add('sel', 3)
+        if rm.rastr.Tables('Generator').cols.Find('sel') < 0:
+            rm.rastr.Tables('Generator').Cols.Add('sel', 3)
 
         # Анализ генераторов и узлов РМ.
         gen_sect = []  # Выборка отмеченных генераторов и генераторов в отмеченных узлах.
-        node_sel = set([x[0] for x in node.writesafearray('ny', "000")])
-        gen_all = rm.rastr.Tables("Generator").writesafearray('Node,Num,sel', "000")
+        node_sel = set([x[0] for x in node.writesafearray('ny', '000')])
+        gen_all = rm.rastr.Tables('Generator').writesafearray('Node,Num,sel', '000')
         node_with_gen = set()
         for index, (node_i, num, sel) in enumerate(gen_all):
             node_with_gen.add(node_i)
@@ -105,8 +105,8 @@ def loading_section(rm,
             return True
 
         if method == 'pn':
-            p_sum = sum((x[0] for x in node.writesafearray('pn', "000")))
-            dr_p_sum = sum((x[0] for x in node.writesafearray('dr_p', "000")))
+            p_sum = sum((x[0] for x in node.writesafearray('pn', '000')))
+            dr_p_sum = sum((x[0] for x in node.writesafearray('dr_p', '000')))
             if not p_sum:
                 log_ls.error('Изменение мощности сечения: сумма нагрузки узлов равна 0')
                 return False
@@ -114,8 +114,8 @@ def loading_section(rm,
                 coefficient = 1 + (1 - (p_sum - change_p) / p_sum)
             else:
                 coefficient = (p_sum - change_p) / p_sum
-            node.cols("pn").Calc(f"pn*({coefficient})")
-            node.cols("qn").Calc(f"qn*({coefficient})")
+            node.cols('pn').Calc(f'pn*({coefficient})')
+            node.cols('qn').Calc(f'qn*({coefficient})')
 
         elif method == 'pg':
             section_up_sum = 0
@@ -144,7 +144,7 @@ def loading_section(rm,
             increase_p = min(abs(abs(change_p) - reduce_p), section_up_sum)
 
             if (section_down_sum + section_up_sum) < change_p:
-                log_ls.info("Генерации не хватает")
+                log_ls.info('Генерации не хватает')
             # На сколько нужно умножить резерв Рген и прибавить к резерву Рген, для снижения генерации.
             koef_p_down = (1 - (section_down_sum - reduce_p) / section_down_sum) if section_down_sum else 0
             # На сколько нужно умножить резерв Рген и прибавить его к резерву Рген, для увеличения генерации.
@@ -152,9 +152,9 @@ def loading_section(rm,
 
             for gen in set_gen:
                 match gen.direction:
-                    case "up":
+                    case 'up':
                         gen.ratio = koef_p_up
-                    case "down":
+                    case 'down':
                         gen.ratio = koef_p_down
                 gen.change_generation()
         rm.rgm('loading_section')
@@ -191,19 +191,19 @@ class ObjectGeneration:
         self._rm = rm
 
     def reserve_p(self):
-        self.sta = self._rm.rastr.Calc("val",
+        self.sta = self._rm.rastr.Calc('val',
                                        self.table_name,
-                                       "sta",
-                                       f"{self._key_name}={self.key}")
+                                       'sta',
+                                       f'{self._key_name}={self.key}')
         if self.sta:  # Отключен > 0.
             self.pg = 0
             self.reserve_p_up = self.info['pg_max']
             self.reserve_p_down = 0
         else:  # Включен 0.
-            self.pg = self._rm.rastr.Calc("val",
+            self.pg = self._rm.rastr.Calc('val',
                                           self.table_name,
                                           self._pg_name,
-                                          f"{self._key_name}={self.key}")
+                                          f'{self._key_name}={self.key}')
             self.reserve_p_up = self.info['pg_max'] - self.pg
             self.reserve_p_down = self.pg
 
@@ -257,7 +257,7 @@ class Gen(ObjectGeneration):
                          inplace=True)
         self.info = self.info.loc[0].to_dict()
 
-        self.info['dr_p'] = self._rm.rastr.Calc("val", "node", "dr_p", f"ny={self.info['ny']}")
+        self.info['dr_p'] = self._rm.rastr.Calc('val', 'node', 'dr_p', f"ny={self.info['ny']}")
         if not self.info['pg_max']:
             raise ValueError(f"В генераторе [{self.info['Num']}] {self.info['name']} не задано поле [Pmax].")
 
@@ -278,7 +278,7 @@ class NodeGen(ObjectGeneration):
                                            fields='name,pg_min,pg_max,ny,dr_p',
                                            setsel=f'{self._key_name}={self.key}'
                                            ).loc[0].to_dict()
-        self.info['dr_p'] = self._rm.rastr.Calc("val", "node", "dr_p", f"ny={self.info['ny']}")
+        self.info['dr_p'] = self._rm.rastr.Calc('val', 'node', 'dr_p', f"ny={self.info['ny']}")
         if not self.info['pg_max']:
             raise ValueError(f"В узле [{self.info['ny']}] {self.info['name']} не задано поле [pg_max].")
 

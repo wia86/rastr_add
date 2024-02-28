@@ -72,4 +72,4 @@ class Ini:
                 raise LookupError(f'Ошибка чтения {self}.')
             return pars
         else:
-            raise LookupError(f"Отсутствует файл {self}")
+            raise LookupError(f'Отсутствует файл {self}')

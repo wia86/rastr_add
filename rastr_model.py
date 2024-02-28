@@ -53,10 +53,10 @@ class RastrModel:
         self.info_file = dict()
         self.full_name = full_name
         self.dir = os.path.dirname(full_name)
-        self.Name = os.path.basename(full_name)  # Вернуть имя с расширением "2020 зим макс.rg2"
+        self.Name = os.path.basename(full_name)  # Вернуть имя с расширением '2020 зим макс.rg2'
         self.name_base, self.type_file = self.Name.rsplit(sep='.', maxsplit=1)
         self.info_file['Имя файла'] = self.name_base
-        self.pattern = self.config[f"шаблон {self.type_file}"]
+        self.pattern = self.config[f'шаблон {self.type_file}']
         self.rastr = None
         self.not_calculated = not_calculated
         if not_calculated:
@@ -65,7 +65,7 @@ class RastrModel:
         RastrModel.rm_id += 1
         self.info_file['rm_id'] = RastrModel.rm_id
         self.all_auto_shunt = {}
-        self.info_file["Темп.(°C)"]: float = 0
+        self.info_file['Темп.(°C)']: float = 0
         self.additional_name_list = []
         self.add_load = []  # Расширение дополнительных файлов из [trn, anc]
 
@@ -101,8 +101,8 @@ class RastrModel:
         # Произвольный формат названия файла
         self.info_file['Сезон']: str = ''  # 'зимний', 'летний', 'паводок' сезон года
         self.info_file['макс/мин']: str = ''  # 'максимум', 'максимум' потребления в сутках
-        self.info_file['Сезон макс/мин']: str = ''  # "Зимний максимум нагрузки"
-        self.info_file["Имя режима"]: str = ''  # "Зимний максимум нагрузки 2023 г. Расчетная температура -40 °C."
+        self.info_file['Сезон макс/мин']: str = ''  # 'Зимний максимум нагрузки'
+        self.info_file['Имя режима']: str = ''  # 'Зимний максимум нагрузки 2023 г. Расчетная температура -40 °C.'
         name_base_lower = self.name_base.lower()
 
         # Поиск в имени: сезона
@@ -131,13 +131,13 @@ class RastrModel:
             self.info_file['Сезон макс/мин'].replace('.', f' {self.info_file["макс/мин"]} нагрузки.'))
 
         if self.info_file['Сезон макс/мин']:
-            self.info_file["Имя режима"] = self.info_file['Сезон макс/мин']
+            self.info_file['Имя режима'] = self.info_file['Сезон макс/мин']
 
         # Поиск в имени: год
-        match = re.search(re.compile(r"(20[2-9][0-9])"), name_base_lower)
+        match = re.search(re.compile(r'(20[2-9][0-9])'), name_base_lower)
         if match:
             self.info_file['Год'] = match[1]
-            self.info_file["Имя режима"] = self.info_file["Имя режима"].replace('.', f' {match[1]} г.')
+            self.info_file['Имя режима'] = self.info_file['Имя режима'].replace('.', f' {match[1]} г.')
         else:
             self.info_file['Год'] = ''
 
@@ -147,17 +147,17 @@ class RastrModel:
         #  6 лет макс, 7 лет мин, 8 паводок макс, 9 паводок мин.
         self.code_name_rg2 = 0
 
-        if ("tэкст" in name_base_lower) or ("пэвт" in name_base_lower):
+        if ('tэкст' in name_base_lower) or ('пэвт' in name_base_lower):
             self.code_name_rg2 = 5
-            self.info_file["Имя режима"] = self.info_file["Имя режима"].replace('нагрузки', 'нагрузки (ПЭВТ)')
+            self.info_file['Имя режима'] = self.info_file['Имя режима'].replace('нагрузки', 'нагрузки (ПЭВТ)')
         else:
             if self.info_file['Сезон макс/мин'] == 'Зимний максимум нагрузки.':
                 self.code_name_rg2 = 1
-                if "tср" in name_base_lower:
+                if 'tср' in name_base_lower:
                     self.code_name_rg2 = 3
             if self.info_file['Сезон макс/мин'] == 'Зимний минимум нагрузки.':
                 self.code_name_rg2 = 2
-                if "tср" in name_base_lower:
+                if 'tср' in name_base_lower:
                     self.code_name_rg2 = 4
             if self.info_file['Сезон макс/мин'] == 'Летний максимум нагрузки.':
                 self.code_name_rg2 = 6
@@ -171,28 +171,28 @@ class RastrModel:
         self.gost_abv = True if 0 < self.code_name_rg2 < 6 else False
         self.gost_gd = True if self.code_name_rg2 > 5 else False
         # Поиск в строке значения в ()
-        match = re.search(re.compile(r"\((.+)\)"), self.name_base)
+        match = re.search(re.compile(r'\((.+)\)'), self.name_base)
         if match:
-            self.info_file["Доп. имена"] = match[1]
-            self.additional_name_list = match[1].split(";")
+            self.info_file['Доп. имена'] = match[1]
+            self.additional_name_list = match[1].split(';')
         else:
-            self.info_file["Доп. имена"] = ''
+            self.info_file['Доп. имена'] = ''
 
-        if "°C" in self.name_base:
-            match = re.search(re.compile(r"((-|минус)?\s?\d+([,.]\d*)?)\s?°C"), self.name_base)  # -45.14 °C
+        if '°C' in self.name_base:
+            match = re.search(re.compile(r'((-|минус)?\s?\d+([,.]\d*)?)\s?°C'), self.name_base)  # -45.14 °C
             if match:
                 self.info_file['Темп.(°C)'] = float(match[1]
                                                     .replace(',', '.')
                                                     .replace('минус', '-')
                                                     .replace(' ', ''))  # число
-                self.info_file["Имя режима"] += f' Расчетная температура {self.info_file["Темп.(°C)"]} °C.'
+                self.info_file['Имя режима'] += f' Расчетная температура {self.info_file["Темп.(°C)"]} °C.'
 
         if self.additional_name_list:
             for i, additional_name_i in enumerate(self.additional_name_list, 1):
                 self.info_file['Доп. имя' + str(i)] = additional_name_i
         RastrModel.all_rm = pd.concat([RastrModel.all_rm, pd.Series(self.info_file).to_frame().T],
                                       axis=0, ignore_index=True)
-        log_rm.info(self.info_file["Имя режима"])
+        log_rm.info(self.info_file['Имя режима'])
 
     def save_value_fields(self):
         """
@@ -207,7 +207,7 @@ class RastrModel:
                                  'Generator': 'Num,sta'}
         for name_tab in self.data_save_sta:
             self.data_save_sta[name_tab] = \
-                self.rastr.tables(name_tab).writesafearray(self.data_columns_sta[name_tab], "000")
+                self.rastr.tables(name_tab).writesafearray(self.data_columns_sta[name_tab], '000')
 
         self.data_save = {'vetv': None, 'node': None, 'Generator': None}
         self.data_columns = {'vetv': 'ip,iq,np,sta,ktr',  # ,r,x,b
@@ -215,14 +215,14 @@ class RastrModel:
                              'Generator': 'Num,sta,P'}
         for name_tab in self.data_save:
             self.data_save[name_tab] = \
-                self.rastr.tables(name_tab).writesafearray(self.data_columns[name_tab], "000")
+                self.rastr.tables(name_tab).writesafearray(self.data_columns[name_tab], '000')
 
         # Узлы
         for ny, sta, pn, qn, pg, qg, vzd, bsh in self.data_save['node']:
             self.t_sta['node'][ny] = sta
             # if pn or qn or pg:
             #     self.ny_pqng[ny] = (pn, qn, pg, qg)
-        t = self.rastr.tables('node').writesafearray("ny,name,dname,index", "000")
+        t = self.rastr.tables('node').writesafearray('ny,name,dname,index', '000')
         for ny, name, dname, index in t:
             self.t_key_i['node'][ny] = index
             self.t_i_key['node'][index] = ny
@@ -238,7 +238,7 @@ class RastrModel:
             self.ny_join_vetv[ip].append(s_key)
             self.ny_join_vetv[iq].append(s_key)
 
-        t = self.rastr.tables('vetv').writesafearray("ip,iq,np,dname,groupid,r,x,b,index", "000")
+        t = self.rastr.tables('vetv').writesafearray('ip,iq,np,dname,groupid,r,x,b,index', '000')
         for ip, iq, np_, dname, groupid, r, x, b, index in t:
             s_key = (ip, iq, np_)
             self.t_key_i['vetv'][s_key] = index
@@ -247,8 +247,8 @@ class RastrModel:
             if dname:
                 self.t_name['vetv'][s_key] = dname
             else:
-                # log_rm.info(self.t_name["node"][ip])
-                # log_rm.info(self.t_name["node"][iq])
+                # log_rm.info(self.t_name['node'][ip])
+                # log_rm.info(self.t_name['node'][iq])
                 self.t_name['vetv'][s_key] = f'{self.t_name["node"][ip]} - {self.t_name["node"][iq]}'
 
             if groupid:
@@ -259,7 +259,7 @@ class RastrModel:
         for Num, sta, P in self.data_save['Generator']:
             self.t_sta['Generator'][Num] = sta
 
-        t = self.rastr.tables('Generator').writesafearray("Num,index,Name,Node", "000")
+        t = self.rastr.tables('Generator').writesafearray('Num,index,Name,Node', '000')
         for Num, index, Name, Node in t:
             self.t_key_i['Generator'][Num] = index
             self.t_i_key['Generator'][index] = Num
@@ -296,12 +296,12 @@ class RastrModel:
         Например, района, территории, нагрузочной группы для расчета или "" - все узлы.
         """
         log_rm.info('Анализ графа сети с заполнением поля transit в таблице узлов и ветвей.')
-        all_ny = [x[0] for x in self.rastr.tables('node').writesafearray("ny", "000")]
+        all_ny = [x[0] for x in self.rastr.tables('node').writesafearray('ny', '000')]
         log_rm.debug(f'В РМ {len(all_ny)} узлов.')
 
         vetv = self.rastr.tables('vetv')
         vetv.setsel('sta=0')
-        data_v = vetv.writesafearray('ip,iq,np,groupid,tip,pl_ip,groupid', "000")
+        data_v = vetv.writesafearray('ip,iq,np,groupid,tip,pl_ip,groupid', '000')
         # Все включенные ветви РМ
         all_vetv_sta0 = [(ip, iq, np_) for ip, iq, np_, groupid, tip, pl_ip, groupid in data_v]
         all_ny_in_v = []  # [Все ip iq в таблице ветви, если ny встречается 1 раз, то это тупик.]
@@ -434,7 +434,7 @@ class RastrModel:
             log_rm.info(f'{len(node)} отключаемых узлов')
             # Отключаемы ветви
             node.setsel(selection_node_for_disable)
-            sel_ny = node.writesafearray('ny', "000")
+            sel_ny = node.writesafearray('ny', '000')
             sel_ny = [x[0] for x in sel_ny]
             all_v_disable = []  # Все отключаемые ветви
             transit_use = []  # Уже добавленные в отключения номера транзиты
@@ -442,7 +442,7 @@ class RastrModel:
             v__pl = {(ip, iq, np_): pl_ip for ip, iq, np_, groupid, tip, pl_ip, groupid in data_v}
             v__tip = {(ip, iq, np_): tip for ip, iq, np_, groupid, tip, pl_ip, groupid in data_v}
             node.setsel('')
-            ny__un = {ny: uhom for ny, uhom in self.rastr.tables('node').writesafearray('ny,uhom', "000")}
+            ny__un = {ny: uhom for ny, uhom in self.rastr.tables('node').writesafearray('ny,uhom', '000')}
             for ny in sel_ny:
                 if ny not in ny_end:
                     for v in ny_all_vetv[ny]:  # Цикл по прилегающим ветвям
@@ -559,7 +559,7 @@ class RastrModel:
         """
          Проверка имени файла на соответствие условию condition.
         :param condition:
-        {"years":"2020,2023...2025","season": "лет, зим, паводок","max_min":"макс","add_name":"-41С;МДП:ТЭ-У"}
+        {'years':'2020,2023...2025','season': 'лет, зим, паводок','max_min':'макс','add_name':'-41С;МДП:ТЭ-У'}
         :param info: для вывода в протокол
         :return: True если удовлетворяет
         """
@@ -571,15 +571,15 @@ class RastrModel:
         if 'years' in condition:
             if condition['years']:
                 if not int(self.info_file['Год']) in cf.str_yeas_in_list(str(condition['years'])):
-                    log_rm.info(f"{info} {self.Name!r}. Год не проходит по условию: {condition['years']!r}")
+                    log_rm.info(f'{info} {self.Name!r}. Год не проходит по условию: {condition["years"]!r}')
                     return False
-        # Проверка "зим" "лет" "паводок"
+        # Проверка 'зим' 'лет' 'паводок'
         if 'season' in condition:
             if condition['season']:
                 if self.info_file['Сезон'][:3] not in condition['season']:
                     log_rm.info(f'{info} {self.Name!r}. Сезон не проходит по условию: {condition["season"]!r}')
                     return False
-        # Проверка "макс" "мин"
+        # Проверка 'макс' 'мин'
         if 'max_min' in condition:
             if condition['max_min']:
                 if self.info_file['макс/мин'][:3] not in condition['max_min']:
@@ -589,7 +589,7 @@ class RastrModel:
         if 'add_name' in condition:
             if condition['add_name']:
                 if condition['add_name'].strip():
-                    for us in condition['add_name'].split(";"):
+                    for us in condition['add_name'].split(';'):
                         if us not in self.additional_name_list:
                             log_rm.debug(f'{info} {self.Name}. Не проходит по условию: {us!r}')
                             return False
@@ -601,12 +601,12 @@ class RastrModel:
         """
         if not self.rastr:
             try:
-                self.rastr = win32com.client.Dispatch("Astra.Rastr")
+                self.rastr = win32com.client.Dispatch('Astra.Rastr')
             except Exception:
                 raise Exception('Com объект Astra.Rastr не найден')
 
         self.rastr.Load(1, self.full_name, self.pattern)  # Загрузить или перезагрузить
-        log_rm.info(f"Загружен файл: {self.full_name}")
+        log_rm.info(f'Загружен файл: {self.full_name}')
 
         # При загрузке файла rst или rg2 загружать одноименные файлы trn и anc (из той же папки)
         if (not self.not_calculated) and self.config['load_add']:
@@ -615,7 +615,7 @@ class RastrModel:
                 if os.path.exists(name_file_add):
                     self.add_load.append(type_file_add)
                     self.rastr.Load(1, name_file_add, self.config[f'шаблон {type_file_add}'])
-                    log_rm.info(f"Загружен файл: {name_file_add}")
+                    log_rm.info(f'Загружен файл: {name_file_add}')
 
     def downloading_additional_files(self, load_additional: str) -> str:
         """
@@ -626,8 +626,8 @@ class RastrModel:
         names = list(filter(lambda x: x.endswith('.' + load_additional), files))
         if len(names) > 0:
             self.rastr.Load(1, f'{self.dir}\\{names[0]}',
-                            self.config[f"шаблон {load_additional}"])
-            log_rm.info(f"Загружен файл: {names[0]}")
+                            self.config[f'шаблон {load_additional}'])
+            log_rm.info(f'Загружен файл: {names[0]}')
         else:
             raise ValueError(f'Файл с расширением {load_additional!r} не найден в папке {self.dir}')
         return names[0]
@@ -659,31 +659,31 @@ class RastrModel:
         # Запись файла.
         if self.overwrite_new_file != 'no':
             self.rastr.Save(full_name_new, self.pattern)
-            log_rm.info("Файл сохранен: " + full_name_new)
+            log_rm.info('Файл сохранен: ' + full_name_new)
             if self.add_load:
                 for type_file_add in self.add_load:
                     full_name_new_add = f'{full_name_new.rsplit(".", 1)[0]}.{type_file_add}'
                     self.rastr.Save(full_name_new_add,
-                                    self.config[f"шаблон {type_file_add}"])
-                    log_rm.info("Файл сохранен: " + full_name_new_add)
+                                    self.config[f'шаблон {type_file_add}'])
+                    log_rm.info('Файл сохранен: ' + full_name_new_add)
             return full_name_new
 
     def checking_parameters_rg2(self, dict_task: dict):
         """  контроль  dict_task = {'node': True, 'vetv': True, 'Gen': True, 'section': True,
-             'area': True, 'area2': True, 'darea': True, 'sel_node': "na>0"}  """
-        if not self.rgm("checking_parameters_rg2"):
+             'area': True, 'area2': True, 'darea': True, 'sel_node': 'na>0'}  """
+        if not self.rgm('checking_parameters_rg2'):
             return False
         # self.fill_field_index('node,vetv,Generator')
-        self.rastr.CalcIdop(self.info_file["Темп.(°C)"], 0.0, "")
+        self.rastr.CalcIdop(self.info_file['Темп.(°C)'], 0.0, '')
         log_rm.info(f'Выполнен расчет загрузки ветвей для температуры {self.info_file["Темп.(°C)"]}.')
 
-        node = self.rastr.tables("node")
-        branch = self.rastr.tables("vetv")
-        generator = self.rastr.tables("Generator")
+        node = self.rastr.tables('node')
+        branch = self.rastr.tables('vetv')
+        generator = self.rastr.tables('Generator')
         # Удаление узлов без ветвей, ветвей без узлов начала или конца, генераторов без узлов.
-        all_ny = set([x[0] for x in node.writesafearray("ny", "000")])
-        all_ip = set([x[0] for x in branch.writesafearray("ip", "000")])
-        all_iq = set([x[0] for x in branch.writesafearray("iq", "000")])
+        all_ny = set([x[0] for x in node.writesafearray('ny', '000')])
+        all_ip = set([x[0] for x in branch.writesafearray('ip', '000')])
+        all_iq = set([x[0] for x in branch.writesafearray('iq', '000')])
         all_iq_ip = all_ip.union(all_iq)
 
         # Узлы без ветвей.
@@ -696,77 +696,77 @@ class RastrModel:
         all_ip_iq_not_node = all_iq_ip - all_ny
         if all_ip_iq_not_node:
             log_rm.error(f'В таблице vetv есть ссылка на узлы которых нет в таблице node: {all_ip_iq_not_node}')
-            for ip, iq, np_ in branch.writesafearray('ip,iq,np', "000"):
+            for ip, iq, np_ in branch.writesafearray('ip,iq,np', '000'):
                 if ip in all_ip_iq_not_node or iq in all_ip_iq_not_node:
                     self.cor(keys=f'{ip},{iq},{np_}', values='del', print_log=True)
 
         # Генераторы без узлов.
         if generator.size:
             dict_task['Gen'] = False
-            all_gen_ny = set([x[0] for x in generator.writesafearray("Node", "000")])
+            all_gen_ny = set([x[0] for x in generator.writesafearray('Node', '000')])
             all_gen_not_node = all_gen_ny - all_ny
             if all_gen_not_node:
                 log_rm.error(f'В таблице Generator есть ссылка на узлы которых нет в таблице node: {all_gen_not_node}')
-                for Num, Node in generator.writesafearray('Num,Node', "000"):
+                for Num, Node in generator.writesafearray('Num,Node', '000'):
                     if Node in all_gen_not_node:
                         self.cor(keys=f'Num={Num}', values='del', print_log=True)
 
-        if dict_task["sel_node"]:
-            # node.setsel(dict_task["sel_node"])
-            # ny_sel = set([x[0] for x in node.writesafearray("ny", "000")])
+        if dict_task['sel_node']:
+            # node.setsel(dict_task['sel_node'])
+            # ny_sel = set([x[0] for x in node.writesafearray('ny', '000')])
             # todo додумать
             self.add_fields_in_table(name_tables='node', fields='sel1', type_fields=3)
-            node.cols.item("sel1").calc(0)
-            node.setsel(dict_task["sel_node"])
-            node.cols.item("sel1").calc(1)
+            node.cols.item('sel1').calc(0)
+            node.setsel(dict_task['sel_node'])
+            node.cols.item('sel1').calc(1)
 
         # Напряжения
-        if dict_task["node"]:
-            log_rm.info("\tКонтроль напряжений.")
-            self.voltage_error(choice=dict_task["sel_node"])
-            self.voltage_fine(choice=dict_task["sel_node"])
+        if dict_task['node']:
+            log_rm.info('\tКонтроль напряжений.')
+            self.voltage_error(choice=dict_task['sel_node'])
+            self.voltage_fine(choice=dict_task['sel_node'])
 
         # Токи
         if dict_task['vetv']:
             # Контроль токовой загрузки
 
-            if dict_task["sel_node"]:
-                sel_vetv = "i_zag>=0.1&(ip.sel1|iq.sel1)"
-                presence_n_it = {'n_it': "(ip.sel1|iq.sel1)&n_it>0",
-                                 'n_it_av': "(ip.sel1|iq.sel1)&n_it_av>0"}
+            if dict_task['sel_node']:
+                sel_vetv = 'i_zag>=0.1&(ip.sel1|iq.sel1)'
+                presence_n_it = {'n_it': '(ip.sel1|iq.sel1)&n_it>0',
+                                 'n_it_av': '(ip.sel1|iq.sel1)&n_it_av>0'}
             else:
-                sel_vetv = "i_zag>=0.1"
-                presence_n_it = {'n_it': "n_it>0",
-                                 'n_it_av': "n_it_av>0"}
+                sel_vetv = 'i_zag>=0.1'
+                presence_n_it = {'n_it': 'n_it>0',
+                                 'n_it_av': 'n_it_av>0'}
 
             log_rm.debug('Контроль токовой загрузки.')
             branch.setsel(sel_vetv)
             if branch.count:  # есть превышения
                 j = branch.FindNextSel(-1)
                 while j > -1:
-                    log_rm.info(f"\t\tВНИМАНИЕ ТОКИ! vetv:{branch.SelString(j)}, "
+                    log_rm.info(f'\t\tВНИМАНИЕ ТОКИ! vetv:{branch.SelString(j)}, '
                                 f"{branch.cols.item('name').ZS(j)} - {branch.cols.item('i_zag').ZS(j)} %")
                     j = branch.FindNextSel(j)
 
             log_rm.debug('Проверка наличия n_it,n_it_av в таблице График_Iдоп_от_Т(graphikIT).')
-            graph_it = self.rastr.tables("graphikIT")
+            graph_it = self.rastr.tables('graphikIT')
             if graph_it.size:
-                all_graph_it = set([x[0] for x in graph_it.writesafearray("Num", "000")])
+                all_graph_it = set([x[0] for x in graph_it.writesafearray('Num', '000')])
                 for field, sel_vetv_n_it in presence_n_it.items():
                     branch.setsel(sel_vetv_n_it)
-                    for i in branch.writesafearray(field + ",name,ip,iq,np", "000"):
+                    for i in branch.writesafearray(field + ',name,ip,iq,np', '000'):
                         if i[0] > 0 and i[0] not in all_graph_it:
-                            log_rm.error(f"\t\tВНИМАНИЕ graphikIT! vetv: {i[1]} [{i[2]},{i[3]},{i[4]}] "
-                                         f"{field}={i[0]} не найден в таблице График_Iдоп_от_Т")
+                            log_rm.error(f'\t\tВНИМАНИЕ graphikIT! vetv: {i[1]} [{i[2]},{i[3]},{i[4]}] '
+                                         f'{field}={i[0]} не найден в таблице График_Iдоп_от_Т')
 
         #  ГЕНЕРАТОРЫ
         if dict_task['Gen']:
-            log_rm.info("\tКонтроль генераторов")
-            sel_gen = "!sta&Node.sel1" if dict_task["sel_node"] else "!sta"
+            log_rm.info('\tКонтроль генераторов')
+            sel_gen = '!sta&Node.sel1' if dict_task['sel_node'] else '!sta'
             generator.setsel(sel_gen)
             col = {'Num': 0, 'Node': 1, 'Name': 2, 'Pmin': 3, 'Pmax': 4, 'P': 5, 'NumPQ': 6}
             if generator.count:
-                for i in generator.writesafearray(','.join(col), "000"):
+                for i in generator.writesafearray(','.join(col), '000'):
                     Pmin = i[col['Pmin']]
                     Pmax = i[col['Pmax']]
                     P = i[col['P']]
@@ -775,14 +775,14 @@ class RastrModel:
                     Node = i[col['Node']]
                     NumPQ = i[col['NumPQ']]
                     if P < Pmin and Pmin:
-                        log_rm.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},{Node=}, {P=} < {Pmin=}")
+                        log_rm.info(f'\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},{Node=}, {P=} < {Pmin=}')
                     if P > Pmax and Pmax:
-                        log_rm.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},{Node=}, {P=} > {Pmax=}")
-                    if NumPQ and self.rastr.tables("graphik2").size:
-                        chart_pq = set([x[0] for x in self.rastr.tables("graphik2").writesafearray("Num", "000")])
+                        log_rm.info(f'\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},{Node=}, {P=} > {Pmax=}')
+                    if NumPQ and self.rastr.tables('graphik2').size:
+                        chart_pq = set([x[0] for x in self.rastr.tables('graphik2').writesafearray('Num', '000')])
                         if NumPQ not in chart_pq:
-                            log_rm.info(f"\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},{Node=}, "
-                                        f"{NumPQ=} не найден в таблице PQ-диаграммы (graphik2)")
+                            log_rm.info(f'\t\tВНИМАНИЕ! ГЕНЕРАТОР: {Name}, {Num=},{Node=}, '
+                                        f'{NumPQ=} не найден в таблице PQ-диаграммы (graphik2)')
         return True
 
     def cor_rm_from_txt(self, task_txt: str) -> str:
@@ -798,7 +798,7 @@ class RastrModel:
         task_rows = task_txt.split('\n')
         for task_row in task_rows:
             task_row = task_row.split('#')[0]  # удалить текст после '#'
-            name_fun = task_row.split('[', 1)[0]  # Имя функции, стоит перед "[".
+            name_fun = task_row.split('[', 1)[0]  # Имя функции, стоит перед '['.
             name_fun = name_fun.replace(' ', '')
             if not name_fun:
                 if '[' in task_row:
@@ -827,7 +827,7 @@ class RastrModel:
             # Условие выполнения в фигурных скобках
             execution_condition = ''
             if '{' in task_row:
-                match = re.search(re.compile(r"\{(.+?)}"), task_row)
+                match = re.search(re.compile(r'\{(.+?)}'), task_row)
                 if match:
                     execution_condition = match[1].strip()
                 else:
@@ -889,7 +889,7 @@ class RastrModel:
             self.table_add_row(table=sel, tasks=value)
         elif 'текст' in name:
             self.txt_field_right(tasks=(all_task or sel))
-            return "\tИсправить пробелы, заменить английские буквы на русские."
+            return '\tИсправить пробелы, заменить английские буквы на русские.'
         elif 'схн' in name:
             self.shn(choice=sel)
         elif 'сечение' in name:
@@ -921,11 +921,11 @@ class RastrModel:
         Импорт данных из РМ.
         :param type_import: Если 'папка', то переносить данные из одноименных файлов в указанной папке,
          'файл' - из указанного файла
-        :param description: "(I:\pop);таблица:node; тип:2; поле: pn,qn; выборка:"
+        :param description: '(I:\pop);таблица:node; тип:2; поле: pn,qn; выборка:'
         :return:
         """
         description_dict = {}
-        path = re.search(re.compile(r"\((.+)\)"), description)[1]
+        path = re.search(re.compile(r'\((.+)\)'), description)[1]
         description_list = description.replace(path, '').replace(' ', '').split(';')
         dict_name = {'таблица': 'tables', 'тип': 'calc', 'поле': 'param', 'выборка': 'sel'}
 
@@ -961,9 +961,9 @@ class RastrModel:
         node_all = set()
         node_include = set()
 
-        for ny, sta, pn, qn, pg, qg in self.rastr.tables('node').writesafearray('ny,sta,pn,qn,pg,qg', "000"):
+        for ny, sta, pn, qn, pg, qg in self.rastr.tables('node').writesafearray('ny,sta,pn,qn,pg,qg', '000'):
             if not self.t_sta['node'][ny] and sta and (pn or qn or pg or qg):
-                node_all.add((ny, self.t_name["node"][ny]))
+                node_all.add((ny, self.t_name['node'][ny]))
 
                 for s_key in self.ny_join_vetv[ny]:
                     r, x, _ = self.v_rxb[s_key]
@@ -971,25 +971,25 @@ class RastrModel:
                         ny_connectivity = s_key[0] if ny != s_key[0] else s_key[1]
                         # log_rm.debug(ny_connectivity)
                         ndx = self.t_key_i['node'][ny_connectivity]
-                        if not self.rastr.tables('node').Cols("sta").Z(ndx):  # Питающий узел включен.
+                        if not self.rastr.tables('node').Cols('sta').Z(ndx):  # Питающий узел включен.
                             # Включить узел и ветвь
-                            self.rastr.tables('node').Cols("sta").SetZ(self.t_key_i['node'][ny], False)
-                            self.rastr.tables('vetv').Cols("sta").SetZ(self.t_key_i['vetv'][s_key], False)
-                            node_include.add((ny, self.t_name["node"][ny]))
+                            self.rastr.tables('node').Cols('sta').SetZ(self.t_key_i['node'][ny], False)
+                            self.rastr.tables('vetv').Cols('sta').SetZ(self.t_key_i['vetv'][s_key], False)
+                            node_include.add((ny, self.t_name['node'][ny]))
                             break
 
         if node_include:
-            node_info = "Восстановлено питание узлов:"
+            node_info = 'Восстановлено питание узлов:'
             for ny, name in node_include:
                 node_info += f' {name} ({ny}),'
-            node_info = node_info.strip(',') + ". "
+            node_info = node_info.strip(',') + '. '
 
         node_not_include = node_all - node_include
         if node_not_include:
-            node_info += "Узлы, оставшиеся без питания:"
+            node_info += 'Узлы, оставшиеся без питания:'
             for ny, name in node_not_include:
                 node_info += f' {name} ({ny}),'
-            node_info = node_info.strip(',') + ". "
+            node_info = node_info.strip(',') + '. '
 
         if node_info:
             log_rm.info('\tnode_include: ' + node_info)
@@ -1011,9 +1011,9 @@ class RastrModel:
         Если np=0, то выборка по ветвям можно записать еще короче: «12,13», вместо «12,13,0».
         При задании краткой формы имя таблицы указывать не нужно.
 
-        :param keys: Если несколько выборок, то указываются через ";"
-        "125;ny=25;na=1(node)" для узлов, "Num=25;g=12" для генераторов, "1,2" для ветви,
-        "na=2;no=1;npa=1;nga=2" для районов, объединения, территорий и нагрузочных групп;
+        :param keys: Если несколько выборок, то указываются через ';'
+        '125;ny=25;na=1(node)' для узлов, 'Num=25;g=12' для генераторов, '1,2' для ветви,
+        'na=2;no=1;npa=1;nga=2' для районов, объединения, территорий и нагрузочных групп;
 
         :param values:  Удалить строки в таблице 'del'
         Изменить значение параметров: 'pn=10.2;qn=qn*2' ;
@@ -1027,29 +1027,29 @@ class RastrModel:
         """
         info = []
         if print_log:
-            log_rm.info(f"\t\tФункция cor: {keys=},  {values=}")
+            log_rm.info(f'\t\tФункция cor: {keys=},  {values=}')
         keys = keys.replace(' ', '')
         values = values.strip().replace('  ', ' ')
         if not (keys and values.replace(' ', '')):
             raise ValueError(f'{keys=},{values=}')
-        for key in keys.split(";"):  # например:['na=11(node)','125', 'g=125', '12,13,0']
+        for key in keys.split(';'):  # например:['na=11(node)','125', 'g=125', '12,13,0']
             rastr_table, selection_in_table = self.recognize_key(key, 'tab sel')
 
-            for value in values.split(";"):  # разделение задания, например:['pn=10.2', 'qn=5.4']
+            for value in values.split(';'):  # разделение задания, например:['pn=10.2', 'qn=5.4']
                 param = ''
                 if value == 'del':
                     formula = 'del'
                 elif '=' in value:
-                    param, formula = value.split("=", maxsplit=1)
+                    param, formula = value.split('=', maxsplit=1)
                     param = param.replace(' ', '')
                     if not param:
-                        raise ValueError(f"Задание не распознано, {key=}, {value=}")
+                        raise ValueError(f'Задание не распознано, {key=}, {value=}')
 
                     # В значении есть ссылка и поле не текстовое.
                     if ':' in value and not self.rastr.tables(rastr_table).cols(param).Prop(1) == 2:
                         formula = self.replace_links(formula)
                 else:
-                    raise ValueError(f"Задание не распознано, {key=}, {value=}")
+                    raise ValueError(f'Задание не распознано, {key=}, {value=}')
 
                 info.append(self.group_cor(tabl=rastr_table,
                                            param=param,
@@ -1086,7 +1086,7 @@ class RastrModel:
         else:
             rastr_table = ''  # имя таблицы
             # проверка наличия явного указания таблицы
-            match = re.search(re.compile(r"\((.+?)\)"), key)
+            match = re.search(re.compile(r'\((.+?)\)'), key)
             s_key = 0
             if match:  # таблица указана
                 rastr_table = match[1]
@@ -1094,40 +1094,40 @@ class RastrModel:
 
             if selection_in_table:
                 # разделение ключей для распознания
-                key_comma = selection_in_table.split(",")  # нр для ветви [ , , ], прочее []
-                key_equally = selection_in_table.split("=")  # есть = [, ], нет равно []
+                key_comma = selection_in_table.split(',')  # нр для ветви [ , , ], прочее []
+                key_equally = selection_in_table.split('=')  # есть = [, ], нет равно []
                 if ',' in selection_in_table:  # vetv
                     if len(key_comma) > 3:
                         raise ValueError(f'Ошибка в задании {key=}')
                     rastr_table = 'vetv'
                     if len(key_comma) == 3:
-                        selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np={key_comma[2]}"
+                        selection_in_table = f'ip={key_comma[0]}&iq={key_comma[1]}&np={key_comma[2]}'
                         s_key = (int(key_comma[0]), int(key_comma[1]), int(key_comma[2]),)
                     if len(key_comma) == 2:
-                        selection_in_table = f"ip={key_comma[0]}&iq={key_comma[1]}&np=0"
+                        selection_in_table = f'ip={key_comma[0]}&iq={key_comma[1]}&np=0'
                         s_key = (int(key_comma[0]), int(key_comma[1]), 0)
                 else:
                     if selection_in_table.isdigit():
                         rastr_table = 'node'
                         s_key = int(selection_in_table)
-                        selection_in_table = "ny=" + selection_in_table
+                        selection_in_table = 'ny=' + selection_in_table
                     elif 'g' == key_equally[0]:
                         rastr_table = 'Generator'
                         s_key = int(key_equally[1])
-                        selection_in_table = "Num=" + key_equally[1]
+                        selection_in_table = 'Num=' + key_equally[1]
                     elif len(key_equally) == 2:
                         s_key = int(key_equally[1])
                         if not rastr_table:
                             if key_equally[0] in self.KEY_TABLES:
                                 rastr_table = self.KEY_TABLES[key_equally[0]]  # вернет имя таблицы
-                    elif len(key_equally) > 2:  # "ip = 1&iq = 2&np = 0"
+                    elif len(key_equally) > 2:  # 'ip = 1&iq = 2&np = 0'
                         rastr_table = 'vetv'
                         ip = int(key_equally[1].split('&')[0])
                         iq = int(key_equally[2].split('&')[0])
                         np_ = 0 if len(key_equally) == 3 else int(key_equally[3])
                         s_key = (ip, iq, np_)  # if np_ else (ip, iq)
             if not rastr_table:
-                raise ValueError(f"Таблица не определена: {key=}")
+                raise ValueError(f'Таблица не определена: {key=}')
 
         if back == 's_key':
             return s_key
@@ -1165,10 +1165,10 @@ class RastrModel:
             if not self.conditions_test(execution_condition):
                 return ''
         if cycle_condition and (not execution_condition):
-            raise ValueError(f"Ошибка в задании {cycle_condition!r}, {execution_condition!r}.")
+            raise ValueError(f'Ошибка в задании {cycle_condition!r}, {execution_condition!r}.')
 
         if self.rastr.tables.Find(tabl) < 0:
-            raise ValueError(f"В rastrwin не загружена таблица {tabl!r}.")
+            raise ValueError(f'В rastrwin не загружена таблица {tabl!r}.')
 
         table = self.rastr.tables(tabl)
         table.setsel(selection)
@@ -1186,20 +1186,20 @@ class RastrModel:
                 if 'ny=' in selection:
                     ny = selection.split('=')[1]
                     table_vetv = self.rastr.tables('vetv')
-                    table_vetv.setsel(f"ip={ny}|iq={ny}")
+                    table_vetv.setsel(f'ip={ny}|iq={ny}')
                     table_vetv.DelRows()
                     table_gen = self.rastr.tables('Generator')
-                    table_gen.setsel("Node=" + ny)
+                    table_gen.setsel('Node=' + ny)
                     table_gen.DelRows()
             return f'удаление {num} строк(и) в таблице {tabl} по выборке {selection}'
         else:
             if table.cols.Find(param) < 0:
-                raise ValueError(f"В таблице {tabl!r} нет параметра {param!r}.")
+                raise ValueError(f'В таблице {tabl!r} нет параметра {param!r}.')
 
             if table.cols(param).Prop(1) == 2:  # если поле типа строка
 
                 if table.count > 1:
-                    new_data = [(*x, formula) for x in table.writesafearray(table.Key, "000")]
+                    new_data = [(*x, formula) for x in table.writesafearray(table.Key, '000')]
                     table.ReadSafeArray(2, table.Key + ',' + param, new_data)
                 else:
 
@@ -1270,11 +1270,11 @@ class RastrModel:
         В таблице узлы задать поля umin(uhom*1.15*0.7), umin_av(uhom*1.1*0.7), если uhom>100
         и и_umax
         """
-        log_rm.info(f"Заполнение поля umax и umin таблицы node.")
-        node = self.rastr.tables("node")
+        log_rm.info(f'Заполнение поля umax и umin таблицы node.')
+        node = self.rastr.tables('node')
         data = []
         field = 'ny,uhom,umax,umin,umin_av'
-        for ny, uhom, umax, umin, umin_av in node.writesafearray(field, "000"):
+        for ny, uhom, umax, umin, umin_av in node.writesafearray(field, '000'):
             if umin == 0 and uhom > 100:
                 umin = uhom * 1.15 * 0.7
             if umin_av == 0 and uhom > 100:
@@ -1303,29 +1303,29 @@ class RastrModel:
         :param choice: Выборка в таблице узлы
         """
         log_rm.info('Проверка расчетного напряжения.')
-        node = self.rastr.tables("node")
+        node = self.rastr.tables('node')
         for i in range(len(self.U_NOM)):
-            sel_node = f"!sta&uhom={self.U_NOM[i]}"
+            sel_node = f'!sta&uhom={self.U_NOM[i]}'
             if choice:
-                sel_node += f"&{choice}"
+                sel_node += f'&{choice}'
             node.setsel(sel_node)
             if node.count:
-                for name, ny, vras in node.writesafearray('name,ny,vras', "000"):
+                for name, ny, vras in node.writesafearray('name,ny,vras', '000'):
                     vras = round(vras, 1)
                     if not self.U_MIN_NORM[i] < vras < self.U_LARGEST_WORKING[i]:
                         if self.U_MIN_NORM[i] > vras:
-                            log_rm.warning(f"\tНизкое напряжение: {ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
+                            log_rm.warning(f'\tНизкое напряжение: {ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}')
                         if vras > self.U_LARGEST_WORKING[i]:
-                            log_rm.warning(f"\tПревышение наибольшего рабочего напряжения: "
-                                           f"{ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}")
+                            log_rm.warning(f'\tПревышение наибольшего рабочего напряжения: '
+                                           f'{ny=}, {name=}, {vras=}, uhom={self.U_NOM[i]}')
 
-        sel_node = "vras>0&vras<umin"  # Отклонение напряжения от umin минимально допустимого, в %
+        sel_node = 'vras>0&vras<umin'  # Отклонение напряжения от umin минимально допустимого, в %
         if choice:
-            sel_node += "&" + choice
+            sel_node += '&' + choice
         node.setsel(sel_node)
         if node.count:
-            for name, ny, vras, umin in node.writesafearray('name,ny,vras,umin', "000"):
-                log_rm.warning(f"\tНапряжение ниже минимально-допустимого: {ny=}, {name=}, {vras=}, {umin=}")
+            for name, ny, vras, umin in node.writesafearray('name,ny,vras,umin', '000'):
+                log_rm.warning(f'\tНапряжение ниже минимально-допустимого: {ny=}, {name=}, {vras=}, {umin=}')
 
     def voltage_error(self, choice: str = '', edit: bool = False):
         """
@@ -1333,9 +1333,9 @@ class RastrModel:
         Если umax<uhom, то umax удаляется;
         Если umin>uhom, umin_av>uhom, то umin, umin_av удаляется.
         :param choice: Выборка в таблице узлы
-        :param edit: Испраить значения в РМ
+        :param edit: Исправить значения в РМ
         """
-        node = self.rastr.tables("node")
+        node = self.rastr.tables('node')
         if edit:
             self.fill_field_index('node')
         else:
@@ -1346,32 +1346,32 @@ class RastrModel:
         if node.count:
             rst_on = False
             fild_set = 'name,ny,uhom,index,umax,umin,umin_av'
-            if node.cols.Find("umin_av") < 0:
+            if node.cols.Find('umin_av') < 0:
                 fild_set = 'name,ny,uhom,index,na,npa,nga'
                 rst_on = True
-            data_b = node.writesafearray(fild_set, "000")
+            data_b = node.writesafearray(fild_set, '000')
             for name, ny, uhom, index, umax, umin, umin_av in data_b:
                 add = False
                 # Номинальное напряжение.
                 if uhom not in self.U_NOM:
                     for x in range(len(self.U_NOM)):
                         if self.U_MIN_NORM[x] < uhom < self.U_LARGEST_WORKING[x]:
-                            log_rm.warning(f"\tНесоответствие номинального напряжения: "
-                                           f"{ny=}, {name=}, {uhom=}->{self.U_NOM[x]}.")
+                            log_rm.warning(f'\tНесоответствие номинального напряжения: '
+                                           f'{ny=}, {name=}, {uhom=}->{self.U_NOM[x]}.')
                             uhom = self.U_NOM[x]
                             add = True
                             break
                 # Ошибки
                 if not rst_on and umax and umax < uhom:
-                    log_rm.warning(f"\tОшибка:{ny=},{name=}, {umax=}<{uhom=}.")
+                    log_rm.warning(f'\tОшибка:{ny=},{name=}, {umax=}<{uhom=}.')
                     umax = 0
                     add = True
                 if not rst_on and umin > uhom:
-                    log_rm.warning(f"\tОшибка: {ny=},{name=}, {umin=}>{uhom=}.")
+                    log_rm.warning(f'\tОшибка: {ny=},{name=}, {umin=}>{uhom=}.')
                     umin = 0
                     add = True
                 if not rst_on and umin_av > uhom:
-                    log_rm.warning(f"\tОшибка: {ny=},{name=}, {umin_av=}>{uhom=}.")
+                    log_rm.warning(f'\tОшибка: {ny=},{name=}, {umin_av=}>{uhom=}.')
                     umin_av = 0
                     add = True
 
@@ -1379,7 +1379,7 @@ class RastrModel:
                     data.append((name, ny, uhom, index, umax, umin, umin_av,))
 
         if edit and data:
-            log_rm.warning(f"\tОшибки исправлены.")
+            log_rm.warning(f'\tОшибки исправлены.')
             node.ReadSafeArray(2, fild_set, data)
 
     def rgm(self, txt: str = "", param: str = '') -> bool:
@@ -1389,22 +1389,22 @@ class RastrModel:
         :param param: Параметр функции rastr.rgm(param)
         Параметр функции rastr.rgm():
         "" – c параметрами по умолчанию; 40 мс
-        "p" – расчет с плоского старта; 93 мс
-        "z" – отключение стартового алгоритма; 39 мс
-        "c" – отключение контроля данных; 38 мс
-        "r" – отключение подготовки данных (можно использовать
+        'p' – расчет с плоского старта; 93 мс
+        'z' – отключение стартового алгоритма; 39 мс
+        'c' – отключение контроля данных; 38 мс
+        'r' – отключение подготовки данных (можно использовать
         при повторном расчете режима с измененными значениями узловых мощностей и модулей напряжения). 34 мс
-        "zcr" - 19 мс
+        'zcr' - 19 мс
         :return: False если развалился.
         """
         if txt:
-            log_rm.debug(f"Расчет режима: {txt}")
+            log_rm.debug(f'Расчет режима: {txt}')
         for i in (param, '', '', 'p', 'p', 'p'):
             kod_rgm = self.rastr.rgm(i)  # 0 сошелся, 1 развалился
             if not kod_rgm:  # 0 сошелся
                 return True
         # развалился
-        log_rm.info(f"Расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!")
+        log_rm.info(f'Расчет режима: {txt} !!!РАЗВАЛИЛСЯ!!!')
         return False
 
     def all_cols(self, tab: str, val_return: str = 'str'):
@@ -1428,8 +1428,8 @@ class RastrModel:
     def table_add_row(self, table: str = '', tasks: str = '') -> int:
         """
         Добавить запись в таблицу и вернуть index.
-        :param table: таблица, например "vetv";
-        :param tasks: параметры в формате "ip=1;iq=2; np=10; i_dop=100.5";
+        :param table: таблица, например 'vetv';
+        :param tasks: параметры в формате 'ip=1;iq=2; np=10; i_dop=100.5';
         :return: index;
         """
         table = table.strip()
@@ -1439,14 +1439,14 @@ class RastrModel:
         r_table = self.rastr.tables(table)
         r_table.AddRow()  # добавить строку в конце таблицы
         index = r_table.size - 1
-        for task_i in tasks.split(";"):
+        for task_i in tasks.split(';'):
             if task_i:
                 if task_i.count('=') == 1:
-                    parameters, value = task_i.split("=")
+                    parameters, value = task_i.split('=')
                     parameters = parameters.replace(' ', '')
                     if all([parameters, value]):
                         if r_table.cols.Find(parameters) < 0:
-                            raise ValueError(f"В таблице {r_table!r} нет параметра {parameters!r}.")
+                            raise ValueError(f'В таблице {r_table!r} нет параметра {parameters!r}.')
                         if r_table.cols(parameters).Prop(1) == 2:  # если поле типа строка
                             r_table.cols.Item(parameters).SetZ(index, value)
                         else:
@@ -1478,28 +1478,28 @@ class RastrModel:
         :return:
         """
         matching_letter = {
-            "E": "Е",
-            "T": "Т",
-            "O": "О",
-            "P": "Р",
-            "A": "А",
-            "H": "Н",
-            "K": "К",
-            "X": "Х",
-            "C": "С",
-            "B": "В",
-            "M": "М",
-            "e": "е",
-            "o": "о",
-            "p": "р",
-            "a": "а",
-            "x": "х",
-            "c": "с",
-            "b": "в"}
+            'E': 'Е',
+            'T': 'Т',
+            'O': 'О',
+            'P': 'Р',
+            'A': 'А',
+            'H': 'Н',
+            'K': 'К',
+            'X': 'Х',
+            'C': 'С',
+            'B': 'В',
+            'M': 'М',
+            'e': 'е',
+            'o': 'о',
+            'p': 'р',
+            'a': 'а',
+            'x': 'х',
+            'c': 'с',
+            'b': 'в'}
         r_table = self.rastr.tables(table)
         data = []
         fields = f'{field},{r_table.Key}'
-        for i in r_table.writesafearray(fields, "000"):
+        for i in r_table.writesafearray(fields, '000'):
             i = list(i)
             new = i[0]
             # заменить буквы
@@ -1525,65 +1525,71 @@ class RastrModel:
         Добавить зависимости СХН в таблицу узлы (uhom>100 nsx=1, uhom<100 nsx=2)
         :param choice: выборка, нр na=100
         """
-        log_rm.info("\tДобавлены зависимости СХН в таблицу узлы (uhom>100 nsx=1, uhom<100 nsx=2)")
+        log_rm.info('\tДобавлены зависимости СХН в таблицу узлы (uhom>100 nsx=1, uhom<100 nsx=2)')
         choice = choice + '&' if choice else ''
-        self.group_cor(tabl="node", param="nsx", selection=choice + "uhom>100", formula="1")
-        self.group_cor(tabl="node", param="nsx", selection=choice + "uhom<100", formula="2")
+        self.group_cor(tabl='node', param='nsx', selection=choice + 'uhom>100', formula='1')
+        self.group_cor(tabl='node', param='nsx', selection=choice + 'uhom<100', formula='2')
 
     def cor_pop(self, zone: str, new_pop: int | float) -> bool:
         """
         Изменить потребление.
-        :param zone: Например, "na=3", "npa=2" или "no=1"
+        :param zone: Например, 'na=3', 'npa=2' или 'no=1'
         :param new_pop: значение потребления
         :return:
         """
         eps = 0.003 if new_pop < 50 else 0.0003  # точность расчета, *100=%
         react_cor = True  # менять реактивное потребление пропорционально
         if '=' not in str(zone):
-            raise ValueError(f"Ошибка в задании, cor_pop: {zone=}, {new_pop=}")
+            raise ValueError(f'Ошибка в задании, cor_pop: {zone=}, {new_pop=}')
         zone_id = zone.partition('=')[0]
-        name_zone = {"na": "area", "npa": "area2", "no": "darea",
-                     "name_na": "район", "name_npa": "территория", "name_no": "объединение",
-                     "p_na": "pop", "p_npa": "pop", "p_no": "pp"}
-        t_node = self.rastr.tables("node")
+        name_zone = {'na': 'area',
+                     'npa': 'area2',
+                     'no': 'darea',
+                     'name_na': 'район',
+                     'name_npa': 'территория',
+                     'name_no': 'объединение',
+                     'p_na': 'pop',
+                     'p_npa': 'pop',
+                     'p_no': 'pp'}
+        t_node = self.rastr.tables('node')
         t_zone = self.rastr.tables(name_zone[zone_id])
         t_zone.setsel(zone)
         ndx_z = t_zone.FindNextSel(-1)
-        t_area = self.rastr.tables("area")
-        if zone_id == "no":
+        t_area = self.rastr.tables('area')
+        if zone_id == 'no':
             t_area.setsel(zone)
-        if t_zone.cols.Find("set_pop") > 0:
-            t_zone.cols.Item("set_pop").SetZ(ndx_z, new_pop)
+        if t_zone.cols.Find('set_pop') > 0:
+            t_zone.cols.Item('set_pop').SetZ(ndx_z, new_pop)
         name_z = t_zone.cols.item('name').ZS(ndx_z)
-        pop_beginning = self.rastr.Calc("val", name_zone[zone_id], name_zone[f'p_{zone_id}'], zone)
+        pop_beginning = self.rastr.Calc('val', name_zone[zone_id], name_zone[f'p_{zone_id}'], zone)
         for i in range(10):  # максимальное число итераций
             self.rgm('cor_pop')
-            pop = self.rastr.Calc("val", name_zone[zone_id], name_zone[f'p_{zone_id}'], zone)
-            # нр("val", "darea", "pp", "no=1")
+            pop = self.rastr.Calc('val', name_zone[zone_id], name_zone[f'p_{zone_id}'], zone)
+            # нр('val', 'darea', 'pp', 'no=1')
             ratio = new_pop / pop  # 50/55=0.9
             if abs(ratio - 1) > eps:
-                if zone_id == "no":
+                if zone_id == 'no':
                     ndx_na = t_area.FindNextSel(-1)
                     while ndx_na != -1:
-                        i_na = t_area.cols.item("na").Z(ndx_na)
-                        t_node.setsel("na=" + str(i_na))
-                        t_node.cols.item("pn").Calc(f"pn*{ratio}")
+                        i_na = t_area.cols.item('na').Z(ndx_na)
+                        t_node.setsel('na=' + str(i_na))
+                        t_node.cols.item('pn').Calc(f'pn*{ratio}')
                         if react_cor:
-                            t_node.cols.item("qn").Calc(f"qn*{ratio}")
+                            t_node.cols.item('qn').Calc(f'qn*{ratio}')
                         ndx_na = t_area.FindNextSel(ndx_na)
 
-                elif zone_id in ["npa", "na"]:
+                elif zone_id in ['npa', 'na']:
                     t_node.setsel(zone)
-                    t_node.cols.item("pn").Calc("pn*" + str(ratio))
+                    t_node.cols.item('pn').Calc('pn*' + str(ratio))
                     if react_cor:
-                        t_node.cols.item("qn").Calc("qn*" + str(ratio))
+                        t_node.cols.item('qn').Calc('qn*' + str(ratio))
 
                 if not self.rgm('cor_pop'):
-                    log_rm.error(f"Аварийное завершение расчета, cor_pop: {zone=}, {new_pop=}")
+                    log_rm.error(f'Аварийное завершение расчета, cor_pop: {zone=}, {new_pop=}')
                     return False
             else:
-                log_rm.info(f"\t\tПотребление {name_z!r}({zone}) = {pop_beginning:.1f} МВт изменено на {pop:.1f} МВт"
-                            f" (задано {new_pop}, отклонение {abs(new_pop - pop):.1f} МВт, {i + 1} ит.)")
+                log_rm.info(f'\t\tПотребление {name_z!r}({zone}) = {pop_beginning:.1f} МВт изменено на {pop:.1f} МВт'
+                            f' (задано {new_pop}, отклонение {abs(new_pop - pop):.1f} МВт, {i + 1} ит.)')
                 return True
 
     def auto_shunt_rec(self, selection: str = '', only_auto_bsh: bool = False) -> dict:
@@ -1603,28 +1609,28 @@ class RastrModel:
         if node.cols.Find('AutoBsh') < 0:
             have_AutoBsh = False
             if only_auto_bsh:
-                raise ValueError(f"В таблице node нет параметра AutoBsh.")
+                raise ValueError(f'В таблице node нет параметра AutoBsh.')
         selection_result = selection + '&pn=0&qn=0&pg=0&qg=0&bsh!=0' if selection else 'pn=0&qn=0&pg=0&qg=0&bsh!=0'
         node.setsel(selection_result)
         i = node.FindNextSel(-1)
         while i > -1:
             AutoBsh = ''
             if have_AutoBsh:
-                AutoBsh = node.cols.item("AutoBsh").ZS(i)
+                AutoBsh = node.cols.item('AutoBsh').ZS(i)
                 AutoBsh = AutoBsh.replace(' ', '')
                 if not AutoBsh and only_auto_bsh:
                     i = node.FindNextSel(i)
                     continue  # если только по полю AutoBsh и оно не заполнено, то к следующему узлу
-            ny = node.cols.item("ny").Z(i)
-            name = node.cols.item("name").Z(i)
-            type_ = 'ШР' if node.cols.item("bsh").Z(i) > 0 else 'БСК'
+            ny = node.cols.item('ny').Z(i)
+            name = node.cols.item('name').Z(i)
+            type_ = 'ШР' if node.cols.item('bsh').Z(i) > 0 else 'БСК'
             vetv.setsel(f'ip={ny}|iq={ny}')
             if not vetv.count == 1:
                 i = node.FindNextSel(i)
                 continue  # если не 1 ветвь, то к следующему узлу
             iv = vetv.FindNextSel(-1)
-            ip = vetv.cols.item("ip").Z(iv)
-            iq = vetv.cols.item("iq").Z(iv)
+            ip = vetv.cols.item('ip').Z(iv)
+            iq = vetv.cols.item('iq').Z(iv)
 
             ny_adjacency = ip if ny == iq else iq
             ny_control = ''
@@ -1647,7 +1653,7 @@ class RastrModel:
                     i = node.FindNextSel(i)
                     continue
             else:
-                uhom = node.cols.item("uhom").Z(i)
+                uhom = node.cols.item('uhom').Z(i)
                 if uhom > 300:
                     umin = round(uhom * 0.95, 1)
                     umax = round(uhom * 1.05, 1)
@@ -1674,37 +1680,37 @@ class RastrModel:
             i = self.index(table_name='node', key_str=f'ny={ny}')
             i_test = self.index(table_name='node', key_str=f'ny={ny_test}')
             node = self.rastr.tables('node')
-            sta = node.cols.item("sta").Z(i)  # 1 откл, 0 вкл
-            volt_test = round(node.cols.item("vras").Z(i_test), 1)
+            sta = node.cols.item('sta').Z(i)  # 1 откл, 0 вкл
+            volt_test = round(node.cols.item('vras').Z(i_test), 1)
             if volt_test:
                 if volt_test < ku.umin:
                     if ku.type == 'БСК':  # включить
                         if sta:
                             self.sta_node_with_branches(ny=ny, sta=0)
                             self.rgm('auto_shunt_cor')
-                            volt_result = round(node.cols.item("vras").Z(i_test), 1)
+                            volt_result = round(node.cols.item('vras').Z(i_test), 1)
                             changes_in_rm += (f'\nВключена БСК {ny=} {ku.name!r},'
                                               f' напряжение увеличилось с {volt_test} до {volt_result}.')
                     elif ku.type == 'ШР':  # отключить
                         if not sta:
-                            node.cols.item("sta").SetZ(i, 1)
+                            node.cols.item('sta').SetZ(i, 1)
                             self.rgm('auto_shunt_cor')
-                            volt_result = round(node.cols.item("vras").Z(i_test), 1)
+                            volt_result = round(node.cols.item('vras').Z(i_test), 1)
                             changes_in_rm += (f'\nОтключен ШР {ny=} {ku.name!r},'
                                               f' напряжение увеличилось с {volt_test} до {volt_result}.')
                 elif volt_test > ku.umax:
                     if ku.type == 'БСК':  # отключить
                         if not sta:
-                            node.cols.item("sta").SetZ(i, 1)
+                            node.cols.item('sta').SetZ(i, 1)
                             self.rgm('auto_shunt_cor')
-                            volt_result = round(node.cols.item("vras").Z(i_test), 1)
+                            volt_result = round(node.cols.item('vras').Z(i_test), 1)
                             changes_in_rm += (f'\nОтключена БСК {ny=} {ku.name!r},'
                                               f' напряжение снизилось с {volt_test} до {volt_result}.')
                     elif ku.type == 'ШР':  # включить
                         if sta:
                             self.sta_node_with_branches(ny=ny, sta=0)
                             self.rgm('auto_shunt_cor')
-                            volt_result = round(node.cols.item("vras").Z(i_test), 1)
+                            volt_result = round(node.cols.item('vras').Z(i_test), 1)
                             changes_in_rm += (f'\nВключен ШР {ny=} {ku.name!r},'
                                               f' напряжение снизилось с {volt_test} до {volt_result}.')
         if changes_in_rm:
@@ -1720,11 +1726,11 @@ class RastrModel:
         """
         # todo удалить
         table = self.rastr.tables(table_name)
-        if table.cols.Find("index") < 0:
+        if table.cols.Find('index') < 0:
             self.fill_field_index(table_name)
         table = self.rastr.tables(table_name)
         table.setsel(setsel)
-        return [x[0] for x in table.writesafearray("index", "000")]
+        return [x[0] for x in table.writesafearray('index', '000')]
 
     def add_fields_in_table(self, name_tables: str, fields: str, type_fields: int, prop=(), replace=False):
         """
@@ -1734,7 +1740,7 @@ class RastrModel:
         :param type_fields: Тип поля: 0 целый, 1 вещ, 2 строка, 3 переключатель(sta sel), 4 перечисление, 6 цвет
         :param prop: ((0-12, значение), ()) prop=((8, '2'), (0, 'yes')) или ((8, '2'),)
         0 Имя, 1 Тип, 2 Ширина, 3 Точность, 4 Заголовок
-        5 Формула "str(ip.name)+"+"+str(iq.name)+"_"+str(ip.uhom)"
+        5 Формула 'str(ip.name)+'+'+str(iq.name)+'_'+str(ip.uhom)'
         6-, 7-, 8 Перечисление – ссылка, 9 Описание, 10 Минимум, 11 Максимум, 12 Масштаб
         :param replace: True предварительно удалить поле если оно существует
         """
@@ -1766,7 +1772,7 @@ class RastrModel:
         if not fields:
             fields = self.all_cols(table_name)
         fields = fields.replace(' ', '').replace(',,', ',').strip(',')
-        part_table = table.writesafearray(fields, "000")
+        part_table = table.writesafearray(fields, '000')
         return pd.DataFrame(data=part_table, columns=fields.split(','))
 
     def table_from_df(self, df: pd.DataFrame, table_name: str, fields: str = '', type_import: int = 2):
@@ -1793,7 +1799,7 @@ class RastrModel:
         for name_table in name_tables.replace(' ', '').split(','):
             self.add_fields_in_table(name_tables=name_table, fields='index', type_fields=0)
             table = self.rastr.tables(name_table)
-            keys = [(*x, i) for i, x in enumerate(table.writesafearray(table.Key, "000"), 0)]
+            keys = [(*x, i) for i, x in enumerate(table.writesafearray(table.Key, '000'), 0)]
             table.ReadSafeArray(2, table.Key + ',index', keys)
             log_rm.debug(f'В таблице {name_table} заполнено поле index.')
 
@@ -1804,7 +1810,7 @@ class RastrModel:
         self.cor(keys=str(ny), values='sta=' + str(sta))
         vetv = self.rastr.tables('vetv')
         vetv.setsel(f'ip={ny}|iq={ny}')
-        vetv.cols.item("sta").calc(sta)
+        vetv.cols.item('sta').calc(sta)
 
     def replace_links(self, formula: str) -> str:
         """
@@ -1866,14 +1872,14 @@ class RastrModel:
 
     def conditions_test(self, conditions: str) -> bool:
         """
-        В строке типа "years : 2026...2029& ny=1: vras>125|(not ny=1: na==2)" проверяет выполнение условий.
+        В строке типа 'years : 2026...2029& ny=1: vras>125|(not ny=1: na==2)' проверяет выполнение условий.
         Если в conditions имеются {}, то значения берутся внутри скобок
         :param conditions:
         :return:
         """
         log_rm.debug(f'Проверка условия: {conditions}')
         if '{' in conditions:
-            match = re.search(re.compile(r"\{(.+?)}"), conditions)
+            match = re.search(re.compile(r'\{(.+?)}'), conditions)
             if match:
                 conditions = match[1].strip()
             else:
@@ -1898,7 +1904,7 @@ class RastrModel:
                             else:
                                 conditions = conditions.replace(condition, 'False')
         if ':' in conditions:
-            raise ValueError("Ошибка в условии: " + conditions)
+            raise ValueError('Ошибка в условии: ' + conditions)
         try:
             conditions_test = bool(eval(conditions))
             log_rm.debug(f'{conditions_test=}: {conditions}')

@@ -45,8 +45,8 @@ class Automation:
                     df_automation_pattern.set_index('name', inplace=True)
                     dict_name_action = df_automation_pattern.to_dict()['pattern']
 
-                    self.df_pa.replace({"action": dict_name_action}, inplace=True)
-                    self.df_pa.replace({"condition": dict_name_action}, inplace=True)
+                    self.df_pa.replace({'action': dict_name_action}, inplace=True)
+                    self.df_pa.replace({'condition': dict_name_action}, inplace=True)
                     self.df_pa = self.df_pa[(self.df_pa['sta'] == 0)]
                     self.df_pa.loc[self.df_pa['step'] == 0, 'step'] = 1
                     self.all_num = set(self.df_pa['n'].unique())
@@ -73,7 +73,7 @@ class Automation:
         fields = 'automation,repair_scheme,disable_scheme,double_repair_scheme'
         for name_t in ('node', 'vetv', 'Generator'):
             t = rm.rastr.tables(name_t)
-            d = t.writesafearray(f'{fields},{t.Key}', "000")
+            d = t.writesafearray(f'{fields},{t.Key}', '000')
             for automation, repair_scheme, disable_scheme, double_repair_scheme, *s_key in d:
                 if len(s_key) == 1:
                     s_key = s_key[0]
@@ -132,7 +132,7 @@ class Automation:
     def scheme_description(self, number: str) -> tuple:
         """
         По номеру n в таблице automation возвращает строки задания в текстовом виде
-        :param number: "Номер_ПА.номер_ступени"
+        :param number: 'Номер_ПА.номер_ступени'
         :return: (list(название из таблицы automation), list(задание из той же таблицы))
         """
         if number in self.n_action:
@@ -191,7 +191,7 @@ class Automation:
                     auto = rm.t_scheme['vetv']['automation'].get(s_key, False)
                     if auto:
                         for a in auto:
-                            # если "a" уже запущена, то проверяем текущую ступень, если нет, то минимальную
+                            # если 'a' уже запущена, то проверяем текущую ступень, если нет, то минимальную
                             all_found_automatics.add(a)
                             # if a not in self.num_activation:
                             self.num_activation.add(a)

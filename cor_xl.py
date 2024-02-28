@@ -20,9 +20,9 @@ class CorXL:
         :param sheets: имя листов, нр [импорт из моделей][XL->RastrWin], если '*', то все листы по порядку
         """
         self.sheets_list = []  # для хранения объектов CorSheet
-        log_cor_xl.info(f"Изменить модели по заданию из книги: {excel_file_name}, листы: {sheets}")
+        log_cor_xl.info(f'Изменить модели по заданию из книги: {excel_file_name}, листы: {sheets}')
         if not os.path.exists(excel_file_name):
-            raise ValueError("Ошибка в задании, не найден файл: " + excel_file_name)
+            raise ValueError('Ошибка в задании, не найден файл: ' + excel_file_name)
         else:
             self.excel_file_name = excel_file_name
             # data_only - Загружать расчетные значения ячеек, иначе будут формулы.
@@ -34,10 +34,10 @@ class CorXL:
                     if '#' not in sheet:  # все листы
                         self.sheets_list.append(CorSheet(name=sheet, obj=self.wb[sheet]))
             else:
-                self.sheets = re.findall(r"\[(.+?)]", sheets)
+                self.sheets = re.findall(r'\[(.+?)]', sheets)
                 for sheet in self.sheets:
                     if sheet not in self.wb.sheetnames:
-                        raise ValueError(f"Ошибка в задании, не найден лист: {sheet} в файле {excel_file_name}")
+                        raise ValueError(f'Ошибка в задании, не найден лист: {sheet} в файле {excel_file_name}')
                     else:
                         self.sheets_list.append(CorSheet(name=sheet, obj=self.wb[sheet]))
 
@@ -57,7 +57,7 @@ class CorSheet:
     """
     Клас лист для хранения листов книги excel и работы с ними.
     """
-    SHAPE = {"Параметры импорта из файлов RastrWin": 'import_model',  # Импорт из моделей(ИМ)
+    SHAPE = {'Параметры импорта из файлов RastrWin': 'import_model',  # Импорт из моделей(ИМ)
              'Выполнить изменение модели по строкам': 'list_cor',  # Строковая форма(СФ)
              'Имя таблицы:': 'table_import'}  # Импорт таблиц(ИТ)
 
@@ -100,10 +100,10 @@ class CorSheet:
             if self.xls.cell(row, 1).value and '#' not in self.xls.cell(row, 1).value:
                 """ ИД для импорта из модели(выполняется после блока начала)"""
                 ifm = ImportFromModel(RastrModel(full_name=self.xls.cell(row, 1).value, not_calculated=True),
-                                      criterion_start={"years": self.xls.cell(row, 6).value,
-                                                       "season": self.xls.cell(row, 7).value,
-                                                       "max_min": self.xls.cell(row, 8).value,
-                                                       "add_name": self.xls.cell(row, 9).value},
+                                      criterion_start={'years': self.xls.cell(row, 6).value,
+                                                       'season': self.xls.cell(row, 7).value,
+                                                       'max_min': self.xls.cell(row, 8).value,
+                                                       'add_name': self.xls.cell(row, 9).value},
                                       tables=self.xls.cell(row, 2).value,
                                       param=self.xls.cell(row, 4).value,
                                       sel=self.xls.cell(row, 3).value,
@@ -152,8 +152,8 @@ class CorSheet:
                     statement = self.xls.cell(row, 8).value
 
                     if any([year, season, max_min, add_name]) and rm.code_name_rg2:  # any если хотя бы один истина
-                        if not rm.test_name(condition={"years": year, "season": season,
-                                                       "max_min": max_min, "add_name": add_name},
+                        if not rm.test_name(condition={'years': year, 'season': season,
+                                                       'max_min': max_min, 'add_name': add_name},
                                             info=f'\t\tcor_x:{sel=}, {value=}'):
                             continue
                     if statement:
@@ -166,34 +166,34 @@ class CorSheet:
         Корректировка моделей по заданию в табличном виде
         """
         name_files = ""
-        dict_param_column = {}  # {10: "pn"} - столбец: параметр
+        dict_param_column = {}  # {10: 'pn'} - столбец: параметр
         # Шаг по колонкам и запись в словарь всех столбцов для коррекции
         for column_name_file in range(2, self.xls.max_column + 1):
-            if self.xls.cell(1, column_name_file).value not in ["", None]:
-                name_files = self.xls.cell(1, column_name_file).value.split("|")
+            if self.xls.cell(1, column_name_file).value not in ['', None]:
+                name_files = self.xls.cell(1, column_name_file).value.split('|')
             if self.xls.cell(2, column_name_file).value:
                 duct_add = False
                 for name_file in name_files:
-                    if name_file in [rm.name_base, "*"]:
+                    if name_file in [rm.name_base, '*']:
                         duct_add = True
-                    if "*" in name_file and len(name_file) > 7:
-                        match = re.search(re.compile(r"\[(.*)].*\[(.*)].*\[(.*)].*\[(.*)]"),
+                    if '*' in name_file and len(name_file) > 7:
+                        match = re.search(re.compile(r'\[(.*)].*\[(.*)].*\[(.*)].*\[(.*)]'),
                                           name_file)
                         if match.re.groups == 4 and rm.code_name_rg2:
-                            if rm.test_name(condition={"years": match[1], "season": match[2],
-                                                       "max_min": match[3], "add_name": match[4]},
-                                            info=f"\tcor_xl, условие: {name_file}, ") or not rm.code_name_rg2:
+                            if rm.test_name(condition={'years': match[1], 'season': match[2],
+                                                       'max_min': match[3], 'add_name': match[4]},
+                                            info=f'\tcor_xl, условие: {name_file}, ') or not rm.code_name_rg2:
                                 duct_add = True
                 if duct_add:
                     _ = self.xls.cell(2, column_name_file).value
                     dict_param_column[column_name_file] = _.replace(' ', '')
 
         if not dict_param_column:
-            log_cor_xl.info(f"\t {rm.name_base} НЕ НАЙДЕН на листе {self.name} книги excel")
+            log_cor_xl.info(f'\t {rm.name_base} НЕ НАЙДЕН на листе {self.name} книги excel')
         else:
             log_cor_xl.info(f'\t\tРасчетной модели соответствуют столбцы: параметры {dict_param_column}')
-            calc_vals = {1: "ЗАМЕНИТЬ", 2: "+", 3: "-", 0: "*"}
-            # 1: "ЗАМЕНИТЬ", 2: "ПРИБАВИТЬ", 3: "ВЫЧЕСТЬ", 0: "УМНОЖИТЬ"
+            calc_vals = {1: 'ЗАМЕНИТЬ', 2: '+', 3: '-', 0: '*'}
+            # 1: 'ЗАМЕНИТЬ', 2: 'ПРИБАВИТЬ', 3: 'ВЫЧЕСТЬ', 0: 'УМНОЖИТЬ'
             for row in range(3, self.xls.max_row + 1):
                 for column, param in dict_param_column.items():
                     short_keys = self.xls.cell(row, 1).value
@@ -202,15 +202,15 @@ class CorSheet:
                         new_val = self.xls.cell(row, column).value
                         if new_val is not None:
                             # for short_key in short_keys.split(';'):
-                            if param in ["pop", "pp"]:
+                            if param in ['pop', 'pp']:
                                 rm.cor_pop(zone=short_keys,
                                            new_pop=new_val)  # изменить потребление
                             else:
                                 if self.calc_val == 1:
                                     rm.cor(keys=short_keys,
-                                           values=f"{param}={new_val}",
+                                           values=f'{param}={new_val}',
                                            print_log=True)
                                 else:
                                     rm.cor(keys=short_keys,
-                                           values=f"{param}={param}{calc_vals[self.calc_val]}{new_val}",
+                                           values=f'{param}={param}{calc_vals[self.calc_val]}{new_val}',
                                            print_log=True)

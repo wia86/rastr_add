@@ -18,7 +18,7 @@ class CombinationXL:
         self.srs_xl = pd.read_excel(path_xl,
                                     sheet_name=sheet,
                                     keep_default_na=False)  # keep_default_na: True NaN or  False ''
-        self.srs_xl = self.srs_xl[~self.srs_xl['Статус'].str.contains("#")]  # ~ not
+        self.srs_xl = self.srs_xl[~self.srs_xl['Статус'].str.contains('#')]  # ~ not
         self.srs_xl.dropna(how='all', axis=0, inplace=True)  # Удалить пустые строки.
         if self.srs_xl.empty:
             raise ValueError(f'Таблица отключений из xl пуста.')

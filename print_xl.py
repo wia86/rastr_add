@@ -24,26 +24,26 @@ class PrintXL:
                          'nga': 'ngroup',
                          'ns': 'sechen'}
     set_param = {
-        "sechen": {"sel": 'ns>0',
-                   'par': '',  # "ns,name,pmin,pmax,psech",
-                   "rows": "ns,name",  # поля строк в сводной
-                   "columns": "Год,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля столбцов в сводной
-                   "values": "psech,pmax,difference_p"},
-        "area": {"sel": 'na>0',
+        'sechen': {'sel': 'ns>0',
+                   'par': '',  # 'ns,name,pmin,pmax,psech',
+                   'rows': 'ns,name',  # поля строк в сводной
+                   'columns': 'Год,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3',  # поля столбцов в сводной
+                   'values': 'psech,pmax,difference_p'},
+        'area': {'sel': 'na>0',
                  'par': '',  # 'na,name,no,pg,pn,pn_sum,dp,pop,set_pop,qn_sum,pg_max,pg_min,poq,qn,qg,dev_pop'
-                 "rows": "na,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля строк в сводной
-                 "columns": "Год",  # поля столбцов в сводной
-                 "values": "pop,difference_p"},
-        "area2": {"sel": 'npa>0',
+                 'rows': 'na,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3',  # поля строк в сводной
+                 'columns': 'Год',  # поля столбцов в сводной
+                 'values': 'pop,difference_p'},
+        'area2': {'sel': 'npa>0',
                   'par': '',  # 'npa,name,pg,pn,dp,pop,vnp,qg,qn,dq,poq,vnq,pn_sum,qn_sum,set_pop,dev_pop'
-                  "rows": "npa,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля строк в сводной
-                  "columns": "Год",  # поля столбцов в сводной
-                  "values": "pop,difference_p"},
-        "darea": {"sel": 'no>0',
+                  'rows': 'npa,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3',  # поля строк в сводной
+                  'columns': 'Год',  # поля столбцов в сводной
+                  'values': 'pop,difference_p'},
+        'darea': {'sel': 'no>0',
                   'par': '',  # 'no,name,pg,pp,pvn,qn_sum,pnr_sum,pn_sum,set_pop,qvn,qp,qg,dev_pop',
-                  "rows": "no,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3",  # поля строк в сводной
-                  "columns": "Год",  # поля столбцов в сводной
-                  "values": "pp,difference_p"}
+                  'rows': 'no,name,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3',  # поля строк в сводной
+                  'columns': 'Год',  # поля столбцов в сводной
+                  'values': 'pp,difference_p'}
     }
 
     def __init__(self, task):
@@ -67,13 +67,13 @@ class PrintXL:
         if self.task['print_parameters']['add']:
             self.set_output_parameters = set()
             for task_i in self.task['print_parameters']['sel'].replace(' ', '').split('/'):
-                key_row, key_column = task_i.split(":")  # нр"8;9", "pn;qn"
+                key_row, key_column = task_i.split(':')  # нр'8;9', 'pn;qn'
                 for col in key_column.split(';'):  # ['pn','qn']
                     for row in key_row.split(';'):  # ['15105,15113','15038,15037,4']
                         self.set_output_parameters.add(f'{row}:{col}')
 
         if self.task['print_balance_q']['add']:
-            self.sheet_q = self.book.create_sheet("balance_Q")
+            self.sheet_q = self.book.create_sheet('balance_Q')
             self.row_q = {}
             # (имя ключа, название в ячейке XL, комментарий ячейки)
             name_row = (
@@ -124,7 +124,7 @@ class PrintXL:
                     self.sheet_q.cell(n, 1).comment = Comment(row_info[2], '')
 
     def add_val(self, rm):
-        log_print_xl.info("\tВывод данных из моделей в XL")
+        log_print_xl.info('\tВывод данных из моделей в XL')
 
         # Добавить значения в вывод таблиц.
         for name_table in self.data_table:
@@ -153,7 +153,7 @@ class PrintXL:
 
     def add_val_parameters(self, rm):
         """
-        Вывод заданных параметров в формате: "15105,15113;15038,15037,4:r;x;b / 15198:pg;qg / ns=1(sechen):psech".
+        Вывод заданных параметров в формате: '15105,15113;15038,15037,4:r;x;b / 15198:pg;qg / ns=1(sechen):psech'.
         """
         if 'sechen' in self.task['print_parameters']['sel']:
             if rm.rastr.tables.Find('sechen') < 0:
@@ -171,57 +171,57 @@ class PrintXL:
 
     def add_val_balance_q(self, rm):
         column = self.sheet_q.max_column + 1
-        choice = self.task["print_balance_q"]["sel"]
+        choice = self.task['print_balance_q']['sel']
         self.sheet_q.cell(2, column,
                           f'{rm.info_file["Сезон макс/мин"]} {rm.info_file["Год"]} г ({rm.info_file["Доп. имена"]})')
-        area = rm.rastr.Tables("area")
-        area.SetSel(self.task["print_balance_q"]["sel"])
+        area = rm.rastr.Tables('area')
+        area.SetSel(self.task['print_balance_q']['sel'])
         # ndx = area.FindNextSel(-1)
 
         # Реактивная мощность нагрузки
         address_qn = self.sheet_q.cell(self.row_q['row_qn'], column,
-                                       rm.rastr.Calc("sum", "area", "qn", choice)).coordinate
+                                       rm.rastr.Calc('sum', 'area', 'qn', choice)).coordinate
         # Потери Q в ЛЭП
         address_dq_line = self.sheet_q.cell(self.row_q['row_dq_line'], column,
-                                            rm.rastr.Calc("sum", "area", "dq_line", choice)).coordinate
+                                            rm.rastr.Calc('sum', 'area', 'dq_line', choice)).coordinate
         # Потери Q в трансформаторах
         address_dq_tran = self.sheet_q.cell(self.row_q['row_dq_tran'], column,
-                                            rm.rastr.Calc("sum", "area", "dq_tran", choice)).coordinate
+                                            rm.rastr.Calc('sum', 'area', 'dq_tran', choice)).coordinate
         # Потери Q_ХХ в трансформаторах
         address_shq_tran = self.sheet_q.cell(self.row_q['row_shq_tran'], column,
-                                             rm.rastr.Calc("sum", "area", "shq_tran", choice)).coordinate
+                                             rm.rastr.Calc('sum', 'area', 'shq_tran', choice)).coordinate
         # ШР УШР без бСК
-        skrm = (rm.rastr.Calc("sum", "node", "qsh", f"qsh>0&({choice})") -
-                rm.rastr.Calc("sum", "node", "qg", f"qg<0&pg<0.1&pg>-0.1&({choice})"))
+        skrm = (rm.rastr.Calc('sum', 'node', 'qsh', f'qsh>0&({choice})') -
+                rm.rastr.Calc('sum', 'node', 'qg', f'qg<0&pg<0.1&pg>-0.1&({choice})'))
         address_SHR = self.sheet_q.cell(self.row_q['row_skrm_potr'], column, skrm).coordinate
         # Генерация Q генераторов
         address_qg = self.sheet_q.cell(self.row_q['row_qg'], column,
-                                       rm.rastr.Calc("sum", "node", "qg", f"(pg>0.1|pg<-0.1)&({choice})")).coordinate
+                                       rm.rastr.Calc('sum', 'node', 'qg', f'(pg>0.1|pg<-0.1)&({choice})')).coordinate
         # Генерация БСК шунтом и СТК СК
         address_skrm_gen = self.sheet_q.cell(self.row_q['row_skrm_gen'], column,
-                                             -rm.rastr.Calc("sum", "node", "qsh", f"qsh<0&({choice})") + rm.rastr.Calc(
-                                                 "sum", "node", "qg", f"qg>0&pg<0.1&pg>-0.1&({choice})")).coordinate
+                                             -rm.rastr.Calc('sum', 'node', 'qsh', f'qsh<0&({choice})') + rm.rastr.Calc(
+                                                 'sum', 'node', 'qg', f'qg>0&pg<0.1&pg>-0.1&({choice})')).coordinate
         # Минимальная генерация реактивной мощности в узлах выборки
         address_qg_min = self.sheet_q.cell(self.row_q['row_qg_min'], column,
-                                           rm.rastr.Calc("sum", "node", "qmin", f"pg>0.1&({choice})")).coordinate
+                                           rm.rastr.Calc('sum', 'node', 'qmin', f'pg>0.1&({choice})')).coordinate
         # Максимальная генерация реактивной мощности в узлах выборки
         address_qg_max = self.sheet_q.cell(self.row_q['row_qg_max'], column,
-                                           rm.rastr.Calc("sum", "node", "qmax", f"pg>0.1&({choice})")).coordinate
+                                           rm.rastr.Calc('sum', 'node', 'qmax', f'pg>0.1&({choice})')).coordinate
         # Генерация Q в ЛЭП
         address_shq_line = self.sheet_q.cell(self.row_q['row_shq_line'], column,
-                                             - rm.rastr.Calc("sum", "area", "shq_line", choice)).coordinate
+                                             - rm.rastr.Calc('sum', 'area', 'shq_line', choice)).coordinate
         address_losses = self.sheet_q.cell(self.row_q['row_dq_sum'], column,
-                                           f"={address_dq_line}+{address_dq_tran}+{address_shq_tran}").coordinate
+                                           f'={address_dq_line}+{address_dq_tran}+{address_shq_tran}').coordinate
         address_load = self.sheet_q.cell(self.row_q['row_sum_port_Q'], column,
-                                         f"={address_qn}+{address_losses}+{address_SHR}").coordinate
+                                         f'={address_qn}+{address_losses}+{address_SHR}').coordinate
         address_sum_gen = self.sheet_q.cell(self.row_q['row_sum_QG'], column,
-                                            f"={address_qg}+{address_shq_line}+{address_skrm_gen}").coordinate
+                                            f'={address_qg}+{address_shq_line}+{address_skrm_gen}').coordinate
         self.sheet_q.cell(self.row_q['row_Q_itog'], column,
-                          f"=-{address_load}+{address_sum_gen}")
+                          f'=-{address_load}+{address_sum_gen}')
         self.sheet_q.cell(self.row_q['row_Q_itog_gmin'], column,
-                          f"=-{address_load}+{address_qg_min}+{address_shq_line}")
+                          f'=-{address_load}+{address_qg_min}+{address_shq_line}')
         self.sheet_q.cell(self.row_q['row_Q_itog_gmax'], column,
-                          f"=-{address_load}+{address_qg_max}+{address_shq_line}")
+                          f'=-{address_load}+{address_qg_max}+{address_shq_line}')
 
     def finish(self):
         """
@@ -248,14 +248,14 @@ class PrintXL:
                 data.loc[data[limitation] != 0, 'difference_p'] = data.loc[data[limitation] != 0, value_p] - \
                                                                   data.loc[data[limitation] != 0, limitation]
 
-            with pd.ExcelWriter(path=self.name_xl_file, mode='a', engine="openpyxl") as writer:
+            with pd.ExcelWriter(path=self.name_xl_file, mode='a', engine='openpyxl') as writer:
                 data.to_excel(excel_writer=writer,
                               sheet_name=name_table,
                               header=True,
                               index=False)
 
         if self.task['print_parameters']['add']:
-            with pd.ExcelWriter(path=self.name_xl_file, mode='a', engine="openpyxl") as writer:
+            with pd.ExcelWriter(path=self.name_xl_file, mode='a', engine='openpyxl') as writer:
                 self.data_parameters.T.to_excel(excel_writer=writer,
                                                 sheet_name='Значения',
                                                 header=True,
@@ -267,14 +267,14 @@ class PrintXL:
             if sheet.max_row < 2:
                 del self.book[sheet_name]  # удалить пустой лист
             else:
-                if sheet_name != "balance_Q":
+                if sheet_name != 'balance_Q':
                     PrintXL.create_table(sheet, sheet_name)  # Создать объект таблица.
 
         if self.task['print_balance_q']['add']:
             self.sheet_q = self.book['balance_Q']
             self.sheet_q.row_dimensions[2].height = 140
             self.sheet_q.column_dimensions['A'].width = 40
-            thins = Side(border_style="thin", color="000000")
+            thins = Side(border_style='thin', color='000000')
             for row in range(2, self.sheet_q.max_row + 1):
                 for col in range(1, self.sheet_q.max_column + 1):
                     if row > 2 and col > 1:
@@ -283,11 +283,11 @@ class PrintXL:
                     self.sheet_q.cell(row, col).font = Font(name='Times New Roman', size=11)
                     if row == 2:
                         self.sheet_q.cell(row, col).alignment = Alignment(text_rotation=90,
-                                                                          wrap_text=True, horizontal="center")
+                                                                          wrap_text=True, horizontal='center')
                     if col == 1:
                         self.sheet_q.cell(row, col).alignment = Alignment(wrap_text=True)
                     if row in [12, 13, 17, 18]:
-                        self.sheet_q.cell(row, col).fill = PatternFill('solid', fgColor="00FF0000")
+                        self.sheet_q.cell(row, col).fill = PatternFill('solid', fgColor='00FF0000')
                     if row in [9, 15, 16]:
                         self.sheet_q.cell(row, col).font = Font(bold=True)
 
@@ -295,7 +295,7 @@ class PrintXL:
         self.book = None
 
         # Открыть excel через win32com.client и создать сводные.
-        excel = win32com.client.Dispatch("Excel.Application")
+        excel = win32com.client.Dispatch('Excel.Application')
         excel.Visible = False
         excel.ScreenUpdating = False  # обновление экрана
         # excel.Calculation = -4135  # xlCalculationManual
@@ -307,11 +307,11 @@ class PrintXL:
             raise Exception(f'Ошибка при открытии файла {self.name_xl_file=}')
 
         for name_sheet in self.data_table:
-            rows = self.task['set_printXL'][name_sheet]['rows'].split(",")
+            rows = self.task['set_printXL'][name_sheet]['rows'].split(',')
             rows = list(set(rows) & set(self.data_table[name_sheet].columns))
-            columns = self.task['set_printXL'][name_sheet]['columns'].split(",")
+            columns = self.task['set_printXL'][name_sheet]['columns'].split(',')
             columns = list(set(columns) & set(self.data_table[name_sheet].columns))
-            values = self.task['set_printXL'][name_sheet]['values'].split(",")
+            values = self.task['set_printXL'][name_sheet]['values'].split(',')
             values = list(set(values) & set(self.data_table[name_sheet].columns))
 
             tab_log = self.book.sheets[name_sheet].ListObjects[0]
@@ -320,32 +320,32 @@ class PrintXL:
             pivot_sheet.Name = name_pivot_sheet
 
             pt_cache = self.book.PivotCaches().add(1, tab_log)  # создать КЭШ xlDatabase, ListObjects
-            pt = pt_cache.CreatePivotTable(TableDestination=name_pivot_sheet + "!R1C1",
-                                           TableName="Сводная_" + name_sheet)  # создать сводную таблицу
+            pt = pt_cache.CreatePivotTable(TableDestination=name_pivot_sheet + '!R1C1',
+                                           TableName='Сводная_' + name_sheet)  # создать сводную таблицу
             pt.ManualUpdate = True  # не обновить сводную
             pt.AddFields(RowFields=rows,
                          ColumnFields=columns,
-                         PageFields=["Имя файла"],
+                         PageFields=['Имя файла'],
                          AddToTable=False)
 
             for val in values:
                 pt.AddDataField(pt.PivotFields(val),
-                                val + " ",
+                                val + ' ',
                                 -4157)  # xlMax -4136 xlSum -4157
                 # Field                      Caption             def формула расчета
-                pt.PivotFields(val + " ").NumberFormat = "0"
+                pt.PivotFields(val + ' ').NumberFormat = '0'
 
-            # .PivotFields("na").ShowDetail = True #  группировка
+            # .PivotFields('na').ShowDetail = True #  группировка
             pt.RowAxisLayout(1)  # xlTabularRow показывать в табличной форме!!!!
             if len(values) > 1:
-                pt.DataPivotField.Orientation = 1  # xlRowField"Значения в столбцах или строках xlColumnField
+                pt.DataPivotField.Orientation = 1  # xlRowField Значения в столбцах или строках xlColumnField
 
             # pt.DataPivotField.Position = 1 # позиция в строках
             pt.RowGrand = False  # удалить строку общих итогов
             pt.ColumnGrand = False  # удалить столбец общих итогов
             pt.MergeLabels = True  # объединять одинаковые ячейки
             pt.HasAutoFormat = False  # не обновлять ширину при обновлении
-            pt.NullString = "--"  # заменять пустые ячейки
+            pt.NullString = '--'  # заменять пустые ячейки
             pt.PreserveFormatting = False  # сохранять формат ячеек при обновлении
             pt.ShowDrillIndicators = False  # показывать кнопки свертывания
             # pt.PivotCache.MissingItemsLimit = 0 # xlMissingItemsNone
@@ -360,7 +360,7 @@ class PrintXL:
                                                     False, False]  # промежуточные итоги и фильтры
             pt.ManualUpdate = False  # обновить сводную
             pt.TableStyle2 = ""  # стиль
-            if name_sheet in ["area", "area2", "darea"]:
+            if name_sheet in ['area', 'area2', 'darea']:
                 pt.ColumnRange.ColumnWidth = 10  # ширина строк
                 pt.RowRange.ColumnWidth = 9
                 pt.RowRange.Columns(1).ColumnWidth = 7
@@ -368,7 +368,7 @@ class PrintXL:
                 pt.RowRange.Columns(3).ColumnWidth = 20
                 pt.RowRange.Columns(6).ColumnWidth = 20
             pt.DataBodyRange.HorizontalAlignment = -4108  # xlCenter
-            # .DataBodyRange.NumberFormat = "#,##0"
+            # .DataBodyRange.NumberFormat = '#,##0'
             # формат
             pt.TableRange1.WrapText = True  # перенос текста в ячейке
             pt.TableRange1.Borders(7).LineStyle = 1  # лево
@@ -396,7 +396,7 @@ class PrintXL:
         tab = Table(displayName=sheet_name,
                     ref=f'{point_start}:' + get_column_letter(sheet.max_column) + str(sheet.max_row))
 
-        tab.tableStyleInfo = TableStyleInfo(name="TableStyleMedium9",
+        tab.tableStyleInfo = TableStyleInfo(name='TableStyleMedium9',
                                             showFirstColumn=False,
                                             showLastColumn=False,
                                             showRowStripes=True,

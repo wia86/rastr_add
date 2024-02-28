@@ -6,5 +6,5 @@ class ExceptionTask(Exception):
         self.message = args[0] if args else None
 
     def __str__(self):
-        return f"Ошибка: {self.message}"
+        return f'Ошибка: {self.message}'
 
