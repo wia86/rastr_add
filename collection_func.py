@@ -1,30 +1,31 @@
-import numpy as np
 import re
 
 
-def str_yeas_in_list(id_str: str):
+def str_yeas_in_list(str_init: str, sep: tuple = ('...', '…')) -> list:
     """
-    Преобразует перечень годов.
-    :param id_str: "2021,2023...2025"
+    Преобразует перечень годов с диапазонами в отсортированный массив.
+    :param str_init: '2021,2023...2025'
+    :param sep: Картеж разделителей.
     :return: [2021,2023,2024,2025] или []
     """
-    years_list = id_str.replace(" ", "").split(',')
-    if years_list:
-        years_list_new = np.array([], int)
-        for it in years_list:
-            if "..." in it:
-                i_years = it.split('...')
-                years_list_new = np.hstack(
-                    [years_list_new, np.array(np.arange(int(i_years[0]), int(i_years[1]) + 1), int)])
-            elif "…" in it:
-                i_years = it.split('…')
-                years_list_new = np.hstack(
-                    [years_list_new, np.array(np.arange(int(i_years[0]), int(i_years[1]) + 1), int)])
-            else:
-                years_list_new = np.hstack([years_list_new, int(it)])
-        return np.sort(years_list_new)
-    else:
+    list_init = str_init.replace(' ', '').split(',')
+    if not list_init:
         return []
+    years_list_new = []
+    for list_init_i in list_init:
+        for sep_i in sep:
+            if sep_i in list_init_i:
+                min_val, max_val = list_init_i.split(sep_i)
+                min_val = int(min_val)
+                max_val = int(max_val)
+                if min_val > max_val:
+                    raise ValueError(f'Неверный формат: {str_init}')
+                min_max = list(range(min_val, max_val + 1))
+                years_list_new.extend(min_max)
+                break
+        else:
+            years_list_new.append(int(list_init_i))
+    return sorted(years_list_new)
 
 
 def split_task_action(txt: str) -> list | bool:
@@ -36,8 +37,8 @@ def split_task_action(txt: str) -> list | bool:
     if not txt:
         return False
     # Вычленить значения в [] и {}.
-    actions = re.findall(re.compile(r"\[(.+?)]"), txt)
-    conditions = re.findall(re.compile(r"\{(.+?)}"), txt)
+    actions = re.findall(re.compile(r'\[(.+?)]'), txt)
+    conditions = re.findall(re.compile(r'\{(.+?)}'), txt)
 
     # Заменить значения в [ ] и { } на act_cond_{n}
     dict_key = {}  # замена, действие

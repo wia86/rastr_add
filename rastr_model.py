@@ -1,14 +1,16 @@
 import logging
-import pandas as pd
-import re
 import os
+import re
 from collections import namedtuple, defaultdict, Counter
 from tkinter import messagebox as mb
+
+import pandas as pd
 import win32com.client
 
+import collection_func as cf
 from import_rm import ImportFromModel
 from loading_sections import loading_section
-import collection_func as cf
+
 log_rm = logging.getLogger(f'__main__.{__name__}')
 
 
@@ -56,6 +58,7 @@ class RastrModel:
         self.info_file['Имя файла'] = self.name_base
         self.pattern = self.config[f"шаблон {self.type_file}"]
         self.rastr = None
+        self.not_calculated = not_calculated
         if not_calculated:
             return
 
@@ -606,7 +609,7 @@ class RastrModel:
         log_rm.info(f"Загружен файл: {self.full_name}")
 
         # При загрузке файла rst или rg2 загружать одноименные файлы trn и anc (из той же папки)
-        if self.config['load_add']:
+        if (not self.not_calculated) and self.config['load_add']:
             for type_file_add in ['trn', 'anc', 'sch']:
                 name_file_add = f'{self.dir}\\{self.name_base}.{type_file_add}'
                 if os.path.exists(name_file_add):
@@ -629,12 +632,18 @@ class RastrModel:
             raise ValueError(f'Файл с расширением {load_additional!r} не найден в папке {self.dir}')
         return names[0]
 
-    def save(self, full_name_new: str = '', file_name: str = '', folder_name: str = ''):
+    def save(self, full_name_new: str = '', file_name: str = '', folder_name: str = '') -> str:
         """
         Сохранить файл. Указать полное имя или имя файла (без расширения) с папкой.
+        :param full_name_new:
+        :param file_name:
+        :param folder_name:
+        :return:
         """
         if not full_name_new:
             if file_name and folder_name:
+                if not os.path.exists(folder_name):
+                    os.mkdir(folder_name)
                 full_name_new = folder_name + '\\' + re.sub(r'[\\/|:?<>.]', '', file_name)
                 full_name_new = full_name_new[:252]
                 full_name_new += '.' + self.type_file
@@ -646,7 +655,7 @@ class RastrModel:
         if os.path.exists(full_name_new):
             if self.overwrite_new_file == 'question':
                 RastrModel.overwrite_new_file = mb.askquestion('Внимание!',
-                                                         f'Заменить файлы в папке: {folder_name}')
+                                                               f'Заменить файлы в папке: {folder_name}')
         # Запись файла.
         if self.overwrite_new_file != 'no':
             self.rastr.Save(full_name_new, self.pattern)

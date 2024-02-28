@@ -237,7 +237,7 @@ class Ui_cor(object):
         font.setWeight(75)
         self.CB_ImpRg2.setFont(font)
         self.CB_ImpRg2.setChecked(False)
-        self.CB_ImpRg2.setObjectName("CB_ImpRg2")
+        self.CB_ImpRg2.setObjectName("imp_rg2")
         self.verticalLayout_3.addWidget(self.CB_ImpRg2)
         self.sel_import = QtWidgets.QTabWidget(self.scrollAreaWidgetContents)
         sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)

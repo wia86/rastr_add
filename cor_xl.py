@@ -1,11 +1,9 @@
 """Модуль для изменения параметров РМ по заданию в таблице excel."""
-import logging
-import re
-import os
+
 from openpyxl import load_workbook
 
-from rastr_model import *
 from import_rm import *
+from rastr_model import *
 
 log_cor_xl = logging.getLogger(f'__main__.{__name__}')
 

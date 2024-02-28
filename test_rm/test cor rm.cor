@@ -1,8 +1,8 @@
-KIzFolder: I:\rastr_add\test_rm\РМ v1
-KInFolder: I:\rastr_add\test_rm\РМ v2
-KFilter_file: true
-max_file_count: 1004
-cor_criterion_start:
+source_path: I:\rastr_add2\test_rm\РМ v1
+target_path: I:\rastr_add2\test_rm\РМ v2
+filter_file: true
+max_count_file: 1004
+criterion:
   years: 2026...2027
   season: ''
   max_min: ''
@@ -15,11 +15,11 @@ cor_beginning_qt:
     \ {years : 2026&(ny=15037:vras<110)}  \nизм[(vetv);(area);(area2);(darea): Tc=0]\n\
     изм[15512,15518: x=(10+15511,15517:r)+ip.uhom]  \nснять отметку\nдобавить[vetv:ip=15113;iq=15105;np=3;x=2;r=1.5;b=-0,000182]\n\
     текст[node: name, dname; vetv:dname; Generator: Name]  \nСХН[na=11]{add_name:AutoBsh}\
-    \  \nнапряжения[na=11]  \nСКРМ*[na=11]\nимпорт[папка: (I:\\rastr_add\\test_rm\\\
+    \  \nнапряжения[na=11]  \nСКРМ*[na=11]\nимпорт[папка: (I:\\rastr_add2\\test_rm\\\
     файлы импорта\\файл для импорта.rg2); таблица:Generator; тип:2; поле: Pmax; выборка:Num=300]\n\
     \n"
 import_val_XL: true
-excel_cor_file: I:\rastr_add\test_rm\пример задания.xlsx
+excel_cor_file: I:\rastr_add2\test_rm\пример задания.xlsx
 excel_cor_sheet: ' [ТФ пример 1 (pn, qn)][ТФ пример 2 (pop)][импорт из моделей(ИМ)][строковая
   форма(СФ)][импорт таблиц(ИТ)]'
 checking_parameters_rg2: true
@@ -52,12 +52,12 @@ print_parameters:
 print_balance_q:
   add: true
   sel: na=11
-CB_ImpRg2_name: true
-CB_ImpRg2: true
+imp_rg2_name: true
+imp_rg2: true
 Imp_add:
   node:
     add: true
-    import_file_name: I:\rastr_add\test_rm\файлы импорта\файл для импорта.rg2
+    import_file_name: I:\rastr_add2\test_rm\файлы импорта\файл для импорта.rg2
     selection: false
     years: ''
     season: ''
@@ -69,7 +69,7 @@ Imp_add:
     calc: обновить
   vetv:
     add: false
-    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    import_file_name: I:\rastr_add2\test_rm\импорт2.rg2
     selection: false
     years: ''
     season: ''
@@ -81,7 +81,7 @@ Imp_add:
     calc: присоединить
   gen:
     add: true
-    import_file_name: I:\rastr_add\test_rm\файлы импорта\файл для импорта.rg2
+    import_file_name: I:\rastr_add2\test_rm\файлы импорта\файл для импорта.rg2
     selection: true
     years: '2027'
     season: зим
@@ -93,7 +93,7 @@ Imp_add:
     calc: обновить
   area:
     add: false
-    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    import_file_name: I:\rastr_add2\test_rm\импорт2.rg2
     selection: false
     years: ''
     season: ''
@@ -105,7 +105,7 @@ Imp_add:
     calc: присоединить
   area2:
     add: false
-    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    import_file_name: I:\rastr_add2\test_rm\импорт2.rg2
     selection: false
     years: ''
     season: ''
@@ -117,7 +117,7 @@ Imp_add:
     calc: присоединить
   darea:
     add: false
-    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    import_file_name: I:\rastr_add2\test_rm\импорт2.rg2
     selection: false
     years: ''
     season: ''
@@ -129,7 +129,7 @@ Imp_add:
     calc: присоединить
   PQ:
     add: false
-    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    import_file_name: I:\rastr_add2\test_rm\импорт2.rg2
     selection: false
     years: ''
     season: ''
@@ -141,7 +141,7 @@ Imp_add:
     calc: присоединить
   IT:
     add: false
-    import_file_name: I:\rastr_add\test_rm\импорт2.rg2
+    import_file_name: I:\rastr_add2\test_rm\импорт2.rg2
     selection: false
     years: ''
     season: ''
@@ -171,4 +171,4 @@ save_form_folder_calc:
   path: I:\ОЭС Урала\Тюм_ЭС\КПР Тюменьэнерго до 2030 года\Замер\ИД\Иной замер от 11.12.23
     ТЭС, СурЭС, СевЭС
 save_form_folder_edit:
-  path: I:\rastr_add\test_rm\РМ v1
+  path: I:\rastr_add2\test_rm\РМ v1

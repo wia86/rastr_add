@@ -1,8 +1,10 @@
 import logging
+
 import pandas as pd
 from tabulate import tabulate
 
 import collection_func as cf
+
 log_auto = logging.getLogger(f'__main__.{__name__}')
 
 

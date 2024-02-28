@@ -1,6 +1,6 @@
-from collection_func import split_task_action
-
 import pytest
+
+from collection_func import split_task_action
 
 
 @pytest.mark.parametrize("t, result",

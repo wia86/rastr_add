@@ -1,13 +1,14 @@
 """Модуль для вывода параметров РМ в таблице excel."""
 import logging
+
+import pandas as pd
+import win32com.client
 from openpyxl import Workbook, load_workbook
 from openpyxl.comments import Comment
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
 from openpyxl.styles.numbers import BUILTIN_FORMATS
-from openpyxl.worksheet.table import Table, TableStyleInfo
 from openpyxl.utils import get_column_letter
-import pandas as pd
-import win32com.client
+from openpyxl.worksheet.table import Table, TableStyleInfo
 
 log_print_xl = logging.getLogger(f'__main__.{__name__}')
 

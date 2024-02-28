@@ -1,7 +1,7 @@
 # help:
 # pip freeze > requirements.txt
 # pip install -r requirements.txt
-#  pyinstaller  --noconsole main.py --name Помощник_2024_02_12 -i fav.ico --add-data "help;help" # --onefile
+#  pyinstaller  --noconsole main.py --name Помощник_2024_02_21 -i fav.ico --add-data "help;help" # --onefile
 
 # Excel.Application https://memotut.com/en/150745ae0cc17cb5c866/
 # from urllib.request import urlopen

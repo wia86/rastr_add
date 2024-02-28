@@ -1,8 +1,8 @@
-KIzFolder: I:\rastr_add\test_rm\РМ v1
-KInFolder: I:\rastr_add\test_rm\РМ v2
-KFilter_file: false
-max_file_count: 9999
-cor_criterion_start:
+source_path: I:\rastr_add2\test_rm\РМ v1
+target_path: I:\rastr_add2\test_rm\РМ v2
+filter_file: false
+max_count_file: 9999
+criterion:
   years: ''
   season: ''
   max_min: ''
@@ -13,7 +13,7 @@ cor_beginning_qt:
     изм[15514:pg_max=200]\n\nизм[15136;15128;15169;15168;15514:sel=1]\n\nсечение[ns:2;\
     \ method:pg; p_new:300] \n"
 import_val_XL: false
-excel_cor_file: I:\rastr_add\test\?????? ???????.xlsx
+excel_cor_file: I:\rastr_add2\test\?????? ???????.xlsx
 excel_cor_sheet: ' [XL->RastrWin][pop][cor]'
 checking_parameters_rg2: false
 control_rg2_task:
@@ -45,8 +45,8 @@ print_parameters:
 print_balance_q:
   add: false
   sel: ''
-CB_ImpRg2_name: false
-CB_ImpRg2: false
+imp_rg2_name: false
+imp_rg2: false
 Imp_add:
   node:
     add: false
@@ -164,4 +164,4 @@ save_form_folder_calc:
   path: I:\ОЭС Урала\Тюм_ЭС\КПР Тюменьэнерго до 2030 года\Замер\ИД\Иной замер от 11.12.23
     ТЭС, СурЭС, СевЭС
 save_form_folder_edit:
-  path: I:\rastr_add\test_rm\РМ v1
+  path: I:\rastr_add2\test_rm\РМ v1
