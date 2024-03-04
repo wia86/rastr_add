@@ -66,12 +66,12 @@ class CombinationXL:
                             if '*' in scheme_xl:
                                 scheme_xl = scheme_xl.replace('*', '')
                                 if status_repair:
-                                    add_scheme = rm.t_scheme[table]['repair_scheme'].get(s_key, False)
+                                    add_scheme = rm.dt.t_scheme[table]['repair_scheme'].get(s_key, False)
                                     if double_repair:
                                         double_repair_scheme_copy = \
-                                            rm.t_scheme[table]['double_repair_scheme'].get(s_key, False)
+                                            rm.dt.t_scheme[table]['double_repair_scheme'].get(s_key, False)
                                 else:
-                                    add_scheme = rm.t_scheme[table]['disable_scheme'].get(s_key, False)
+                                    add_scheme = rm.dt.t_scheme[table]['disable_scheme'].get(s_key, False)
                             scheme_xl = cf.split_task_action(scheme_xl)
                             if add_scheme:
                                 if scheme_xl:

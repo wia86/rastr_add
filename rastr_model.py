@@ -70,33 +70,9 @@ class RastrModel:
         self.add_load = []  # Расширение дополнительных файлов из [trn, anc]
 
         # Для хранения исходной схемы и параметров сети
-        self.v__num_transit = {}  # {(ip, iq, np): номер транзита в тч из 1 ветви}
-        self.data_save = None
-        self.data_columns = None
-        self.data_save_sta = None
-        self.data_columns_sta = None
-        self.t_sta = {}  # {имя таблицы: {(ip, iq, np): 0 или 1}}
-        self.t_name = {}  # {имя таблицы: {ny: имя}}
-        self.t_key_i = {}  # {имя таблицы: {(ip, iq, np): индекс}}
-        self.t_i_key = {}  # {имя таблицы: {индекс: (ip, iq, np)}}
-        self.t_scheme = {}  # {имя таблицы: {тип схемы:{(ip, iq, np): (картеж номеров)}}}
-        for tab_name in ['node', 'vetv', 'Generator']:
-            self.t_sta[tab_name] = {}
-            self.t_key_i[tab_name] = {}
-            self.t_i_key[tab_name] = {}
-            self.t_scheme[tab_name] = {'repair_scheme': {},
-                                       'disable_scheme': {},
-                                       'double_repair_scheme': {},
-                                       'automation': {}}
-            self.t_name[tab_name] = {}
-            self.t_name[tab_name][-1] = 'Режим не моделируется'
-        self.ny_join_vetv = defaultdict(list)  # {ny: все присоединенные ветви}
+        self.dt = DataRM(self)
 
-        # self.ny_pqng = defaultdict(tuple)  # {ny: (pn, qn, pg, qn)} - все с pn pg > 0 | qn pg > 0 | pg > 0 | qg > 0
-        self.v_gr = {}  # {(ip, iq, np): groupid} - все c groupid > 0
-        self.v_rxb = {}  # {(ip, iq, np): (r, x, b)} - все
-        self.vetv_name = None  # df[s_key, 'Контролируемые элементы']
-        self.node_name = None  # df[s_key, 'Контролируемые элементы']
+        self.v__num_transit = {}  # {(ip, iq, np): номер транзита в тч из 1 ветви}
 
         # Произвольный формат названия файла
         self.info_file['Сезон']: str = ''  # 'зимний', 'летний', 'паводок' сезон года
@@ -193,97 +169,6 @@ class RastrModel:
         RastrModel.all_rm = pd.concat([RastrModel.all_rm, pd.Series(self.info_file).to_frame().T],
                                       axis=0, ignore_index=True)
         log_rm.info(self.info_file['Имя режима'])
-
-    def save_value_fields(self):
-        """
-        Сохранить значения полей в исходной схеме сети (изменяемых в процессе расчетов).
-        Сохранить имена ветвей узлов и генераторов в dict и df.
-        """
-        log_rm.debug('Сохранение значений исходных параметров сети.')
-
-        self.data_save_sta = {'vetv': None, 'node': None, 'Generator': None}
-        self.data_columns_sta = {'vetv': 'ip,iq,np,sta,sel',
-                                 'node': 'ny,sta,sel',
-                                 'Generator': 'Num,sta'}
-        for name_tab in self.data_save_sta:
-            self.data_save_sta[name_tab] = \
-                self.rastr.tables(name_tab).writesafearray(self.data_columns_sta[name_tab], '000')
-
-        self.data_save = {'vetv': None, 'node': None, 'Generator': None}
-        self.data_columns = {'vetv': 'ip,iq,np,sta,ktr',  # ,r,x,b
-                             'node': 'ny,sta,pn,qn,pg,qg,vzd,bsh',
-                             'Generator': 'Num,sta,P'}
-        for name_tab in self.data_save:
-            self.data_save[name_tab] = \
-                self.rastr.tables(name_tab).writesafearray(self.data_columns[name_tab], '000')
-
-        # Узлы
-        for ny, sta, pn, qn, pg, qg, vzd, bsh in self.data_save['node']:
-            self.t_sta['node'][ny] = sta
-            # if pn or qn or pg:
-            #     self.ny_pqng[ny] = (pn, qn, pg, qg)
-        t = self.rastr.tables('node').writesafearray('ny,name,dname,index', '000')
-        for ny, name, dname, index in t:
-            self.t_key_i['node'][ny] = index
-            self.t_i_key['node'][index] = ny
-            if dname:
-                self.t_name['node'][ny] = dname
-            else:
-                self.t_name['node'][ny] = name if name else f'Узел {ny}'
-
-        # Ветви
-        for ip, iq, np_, sta, ktr in self.data_save['vetv']:  # , r, x, b
-            s_key = (ip, iq, np_)
-            self.t_sta['vetv'][s_key] = sta
-            self.ny_join_vetv[ip].append(s_key)
-            self.ny_join_vetv[iq].append(s_key)
-
-        t = self.rastr.tables('vetv').writesafearray('ip,iq,np,dname,groupid,r,x,b,index', '000')
-        for ip, iq, np_, dname, groupid, r, x, b, index in t:
-            s_key = (ip, iq, np_)
-            self.t_key_i['vetv'][s_key] = index
-            self.t_i_key['vetv'][index] = s_key
-            # log_rm.info(s_key)
-            if dname:
-                self.t_name['vetv'][s_key] = dname
-            else:
-                # log_rm.info(self.t_name['node'][ip])
-                # log_rm.info(self.t_name['node'][iq])
-                self.t_name['vetv'][s_key] = f'{self.t_name["node"][ip]} - {self.t_name["node"][iq]}'
-
-            if groupid:
-                self.v_gr[s_key] = groupid
-            self.v_rxb[s_key] = (r, x, b)
-
-        # Генераторы
-        for Num, sta, P in self.data_save['Generator']:
-            self.t_sta['Generator'][Num] = sta
-
-        t = self.rastr.tables('Generator').writesafearray('Num,index,Name,Node', '000')
-        for Num, index, Name, Node in t:
-            self.t_key_i['Generator'][Num] = index
-            self.t_i_key['Generator'][index] = Num
-            if Name:
-                self.t_name['Generator'][Num] = Name
-            else:
-                self.t_name['Generator'][Num] = f'генератор номер {Num} в узле {self.t_name["node"][Node]}'
-
-        # Создать df ['s_key', 'Контролируемые элементы']] для таблиц узлов и ветвей
-        self.node_name = pd.DataFrame.from_dict(self.t_name['node'],
-                                                orient='index',
-                                                columns=['Контролируемые элементы'])
-        self.node_name['s_key'] = self.node_name.index
-        self.node_name.reset_index(drop=True, inplace=True)
-
-        self.vetv_name = pd.DataFrame.from_dict(self.t_name['vetv'],
-                                                orient='index',
-                                                columns=['Контролируемые элементы'])
-        self.vetv_name['s_key'] = self.vetv_name.index
-        self.vetv_name.s_key = self.vetv_name.s_key.apply(lambda xx: str(xx).replace(' ', '')
-                                                          .replace('(', '')
-                                                          .replace(')', '')
-                                                          .replace(',0', ''))
-        self.vetv_name.reset_index(drop=True, inplace=True)
 
     def network_analysis(self, disable_on: bool = True,
                          field: str = 'disable',
@@ -510,31 +395,30 @@ class RastrModel:
                 return RastrModel.KEY_TABLES[key_tables]
         return False
 
-    def sta(self, table_name: str, ndx: int = 0, key_int: int | tuple = 0) -> bool:
+    def sta(self, table_name: str, ndx: int | None = None, key_int: int | tuple = 0) -> bool:
         """
         Отключить ветвь(группу ветвей, если groupid!=0), узел (с примыкающими ветвями) или генератор.
         Отключаемый элемент определяется по ndx или key_int.
         :param table_name: Имя таблицы: 'node', 'vetv', 'Generator'
-        :param ndx:
+        :param ndx: индекс в таблице rastr
         :param key_int: Например: узел 10 или ветвь (1, 2, 0).
         :return: False если элемент отключен в исходном состоянии.
         """
         # Проверка ИД
         if table_name not in ['node', 'vetv', 'Generator']:
             raise ValueError(f'При вызове функции sta не правильно указано имя таблицы {table_name}.')
-        if not ndx:
-            if key_int:
-                ndx = self.index(table_name=table_name, key_int=key_int)
-            else:
+        if ndx is None:
+            if not key_int:
                 raise ValueError('При вызове функции sta не указаны входные параметры.')
+            ndx = self.index(table_name=table_name, key_int=key_int)
 
         rtable = self.rastr.tables(table_name)
 
         # Проверка состояния отключаемого элемента
         if not key_int:
-            key_int = self.t_i_key[table_name].get(ndx, 0)
-        if key_int and self.t_sta[table_name]:
-            if self.t_sta[table_name].get(key_int):
+            key_int = self.dt.t_i_key[table_name].get(ndx, 0)
+        if key_int and self.dt.t_sta[table_name]:
+            if self.dt.t_sta[table_name].get(key_int):
                 return False
         else:
             if rtable.cols.item('sta').Z(ndx) == 1:
@@ -542,8 +426,8 @@ class RastrModel:
 
         # Отключение элемента
         if table_name == 'vetv':
-            if self.v_gr and key_int:
-                groupid = self.v_gr.get(key_int)
+            if self.dt.v_gr and key_int:
+                groupid = self.dt.v_gr.get(key_int)
             else:
                 groupid = rtable.cols.item('groupid').Z(ndx)
             if groupid:
@@ -962,20 +846,20 @@ class RastrModel:
         node_include = set()
 
         for ny, sta, pn, qn, pg, qg in self.rastr.tables('node').writesafearray('ny,sta,pn,qn,pg,qg', '000'):
-            if not self.t_sta['node'][ny] and sta and (pn or qn or pg or qg):
-                node_all.add((ny, self.t_name['node'][ny]))
+            if not self.dt.t_sta['node'][ny] and sta and (pn or qn or pg or qg):
+                node_all.add((ny, self.dt.t_name['node'][ny]))
 
-                for s_key in self.ny_join_vetv[ny]:
-                    r, x, _ = self.v_rxb[s_key]
+                for s_key in self.dt.ny_join_vetv[ny]:
+                    r, x, _ = self.dt.v_rxb[s_key]
                     if r < 0.011 and x < 0.011:
                         ny_connectivity = s_key[0] if ny != s_key[0] else s_key[1]
                         # log_rm.debug(ny_connectivity)
-                        ndx = self.t_key_i['node'][ny_connectivity]
+                        ndx = self.dt.t_key_i['node'][ny_connectivity]
                         if not self.rastr.tables('node').Cols('sta').Z(ndx):  # Питающий узел включен.
                             # Включить узел и ветвь
-                            self.rastr.tables('node').Cols('sta').SetZ(self.t_key_i['node'][ny], False)
-                            self.rastr.tables('vetv').Cols('sta').SetZ(self.t_key_i['vetv'][s_key], False)
-                            node_include.add((ny, self.t_name['node'][ny]))
+                            self.rastr.tables('node').Cols('sta').SetZ(self.dt.t_key_i['node'][ny], False)
+                            self.rastr.tables('vetv').Cols('sta').SetZ(self.dt.t_key_i['vetv'][s_key], False)
+                            node_include.add((ny, self.dt.t_name['node'][ny]))
                             break
 
         if node_include:
@@ -1333,7 +1217,7 @@ class RastrModel:
         Если umax<uhom, то umax удаляется;
         Если umin>uhom, umin_av>uhom, то umin, umin_av удаляется.
         :param choice: Выборка в таблице узлы
-        :param edit: Исправить значения в РМ
+        :param edit:
         """
         node = self.rastr.tables('node')
         if edit:
@@ -1846,8 +1730,8 @@ class RastrModel:
         if not table_name:
             raise ValueError(f'Ошибка в задании {table_name=}.')
         if key_int:
-            if table_name in ['node', 'vetv', 'Generator'] and key_int in self.t_key_i[table_name]:
-                return self.t_key_i[table_name][key_int]
+            if table_name in ['node', 'vetv', 'Generator'] and key_int in self.dt.t_key_i[table_name]:
+                return self.dt.t_key_i[table_name][key_int]
             else:
                 t = self.rastr.tables(table_name)
 
@@ -1922,3 +1806,144 @@ class RastrModel:
             return ','.join(map(str, ob))
         else:
             return str(ob)
+
+
+class DataRM:
+    """Хранение данных из таблиц РМ в различных форматах и восстановление данных в таблицах."""
+
+    def __init__(self, rm: RastrModel):
+        self.rm = rm
+
+        self.data_save = {}
+        self.data_columns = None
+        self.data_save_sta = {}
+        self.data_columns_sta = None
+        self.t_sta = {}  # {имя таблицы: {(ip, iq, np): 0 или 1}}
+        self.t_name = {}  # {имя таблицы: {ny: имя}}
+        self.t_key_i = {}  # {имя таблицы: {(ip, iq, np): индекс}}
+        self.t_i_key = {}  # {имя таблицы: {индекс: (ip, iq, np)}}
+        self.t_scheme = {}  # {имя таблицы: {тип схемы:{(ip, iq, np): (картеж номеров)}}}
+        for tab_name in ['node', 'vetv', 'Generator']:
+            self.t_sta[tab_name] = {}
+            self.t_key_i[tab_name] = {}
+            self.t_i_key[tab_name] = {}
+            self.t_scheme[tab_name] = {'repair_scheme': {},
+                                       'disable_scheme': {},
+                                       'double_repair_scheme': {},
+                                       'automation': {}}
+            self.t_name[tab_name] = {}
+            self.t_name[tab_name][-1] = 'Режим не моделируется'
+        self.ny_join_vetv = defaultdict(list)  # {ny: все присоединенные ветви}
+
+        # self.ny_pqng = defaultdict(tuple)  # {ny: (pn, qn, pg, qn)} - все с pn pg > 0 | qn pg > 0 | pg > 0 | qg > 0
+        self.v_gr = {}  # {(ip, iq, np): groupid} - все c groupid > 0
+        self.v_rxb = {}  # {(ip, iq, np): (r, x, b)} - все
+        self.vetv_name = None  # df[s_key, 'Контролируемые элементы']
+        self.node_name = None  # df[s_key, 'Контролируемые элементы']
+
+    def save_date_tables(self):
+        """
+        Сохранить значения в таблицах в исходной схеме сети.
+        Сохранить имена ветвей узлов и генераторов в dict и df.
+        """
+        log_rm.debug('Сохранение значений исходных параметров сети.')
+
+        # Запись sta
+        self.data_columns_sta = {'vetv': 'ip,iq,np,sta,sel',
+                                 'node': 'ny,sta,sel',
+                                 'Generator': 'Num,sta'}
+        for name_tab in self.data_columns_sta:
+            self.data_save_sta[name_tab] = self.rm.rastr.tables(name_tab).writesafearray(
+                self.data_columns_sta[name_tab],
+                '000')
+
+        # Запись прочих данных которые могут измениться во время расчетов
+        self.data_columns = {'vetv': 'ip,iq,np,sta,ktr',
+                             'node': 'ny,sta,pn,qn,pg,qg,vzd,bsh',
+                             'Generator': 'Num,sta,P'}
+        for name_tab in self.data_columns:
+            self.data_save[name_tab] = self.rm.rastr.tables(name_tab).writesafearray(self.data_columns[name_tab],
+                                                                                     '000')
+        # Узлы
+        for ny, sta, pn, qn, pg, qg, vzd, bsh in self.data_save['node']:
+            self.t_sta['node'][ny] = sta
+
+        t = self.rm.rastr.tables('node').writesafearray('ny,name,dname', '000')
+        for index, (ny, name, dname) in enumerate(t):
+            self.t_key_i['node'][ny] = index
+            self.t_i_key['node'][index] = ny
+            if dname.strip():
+                self.t_name['node'][ny] = dname
+            else:
+                self.t_name['node'][ny] = name if name else f'Узел {ny}'
+
+        # Ветви
+        for ip, iq, np_, sta, ktr in self.data_save['vetv']:  # , r, x, b
+            s_key = (ip, iq, np_)
+            self.t_sta['vetv'][s_key] = sta
+            self.ny_join_vetv[ip].append(s_key)
+            self.ny_join_vetv[iq].append(s_key)
+
+        t = self.rm.rastr.tables('vetv').writesafearray('ip,iq,np,dname,groupid,r,x,b', '000')
+        for index, (ip, iq, np_, dname, groupid, r, x, b) in enumerate(t):
+            s_key = (ip, iq, np_)
+            self.t_key_i['vetv'][s_key] = index
+            self.t_i_key['vetv'][index] = s_key
+            if dname.strip():
+                self.t_name['vetv'][s_key] = dname
+            else:
+                self.t_name['vetv'][s_key] = f'{self.t_name["node"][ip]} - {self.t_name["node"][iq]}'
+
+            if groupid:
+                self.v_gr[s_key] = groupid
+            self.v_rxb[s_key] = (r, x, b)
+
+        # Генераторы
+        for Num, sta, P in self.data_save['Generator']:
+            self.t_sta['Generator'][Num] = sta
+
+        t = self.rm.rastr.tables('Generator').writesafearray('Num,Name,Node', '000')
+        for index, (Num, Name, Node) in enumerate(t):
+            self.t_key_i['Generator'][Num] = index
+            self.t_i_key['Generator'][index] = Num
+            if Name:
+                self.t_name['Generator'][Num] = Name
+            else:
+                self.t_name['Generator'][Num] = f'генератор номер {Num} в узле {self.t_name["node"][Node]}'
+
+        # Создать df ['s_key', 'Контролируемые элементы']] для таблиц узлов и ветвей
+        self.node_name = pd.DataFrame.from_dict(self.t_name['node'],
+                                                orient='index',
+                                                columns=['Контролируемые элементы'])
+        self.node_name['s_key'] = self.node_name.index
+        self.node_name.reset_index(drop=True, inplace=True)
+
+        self.vetv_name = pd.DataFrame.from_dict(self.t_name['vetv'],
+                                                orient='index',
+                                                columns=['Контролируемые элементы'])
+        self.vetv_name['s_key'] = self.vetv_name.index
+        self.vetv_name.s_key = self.vetv_name.s_key.apply(lambda xx: str(xx).replace(' ', '')
+                                                          .replace('(', '')
+                                                          .replace(')', '')
+                                                          .replace(',0', ''))
+        self.vetv_name.reset_index(drop=True, inplace=True)
+
+    def recover_date_tables(self, restore_only_state: bool) -> bool:
+        """
+        Восстановить значения в таблицах rastr.
+        :param restore_only_state: Истина - только поля sta
+        :return:
+        """
+        if restore_only_state:
+            for name_table in self.data_save_sta:
+                self.rm.rastr.tables(name_table).ReadSafeArray(2,
+                                                               self.data_columns_sta[name_table],
+                                                               self.data_save_sta[name_table])
+            log_rm.debug('Состояние элементов сети восстановлено.')
+        else:
+            for name_table in self.data_save:
+                self.rm.rastr.tables(name_table).ReadSafeArray(2,
+                                                               self.data_columns[name_table],
+                                                               self.data_save[name_table])
+            log_rm.debug('Состояние элементов сети и параметров восстановлено.')
+        return True

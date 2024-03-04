@@ -315,7 +315,6 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             'auto_disable_choice': self.le_auto_disable_choice,
 
             'cb_comb_field': self.cb_comb_field,
-            'comb_field': self.le_comb_field,
 
             'filter_comb': self.cb_filter_comb,
             'filter_comb_val': self.sb_filter_comb_val,
@@ -327,7 +326,6 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             'cb_control': self.cb_control,
             'cb_control_field': self.cb_control_field,
             'cb_control_sel': self.cb_control_sel,
-            'control_field': self.le_control_field,
             'control_sel': self.le_control_sel,
             # Результаты в EXCEL: таблицы контролируемые - отключаемые элементы
             'cb_save_i': self.cb_save_i,

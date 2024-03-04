@@ -22,24 +22,27 @@ class CorXL:
         self.sheets_list = []  # для хранения объектов CorSheet
         log_cor_xl.info(f'Изменить модели по заданию из книги: {excel_file_name}, листы: {sheets}')
         if not os.path.exists(excel_file_name):
-            raise ValueError('Ошибка в задании, не найден файл: ' + excel_file_name)
-        else:
-            self.excel_file_name = excel_file_name
-            # data_only - Загружать расчетные значения ячеек, иначе будут формулы.
-            self.wb = load_workbook(excel_file_name, data_only=True)
+            raise ValueError('Ошибка в задании, не найден файл excel: ' + excel_file_name)
+        if not ('*' in sheets or '[' in sheets):
+            raise ValueError('Ошибка в задании, не верно указаны имена листов: ' + sheets)
 
-            if sheets == '*':  # все листы
-                self.sheets = self.wb.sheetnames
-                for sheet in self.sheets:
-                    if '#' not in sheet:  # все листы
-                        self.sheets_list.append(CorSheet(name=sheet, obj=self.wb[sheet]))
-            else:
-                self.sheets = re.findall(r'\[(.+?)]', sheets)
-                for sheet in self.sheets:
-                    if sheet not in self.wb.sheetnames:
-                        raise ValueError(f'Ошибка в задании, не найден лист: {sheet} в файле {excel_file_name}')
-                    else:
-                        self.sheets_list.append(CorSheet(name=sheet, obj=self.wb[sheet]))
+        self.excel_file_name = excel_file_name
+        # data_only - Загружать расчетные значения ячеек, иначе будут формулы.
+        self.wb = load_workbook(excel_file_name, data_only=True)
+
+        if '*' in sheets:  # все листы
+            self.sheets = self.wb.sheetnames
+            for sheet in self.sheets:
+                if '#' not in sheet:  # все листы
+                    self.sheets_list.append(CorSheet(name=sheet, obj=self.wb[sheet]))
+        else:
+            self.sheets = re.findall(r'\[(.+?)]', sheets)
+            for sheet in self.sheets:
+                if sheet not in self.wb.sheetnames:
+                    raise ValueError(f'Ошибка в задании, не найден лист: {sheet} в файле {excel_file_name}')
+                else:
+                    self.sheets_list.append(CorSheet(name=sheet, obj=self.wb[sheet]))
+
 
     def init_export_model(self) -> None:
         """Экспорт данных из растр в csv"""

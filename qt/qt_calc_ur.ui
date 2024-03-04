@@ -52,7 +52,7 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>0</y>
+           <y>-233</y>
            <width>739</width>
            <height>1027</height>
           </rect>
@@ -199,17 +199,10 @@
                   <bool>true</bool>
                  </property>
                  <property name="text">
-                  <string>Выбор отключаемых ветвей, узлов и генераторов (имя поля):</string>
+                  <string>Отмеченные в поле disable  ветви, узлы и генератоы</string>
                  </property>
                  <property name="checked">
                   <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="le_comb_field">
-                 <property name="text">
-                  <string>disable</string>
                  </property>
                 </widget>
                </item>
@@ -446,17 +439,10 @@
                   <bool>true</bool>
                  </property>
                  <property name="text">
-                  <string>Имя поля (типа переключатель) с отмеченными узлами и ветвями:</string>
+                  <string>Отмеченные в поле control  ветви, узлы и генератоы</string>
                  </property>
                  <property name="checked">
                   <bool>true</bool>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="QLineEdit" name="le_control_field">
-                 <property name="text">
-                  <string>control</string>
                  </property>
                 </widget>
                </item>
@@ -1634,13 +1620,11 @@
   <tabstop>cb_auto_disable</tabstop>
   <tabstop>le_auto_disable_choice</tabstop>
   <tabstop>cb_comb_field</tabstop>
-  <tabstop>le_comb_field</tabstop>
   <tabstop>cb_filter_comb</tabstop>
   <tabstop>te_XL_path</tabstop>
   <tabstop>b_choice_XL</tabstop>
   <tabstop>le_XL_sheets</tabstop>
   <tabstop>cb_control_field</tabstop>
-  <tabstop>le_control_field</tabstop>
   <tabstop>b_main_choice</tabstop>
   <tabstop>b_set</tabstop>
   <tabstop>b_task_save</tabstop>

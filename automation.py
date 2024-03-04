@@ -105,7 +105,7 @@ class Automation:
                                                              action.replace(' ', ''),
                                                              condition.replace(' ', ''),
                                                              0]  # 'sta']
-                        rm.t_scheme[name_t][name_fields][s_key] = tuple(z_list)
+                        rm.dt.t_scheme[name_t][name_fields][s_key] = tuple(z_list)
                         if name_fields == 'automation':
                             self.all_num_auto = self.all_num_auto | set(z_list)
 
@@ -188,7 +188,7 @@ class Automation:
                 if r.i_max:
                     # Ветвь
                     s_key = tuple(r.s_key.split(','))
-                    auto = rm.t_scheme['vetv']['automation'].get(s_key, False)
+                    auto = rm.dt.t_scheme['vetv']['automation'].get(s_key, False)
                     if auto:
                         for a in auto:
                             # если 'a' уже запущена, то проверяем текущую ступень, если нет, то минимальную
@@ -196,7 +196,7 @@ class Automation:
                             # if a not in self.num_activation:
                             self.num_activation.add(a)
                 else:
-                    auto = rm.t_scheme['node']['automation'].get(r.s_key, False)
+                    auto = rm.dt.t_scheme['node']['automation'].get(r.s_key, False)
                     if auto:
                         for a in auto:
                             all_found_automatics.add(a)
