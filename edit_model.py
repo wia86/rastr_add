@@ -98,7 +98,7 @@ class EditModel(Common):
         if self.print_xl:
             self.print_xl.finish()
 
-        self.the_end()
+        return self.the_end()
 
     def cycle_rm(self, path_folder: str, in_dir: str):
         """Цикл по файлам"""

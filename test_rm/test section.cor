@@ -1,7 +1,7 @@
 source_path: I:\rastr_add2\test_rm\РМ v1
-target_path: I:\rastr_add2\test_rm\РМ v2
-filter_file: false
-max_count_file: 9999
+target_path: I:\rastr_add2\test_rm\РМ sect
+filter_file: true
+max_count_file: 5
 criterion:
   years: ''
   season: ''
@@ -146,13 +146,13 @@ Imp_add:
     calc: обновить
 DEFAULT: {}
 other:
-  log_file: log_file.log
+  path_project: I:\rastr_add2
 CalcSetWindow:
   gost: true
   skrm: true
   avr: true
   add_disabling_repair: true
-  pa: true
+  pa: false
 Settings:
   шаблон rg2: C:\Users\User\Documents\RastrWin3\SHABLON\режим.rg2
   шаблон rst: C:\Users\User\Documents\RastrWin3\SHABLON\динамика.rst
@@ -160,8 +160,8 @@ Settings:
   шаблон trn: C:\Users\User\Documents\RastrWin3\SHABLON\трансформаторы.trn
   шаблон anc: C:\Users\User\Documents\RastrWin3\SHABLON\анцапфы.anc
   load_add: true
-save_form_folder_calc:
-  path: I:\ОЭС Урала\Тюм_ЭС\КПР Тюменьэнерго до 2030 года\Замер\ИД\Иной замер от 11.12.23
-    ТЭС, СурЭС, СевЭС
 save_form_folder_edit:
   path: I:\rastr_add2\test_rm\РМ v1
+save_form_folder_calc:
+  path: I:\ОЭС Северо-Запада\КПР 2023\Модели РДУ СЗ\ПРМ УР+КЗ\ЭС Архангельск – Коми\2024-2028
+    v3+РП110-2заход+вонгуда-т+транс гриба v2

@@ -379,11 +379,7 @@ class PrintXL:
             pt.TableRange1.Borders(12).LineStyle = 1  #
 
         self.book.Save()
-        excel.Visible = True
-        excel.ScreenUpdating = True  # обновление экрана
-        excel.Calculation = -4105  # xlCalculationAutomatic
-        excel.EnableEvents = True  # отслеживание событий
-        excel.StatusBar = True  # отображение информации в строке статуса excel
+        self.book.Close()
 
     @staticmethod
     def create_table(sheet, sheet_name, point_start: str = 'A1'):

@@ -52,7 +52,7 @@
          <property name="geometry">
           <rect>
            <x>0</x>
-           <y>-233</y>
+           <y>0</y>
            <width>739</width>
            <height>1027</height>
           </rect>
@@ -558,7 +558,7 @@
                   </size>
                  </property>
                  <property name="text">
-                  <string>   Задание (.cor):</string>
+                  <string>   Задание (.calc):</string>
                  </property>
                 </widget>
                </item>

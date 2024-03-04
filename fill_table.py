@@ -128,9 +128,9 @@ class FillTable:
 
         log_fill_bt.info('Вставить таблицы К-О в word.')
 
-        xlApp = win32com.client.Dispatch('Excel.Application')
-        xlApp.Visible = False
-        book = xlApp.Workbooks.Open(self.book_path)
+        excel = win32com.client.Dispatch('Excel.Application')
+        excel.Visible = False
+        book = excel.Workbooks.Open(self.book_path)
 
         word = win32com.client.Dispatch('Word.Application')
         word.Visible = False

@@ -353,8 +353,9 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
                       value=self.path_rm.toPlainText())
         config = self.task_from_form() | ini.to_dict()
         cm = CalcModel(config)
-        cm.run()
+        end_info = cm.run()
         cm.save_log(name_file_source=log_file)
+        mb.showinfo('Инфо', end_info)
 
 
 class CalcSetWindow(QtWidgets.QMainWindow, Ui_calc_ur_set, Window):
@@ -703,8 +704,9 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
         config = self.task_from_form() | ini.to_dict()
 
         em = EditModel(config)
-        em.run()
+        end_info = em.run()
         em.save_log(name_file_source=log_file)
+        mb.showinfo('Инфо', end_info)
 
 
 def my_except_hook(func):

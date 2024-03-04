@@ -4,7 +4,6 @@ import shutil
 from abc import ABC
 from datetime import datetime
 from pathlib import Path
-from tkinter import messagebox as mb
 
 import yaml
 
@@ -108,7 +107,8 @@ class Common(ABC):
             self.config['end_info'] += f'\nВНИМАНИЕ! Развалились модели:\n[{t}].'
         log_comm.info(self.config['end_info'])
         self.save_config(self.config, self.mark)
-        mb.showinfo('Инфо', self.config['end_info'])
+
+        return self.config['end_info']
 
     @staticmethod
     def read_title(txt: str) -> tuple:

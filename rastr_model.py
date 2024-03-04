@@ -1601,21 +1601,6 @@ class RastrModel:
             log_rm.info(changes_in_rm)
         return changes_in_rm
 
-    def table_index_setsel(self, table_name: str, setsel: str):
-        """
-        Вернуть list из индексов строк таблице в соответствии с выборкой.
-        :param table_name: Имя таблицы
-        :param setsel: Выборка в таблице
-        :return:
-        """
-        # todo удалить
-        table = self.rastr.tables(table_name)
-        if table.cols.Find('index') < 0:
-            self.fill_field_index(table_name)
-        table = self.rastr.tables(table_name)
-        table.setsel(setsel)
-        return [x[0] for x in table.writesafearray('index', '000')]
-
     def add_fields_in_table(self, name_tables: str, fields: str, type_fields: int, prop=(), replace=False):
         """
         Добавить поля в таблицу, если они отсутствуют.
@@ -1717,6 +1702,7 @@ class RastrModel:
                     formula = formula.replace(formula_i, new_val)
                 else:
                     raise ValueError(f'В таблице {name_table} отсутствует {sel}')
+
         return formula
 
     def index(self, table_name: str, key_int: int | tuple = 0, key_str: str = '') -> int:

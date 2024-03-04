@@ -98,13 +98,13 @@ class CalcModel(Common):
             else:
                 self.run_calc_task()
 
-        self.the_end()
+        return self.the_end()
 
     def run_calc_task(self):
         """
         Запуск расчета с текущим файлом импорта задания или без него.
         """
-        xlApp = None
+        excel = None
 
         # папка с вложенными папками
         if self.size_date_source == 'nested_folder':
@@ -244,10 +244,10 @@ class CalcModel(Common):
         # Сводная.
         if len(full_breach):
             log_calc.info(f'Формирование сводных таблиц ({self.book_path}).')
-            xlApp = win32com.client.Dispatch('Excel.Application')
-            xlApp.ScreenUpdating = False  # Обновление экрана
+            excel = win32com.client.Dispatch('Excel.Application')
+            excel.ScreenUpdating = False  # Обновление экрана
             try:
-                book = xlApp.Workbooks.Open(self.book_path)
+                book = excel.Workbooks.Open(self.book_path)
             except Exception:
                 raise Exception(f'Ошибка при открытии файла {self.book_path=}')
 
@@ -363,10 +363,6 @@ class CalcModel(Common):
         # Вставить таблицы К-О в word.
         if self.config['cb_tab_KO']:
             self.fill_table.insert_word()
-
-        if xlApp:
-            xlApp.Visible = True
-            xlApp.ScreenUpdating = True  # обновление экрана
 
     def cycle_rm(self, path_folder: str):
         """Цикл по файлам"""
@@ -570,7 +566,7 @@ class CalcModel(Common):
 
             self.disable_df_vetv['index'] = self.disable_df_vetv['s_key'].apply(lambda x: rm.dt.t_key_i['vetv'][x])
             log_calc.info(f'Количество отключаемых элементов сети:'
-                          
+
                           f' ветвей - {len(self.disable_df_vetv.axes[0])},'
                           f' узлов - {len(disable_df_node.axes[0])},'
                           f' генераторов - {len(disable_df_gen.axes[0])}.')
@@ -762,8 +758,9 @@ class CalcModel(Common):
         for i in comb.index:
             if not rm.sta(table_name=comb.loc[i, 'table'],
                           ndx=comb.loc[i, 'index']):  # отключить элемент
-                log_calc.info(f'Комбинация отклонена: элемент {rm.dt.t_name[comb.loc[i, "table"]][comb.loc[i, "s_key"]]!r}'
-                              f' отключен в исходной РМ.')
+                log_calc.info(
+                    f'Комбинация отклонена: элемент {rm.dt.t_name[comb.loc[i, "table"]][comb.loc[i, "s_key"]]!r}'
+                    f' отключен в исходной РМ.')
                 return False
             scheme_info = ''
 
@@ -923,7 +920,7 @@ class CalcModel(Common):
         if not test_rgm:
             self.info_action['alive'] = 0
             log_calc.debug(f'Режим развалился.')
-            return None
+            # return None
         else:
             # Сохранение загрузки отключаемых элементов в н-1 для фильтра
             if self.config['filter_comb'] and len(comb) == 1 and comb.table[0] == 'vetv':
@@ -938,16 +935,6 @@ class CalcModel(Common):
                         self.disable_effect[(comb.s_key[0],
                                              comb.disable_scheme[0],
                                              comb.repair_scheme[0])].append(self.disable_df_vetv.loc[index, 's_key'])
-
-                # col_i_zag = rm.df_from_table(table_name='vetv', fields='index,i_zag', setsel='all_disable')
-                # col_i_zag.set_index('index', inplace=True)
-                # col_name = comb['key'][0]
-                # for col in ['repair_scheme', 'disable_scheme']:
-                #     if comb[col][0]:
-                #         col_name += comb[col][0]
-                # col_i_zag.rename(columns={'i_zag': col_name}, inplace=True)
-                # self.disable_df_vetv = pd.concat([self.disable_df_vetv, col_i_zag], axis=1)
-                # self.disable_df_vetv[col_name] = self.disable_df_vetv['i_zag'] - self.disable_df_vetv[col_name]
 
             # проверка на наличие перегрузок ветвей (ЛЭП, трансформаторов, выключателей)
             if self.info_srs['Контроль ДТН'] == 'АДТН':
