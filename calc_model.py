@@ -1,7 +1,7 @@
 import logging
 import os
 import sqlite3
-from collections import namedtuple, defaultdict
+from collections import namedtuple
 from itertools import combinations
 
 import pandas as pd
@@ -11,6 +11,7 @@ from openpyxl.styles import PatternFill, Border, Side, Alignment
 from tabulate import tabulate
 
 from automation import Automation
+from calc import FilterCombination
 from calc_xl import CombinationXL
 from common import Common
 from fill_table import FillTable
@@ -50,10 +51,6 @@ class CalcModel(Common):
 
         self.disable_df_vetv = pd.DataFrame()
 
-        # {((ip, iq, np), disable_scheme, comb.repair_scheme):list((ip, iq, np), ...)}
-        # отключаемая ветвь: (ветви из списка отключаемых ветвей, загрузка которых изменяется)
-        self.disable_effect = defaultdict(list)
-
         self.num_pic, self.name_pic = list(Common.read_title(self.config['name_pic']))
 
         self.info_action = None
@@ -72,6 +69,7 @@ class CalcModel(Common):
         self.save_i_rm = None
 
         self.combination_xl = None  # Для создания объекта класса CombinationXL.
+        self.filter_comb = None  # Для создания объекта класса FilterCombination.
 
     def run(self):
         """
@@ -97,6 +95,9 @@ class CalcModel(Common):
                 self.run_calc_task()
             else:
                 self.run_calc_task()
+        if self.filter_comb:
+            self.config['filter_comb_info'] = (f'Рассчитано комбинаций: {self.comb_id}, '
+                                               f'отфильтровано {self.filter_comb.count_false_comb} ')
 
         return self.the_end()
 
@@ -174,6 +175,7 @@ class CalcModel(Common):
                 # https://www.geeksforgeeks.org/how-to-write-pandas-dataframes-to-multiple-excel-sheets/
                 mode = 'a' if os.path.exists(self.book_path) else 'w'
                 with pd.ExcelWriter(path=self.book_path, mode=mode) as writer:
+                    # todo если много элементов в full_breach то будет ошибка
                     full_breach[key].to_excel(excel_writer=writer,
                                               float_format='%.2f',
                                               index=False,
@@ -548,7 +550,7 @@ class CalcModel(Common):
             disable_df_node['index'] = disable_df_node['s_key'].apply(lambda x: rm.dt.t_key_i['node'][x])
             # Ветви
             self.disable_df_vetv = rm.df_from_table(table_name='vetv',
-                                                    fields='name,key,temp,temp1,tip,ip,iq,np,i_zag',
+                                                    fields='name,key,temp,temp1,tip,ip,iq,np,ib,i_dop',
                                                     setsel='all_disable')
             self.disable_df_vetv['table'] = 'vetv'
             self.disable_df_vetv['uhom'] = (self.disable_df_vetv[['temp', 'temp1']].max(axis=1) * 10000 +
@@ -571,7 +573,7 @@ class CalcModel(Common):
                           f' узлов - {len(disable_df_node.axes[0])},'
                           f' генераторов - {len(disable_df_gen.axes[0])}.')
 
-            disable_df_all = pd.concat([self.disable_df_vetv.drop(['i_zag'], axis=1),
+            disable_df_all = pd.concat([self.disable_df_vetv.drop(['ib', 'i_dop'], axis=1),
                                         disable_df_node,
                                         disable_df_gen])
             # Фильтр комбинаций
@@ -583,6 +585,8 @@ class CalcModel(Common):
             if self.config['filter_comb']:
                 self.disable_df_vetv.set_index('index', inplace=True)
                 self.disable_df_vetv.drop(['table', 'uhom'], axis=1, inplace=True)
+                self.filter_comb = FilterCombination(diff=self.config['filter_comb_val'],
+                                                     df_ib_norm=self.disable_df_vetv)
 
             # Цикл по всем возможным сочетаниям отключений
             for n_, self.info_srs['Контроль ДТН'] in self.set_comb.items():  # Цикл н-1 н-2 н-3.
@@ -599,7 +603,7 @@ class CalcModel(Common):
                 disable_all = tuple(disable_all.itertuples(index=False, name=None))
 
                 for comb in combinations(disable_all, r=n_):  # Цикл по комбинациям.
-                    log_calc.debug(f'Комбинация элементов {comb}')
+                    # log_calc.debug(f'Комбинация элементов {comb}')
                     comb_df = pd.DataFrame(data=comb, columns=name_columns)
                     unique_set_actions = []
 
@@ -708,41 +712,8 @@ class CalcModel(Common):
         """
         # Фильтр н-2-3
         if self.config['filter_comb'] and len(comb) > 1 and source == 'combinatorics':
-            if not len(comb.loc[(comb.table == 'node') | comb.double_repair_scheme]):
-                count_effect = 0  # если 1 элемент из пары влияет на другой, то прибавляем 1
-                s_key0 = comb.s_key[0]
-                s_key1 = comb.s_key[1]
-                el0 = (s_key0, comb.disable_scheme[0], comb.repair_scheme[0],)
-                el1 = (s_key1, comb.disable_scheme[1], comb.repair_scheme[1],)
-                # Если хотя бы 1 оказывает влияние на загрузку второго
-                if ((s_key1 in self.disable_effect.get(el0, [])) or
-                        (s_key0 in self.disable_effect.get(el1, []))):
-                    count_effect += 1
-                    # Если ветви состоят в одном транзите
-                    if rm.v__num_transit.get(s_key0, 0) == rm.v__num_transit.get(s_key1, 1):
-                        log_calc.debug(f'В одном транзите: {tabulate(comb, headers="keys", tablefmt="psql")}')
-                        return False
-
-                elif len(comb) == 3:
-                    s_key2 = comb.s_key[2]
-                    el2 = (s_key2, comb.disable_scheme[2], comb.repair_scheme[2])
-
-                    if ((s_key2 in self.disable_effect.get(el0, [])) or
-                            (s_key0 in self.disable_effect.get(el2, []))):
-                        count_effect += 1
-                        if rm.v__num_transit.get(s_key0, 0) == rm.v__num_transit.get(s_key2, 2):
-                            log_calc.debug(f'В одном транзите: {tabulate(comb, headers="keys", tablefmt="psql")}')
-                            return False
-                    if ((s_key2 in self.disable_effect.get(el1, [])) or
-                            (s_key1 in self.disable_effect.get(el2, []))):
-                        count_effect += 1
-                        if rm.v__num_transit.get(s_key1, 1) == rm.v__num_transit.get(s_key2, 2):
-                            log_calc.debug(f'В одном транзите: {tabulate(comb, headers="keys", tablefmt="psql")}')
-                            return False
-
-                if count_effect < len(comb) - 1:
-                    log_calc.debug(f'Комбинация отклонена фильтром: {tabulate(comb, headers="keys", tablefmt="psql")}')
-                    return False
+            if not self.filter_comb.test_comb(comb):
+                return False
 
         # Восстановление схемы
         self.restore_only_state = rm.dt.recover_date_tables(self.restore_only_state)
@@ -924,17 +895,10 @@ class CalcModel(Common):
         else:
             # Сохранение загрузки отключаемых элементов в н-1 для фильтра
             if self.config['filter_comb'] and len(comb) == 1 and comb.table[0] == 'vetv':
-                table = rm.rastr.tables('vetv')
-                table.setsel('all_disable')
-
-                for index, i_zag in table.writesafearray('index,i_zag', '000'):
-                    difference_i_zag = abs(i_zag - self.disable_df_vetv.loc[index, 'i_zag'])
-                    if difference_i_zag > self.config['filter_comb_val']:
-                        log_calc.info((comb.s_key[0], comb.disable_scheme[0], comb.repair_scheme[0]))
-                        log_calc.info(self.disable_df_vetv.loc[index, 's_key'])
-                        self.disable_effect[(comb.s_key[0],
-                                             comb.disable_scheme[0],
-                                             comb.repair_scheme[0])].append(self.disable_df_vetv.loc[index, 's_key'])
+                df_ip_n1 = rm.df_from_table(table_name='vetv',
+                                            fields='key,ib',
+                                            setsel='all_disable')
+                self.filter_comb.add_n1(rm=rm, comb=comb, df_ip_n1=df_ip_n1)
 
             # проверка на наличие перегрузок ветвей (ЛЭП, трансформаторов, выключателей)
             if self.info_srs['Контроль ДТН'] == 'АДТН':

@@ -105,6 +105,8 @@ class Common(ABC):
         if self.config['collapse']:
             t = f',\n'.join(self.config['collapse'])
             self.config['end_info'] += f'\nВНИМАНИЕ! Развалились модели:\n[{t}].'
+        if self.config.get('filter_comb_info'):
+            self.config['end_info'] = f'{self.config["end_info"]}\n{self.config.get("filter_comb_info")}'
         log_comm.info(self.config['end_info'])
         self.save_config(self.config, self.mark)
 
