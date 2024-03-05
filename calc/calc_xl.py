@@ -1,3 +1,5 @@
+__all__ = ['CombinationXL']
+
 import logging
 
 import pandas as pd

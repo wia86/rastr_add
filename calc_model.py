@@ -10,13 +10,13 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment
 from tabulate import tabulate
 
-from automation import Automation
-from calc import FilterCombination
-from calc_xl import CombinationXL
 from common import Common
-from fill_table import FillTable
 from print_xl import PrintXL
 from rastr_model import RastrModel
+from calc import Automation
+from calc import FilterCombination
+from calc import CombinationXL
+from calc import FillTable
 
 log_calc = logging.getLogger(f'__main__.{__name__}')
 

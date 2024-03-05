@@ -1,3 +1,5 @@
+__all__ = ['Automation']
+
 import logging
 
 import pandas as pd
