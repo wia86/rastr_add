@@ -82,17 +82,6 @@ class FillTable:
             self.control_U = self.control_U.T
             self.control_U.index = pd.MultiIndex.from_product([['-'], ['-'], self.control_U.index])
 
-    def add_groupid(self):
-        log_fill_bt.info('Добавление в контролируемые элементы ветвей по groupid.')
-        table = self.rm.rastr.tables('vetv')
-        table.setsel('all_control & groupid>0')
-        if table.count:
-            for gr in set(table.writesafearray('groupid', '000')):
-                self.rm.group_cor(tabl='vetv',
-                                  param='all_control',
-                                  selection=f'groupid={gr[0]}',
-                                  formula=1)
-
     def add_value(self):
 
         log_fill_bt.debug('Запись параметров УР в таблицу КО.')

@@ -9,15 +9,15 @@ criterion:
   add_name: ''
 cor_beginning_qt:
   add: true
-  txt: "анализ[na>0] # [-] только анализ\nудалить*[15181; 15105,15113]{years : 2025...2026&\
-    \ season:зим& max_min:макс& add_name:0°C}  \nизм[15105:name=Новое имя; pn=qn*2+10]\
-    \ \nизм[15106:qn=100] {years : 2026&(ny=15106:vras>110)}  \nизм[15106:qn=100]\
-    \ {years : 2026&(ny=15037:vras<110)}  \nизм[(vetv);(area);(area2);(darea): Tc=0]\n\
-    изм[15512,15518: x=(10+15511,15517:r)+ip.uhom]  \nснять отметку\nдобавить[vetv:ip=15113;iq=15105;np=3;x=2;r=1.5;b=-0,000182]\n\
+  txt: "print[15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech]\nанализ[na>0]\
+    \ # [-] только анализ\nудалить*[15181; 15105,15113]{years : 2025...2026& season:зим&\
+    \ max_min:макс& add_name:0°C}  \nизм[15105:name=Новое имя; pn=qn*2+10] \nизм[15106:qn=100]\
+    \ {years : 2026&(ny=15106:vras>110)}  \nизм[15106:qn=100] {years : 2026&(ny=15037:vras<110)}\
+    \  \nизм[(vetv);(area);(area2);(darea): Tc=0]\nизм[15512,15518: x=(10+15511,15517:r)+ip.uhom]\
+    \  \nснять отметку\nдобавить[vetv:ip=15113;iq=15105;np=3;x=2;r=1.5;b=-0,000182]\n\
     текст[node: name, dname; vetv:dname; Generator: Name]  \nСХН[na=11]{add_name:AutoBsh}\
     \  \nнапряжения[na=11]  \nСКРМ*[na=11]\nимпорт[папка: (I:\\rastr_add2\\test_rm\\\
-    файлы импорта\\файл для импорта.rg2); таблица:Generator; тип:2; поле: Pmax; выборка:Num=300]\n\
-    \n"
+    файлы импорта\\файл для импорта.rg2); таблица:Generator; тип:2; поле: Pmax; выборка:Num=300]"
 import_val_XL: true
 excel_cor_file: I:\rastr_add2\test_rm\пример задания.xlsx
 excel_cor_sheet: ' [ТФ пример 1 (pn, qn)][ТФ пример 2 (pop)][импорт из моделей(ИМ)][строковая
@@ -46,9 +46,6 @@ set_printXL:
     rows: Num,Name
     columns: Год,Сезон макс/мин,Доп. имя1,Доп. имя2,Доп. имя3
     values: P,Pmax
-print_parameters:
-  add: true
-  sel: 15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech
 print_balance_q:
   add: true
   sel: na=11
@@ -170,5 +167,4 @@ Settings:
 save_form_folder_edit:
   path: I:\rastr_add2\test_rm\РМ v1
 save_form_folder_calc:
-  path: I:\ОЭС Северо-Запада\КПР 2023\Модели РДУ СЗ\ПРМ УР+КЗ\ЭС Архангельск – Коми\2024-2028
-    v3+РП110-2заход+вонгуда-т+транс гриба v2
+  path: I:\rastr_add2\test_rm\РМ v1

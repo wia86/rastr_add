@@ -88,7 +88,7 @@
        <property name="geometry">
         <rect>
          <x>0</x>
-         <y>0</y>
+         <y>-606</y>
          <width>931</width>
          <height>1437</height>
         </rect>
@@ -3704,7 +3704,7 @@
 #напряжения[na=11]  
 #СКРМ*[na=11]
 #импорт[папка: (I:\ОЭС Урала\Тюм_ЭС\!КПР ХМАО ЯНАО ТО\Модели4 - 2023\v29\без МДП pop); таблица:node; тип:2; поле: pn,qn; выборка:]
-
+#print[15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech]
 </string>
             </property>
            </widget>
@@ -4220,53 +4220,6 @@
                </layout>
               </item>
              </layout>
-            </widget>
-           </item>
-           <item>
-            <widget class="QCheckBox" name="CB_print_parametr">
-             <property name="maximumSize">
-              <size>
-               <width>16777215</width>
-               <height>22</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Вывод значений следующих параметров из моделей:</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPlainTextEdit" name="TA_parametr_vibor">
-             <property name="enabled">
-              <bool>true</bool>
-             </property>
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="minimumSize">
-              <size>
-               <width>508</width>
-               <height>20</height>
-              </size>
-             </property>
-             <property name="maximumSize">
-              <size>
-               <width>1000</width>
-               <height>35</height>
-              </size>
-             </property>
-             <property name="baseSize">
-              <size>
-               <width>0</width>
-               <height>35</height>
-              </size>
-             </property>
-             <property name="plainText">
-              <string>15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech</string>
-             </property>
             </widget>
            </item>
            <item>

@@ -7,6 +7,7 @@ from tkinter import messagebox as mb
 import pandas as pd
 import win32com.client
 
+from pack_rastr_model import ManagerPrintParameters
 import collection_func as cf
 from import_rm import ImportFromModel
 from loading_sections import loading_section
@@ -508,12 +509,14 @@ class RastrModel:
         """
         files = os.listdir(self.dir)
         names = list(filter(lambda x: x.endswith('.' + load_additional), files))
-        if len(names) > 0:
-            self.rastr.Load(1, f'{self.dir}\\{names[0]}',
-                            self.config[f'шаблон {load_additional}'])
-            log_rm.info(f'Загружен файл: {names[0]}')
-        else:
+
+        if not len(names):
             raise ValueError(f'Файл с расширением {load_additional!r} не найден в папке {self.dir}')
+
+        self.rastr.Load(1,
+                        os.path.join(self.dir, names[0]),
+                        self.config[f'шаблон {load_additional}'])
+        log_rm.info(f'Загружен файл: {names[0]}')
         return names[0]
 
     def save(self, full_name_new: str = '', file_name: str = '', folder_name: str = '') -> str:
@@ -796,6 +799,8 @@ class RastrModel:
             else:
                 self.all_auto_shunt = self.auto_shunt_rec(selection=sel, only_auto_bsh=True)
             self.auto_shunt_cor(all_auto_shunt=self.all_auto_shunt)
+        elif 'print' in name:
+            ManagerPrintParameters.add(self, all_task)
         else:
             raise ValueError(f'Задание {name=} не распознано ({sel=}, {value=})')
         return ''

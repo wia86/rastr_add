@@ -483,7 +483,6 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
             (self.CB_Filtr_IT, self.FFIT),
             (self.CB_printXL, self.GB_prinr_XL),
             (self.CB_print_tab_log, self.GB_sel_tabl),
-            (self.CB_print_parametr, self.TA_parametr_vibor),
             (self.CB_print_balance_Q, self.balance_Q_vibor),)
         self.check_status(self.check_status_visibility)  # Скрыть при старте
 
@@ -572,8 +571,6 @@ class EditWindow(QtWidgets.QMainWindow, Ui_cor, Window):
                                      'rows': self.print_tab_log_rows,  # поля строк в сводной
                                      'columns': self.print_tab_log_cols,  # поля столбцов в сводной
                                      'values': self.print_tab_log_vals}},  # поля значений в свод
-            'print_parameters': {'add': self.CB_print_parametr,
-                                 'sel': self.TA_parametr_vibor},
             'print_balance_q': {'add': self.CB_print_balance_Q,
                                 'sel': self.balance_Q_vibor},
             # только для UI

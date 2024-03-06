@@ -52,7 +52,6 @@ class PrintXL:
         """
         self.name_xl_file = ''  # Имя файла EXCEL для сохранения
         self.data_table = {}  # Для хранения ссылок на листы excel {'имя листа=имя таблицы': fd c данными}
-        self.data_parameters = pd.DataFrame()
         self.task = task
         for tb in self.task['set_printXL']:
             if tb in self.set_param:
@@ -64,64 +63,8 @@ class PrintXL:
             if self.task['set_printXL'][name_table]['add']:
                 self.data_table[name_table] = pd.DataFrame()
 
-        if self.task['print_parameters']['add']:
-            self.set_output_parameters = set()
-            for task_i in self.task['print_parameters']['sel'].replace(' ', '').split('/'):
-                key_row, key_column = task_i.split(':')  # нр'8;9', 'pn;qn'
-                for col in key_column.split(';'):  # ['pn','qn']
-                    for row in key_row.split(';'):  # ['15105,15113','15038,15037,4']
-                        self.set_output_parameters.add(f'{row}:{col}')
-
         if self.task['print_balance_q']['add']:
-            self.sheet_q = self.book.create_sheet('balance_Q')
-            self.row_q = {}
-            # (имя ключа, название в ячейке XL, комментарий ячейки)
-            name_row = (
-                ('row_name',
-                 'Наименование', ''),
-                ('row_qn',
-                 'Реактивная мощность нагрузки', 'Calc(sum,area,qn,vibor)'),
-                ('row_dq_sum',
-                 'Нагрузочные потери', ''),
-                ('row_dq_line',
-                 'в т.ч. потери в ЛЭП', 'потери в ЛЭП: \nCalc(sum,area,dq_line,vibor)'),
-                ('row_dq_tran',
-                 'потери в трансформаторах', 'Calc(sum,area,dq_tran,vibor)'),
-                ('row_shq_tran',
-                 'потери Х.Х. в трансформаторах', 'Calc(sum,area,shq_tran,vibor)'),
-                ('row_skrm_potr',
-                 'Потребление реактивной мощности СКРМ (ШР, УШР, СК, СТК)',
-                 'Calc(sum,node,qsh,qsh>0 & vibor) - Calc(sum,node,qg,qg<0&pg<0.1&pg>-0.1 & vibor)'),
-                ('row_sum_port_Q',
-                 'Суммарное потребление реактивной мощности', ''),
-                ('row_qg',
-                 'Генерация реактивной мощности электростанциями', 'Calc(sum,node,qg,(pg>0.1|pg<-0.1) & vibor)'),
-                ('row_skrm_gen',
-                 'Генерация реактивной мощности СКРМ (БСК, СК, СТК)', ''),
-                ('row_qg_min',
-                 'Минимальная генерация реактивной мощности электростанциями', 'Calc(sum,node,qmin,pg>0.1& vibor)'),
-                ('row_qg_max',
-                 'Максимальная генерация реактивной мощности электростанциями', 'Calc(sum,node,qmax,pg>0.1& vibor)'),
-                ('row_shq_line',
-                 'Зарядная мощность ЛЭП', 'Calc(sum,area,shq_line, vibor)'),
-                ('row_sum_QG',
-                 'Суммарная генерация реактивной мощности', ''),
-                ('row_Q_itog',
-                 'Внешний переток реактивной мощности (избыток/дефицит +/-)', ''),
-                ('row_Q_itog_gmin',
-                 'Внешний переток реактивной мощности при минимальной генерации '
-                 'реактивной мощности электростанциями и КУ(избыток/дефицит +/-)', ''),
-                ('row_Q_itog_gmax',
-                 'Внешний переток реактивной мощности при максимальной генерации '
-                 'реактивной мощности электростанциями и КУ(избыток/дефицит +/-)',
-                 ''),
-            )
-            self.sheet_q.cell(1, 1, 'Таблица 1 - Баланс реактивной мощности, Мвар')
-            for n, row_info in enumerate(name_row, 2):
-                self.row_q[row_info[0]] = n
-                self.sheet_q.cell(n, 1, row_info[1])
-                if row_info[2]:
-                    self.sheet_q.cell(n, 1).comment = Comment(row_info[2], '')
+            self.balance_q = BalanceQ(self.book, self.task['print_balance_q']['sel'])
 
     def add_val(self, rm):
         log_print_xl.info('\tВывод данных из моделей в XL')
@@ -144,84 +87,8 @@ class PrintXL:
                 self.data_table[name_table] = pd.concat([self.data_table[name_table],
                                                          data.apply(lambda x: pd.Series(rm.info_file), axis=1).join(
                                                              other=data)])
-
-        if self.task['print_parameters']['add']:
-            self.add_val_parameters(rm)
-
         if self.task['print_balance_q']['add']:
-            self.add_val_balance_q(rm)
-
-    def add_val_parameters(self, rm):
-        """
-        Вывод заданных параметров в формате: '15105,15113;15038,15037,4:r;x;b / 15198:pg;qg / ns=1(sechen):psech'.
-        """
-        if 'sechen' in self.task['print_parameters']['sel']:
-            if rm.rastr.tables.Find('sechen') < 0:
-                rm.downloading_additional_files('sch')
-        date = pd.Series(dtype='object')
-        for i in self.set_output_parameters:
-            k, p = i.split(':')
-            table, sel = rm.recognize_key(k, 'tab sel')
-            if rm.rastr.tables(table).cols(p).Prop(1) == 2:  # если поле типа строка
-                date.loc[i] = str(rm.txt_field_return(table, sel, p))
-            else:
-                date.loc[i] = rm.rastr.tables(table).cols.Item(p).ZS(rm.index(table_name=table, key_str=sel))
-        date = pd.concat([date, pd.Series(rm.info_file)])
-        self.data_parameters = pd.concat([self.data_parameters, date], axis=1)
-
-    def add_val_balance_q(self, rm):
-        column = self.sheet_q.max_column + 1
-        choice = self.task['print_balance_q']['sel']
-        self.sheet_q.cell(2, column,
-                          f'{rm.info_file["Сезон макс/мин"]} {rm.info_file["Год"]} г ({rm.info_file["Доп. имена"]})')
-        area = rm.rastr.Tables('area')
-        area.SetSel(self.task['print_balance_q']['sel'])
-        # ndx = area.FindNextSel(-1)
-
-        # Реактивная мощность нагрузки
-        address_qn = self.sheet_q.cell(self.row_q['row_qn'], column,
-                                       rm.rastr.Calc('sum', 'area', 'qn', choice)).coordinate
-        # Потери Q в ЛЭП
-        address_dq_line = self.sheet_q.cell(self.row_q['row_dq_line'], column,
-                                            rm.rastr.Calc('sum', 'area', 'dq_line', choice)).coordinate
-        # Потери Q в трансформаторах
-        address_dq_tran = self.sheet_q.cell(self.row_q['row_dq_tran'], column,
-                                            rm.rastr.Calc('sum', 'area', 'dq_tran', choice)).coordinate
-        # Потери Q_ХХ в трансформаторах
-        address_shq_tran = self.sheet_q.cell(self.row_q['row_shq_tran'], column,
-                                             rm.rastr.Calc('sum', 'area', 'shq_tran', choice)).coordinate
-        # ШР УШР без бСК
-        skrm = (rm.rastr.Calc('sum', 'node', 'qsh', f'qsh>0&({choice})') -
-                rm.rastr.Calc('sum', 'node', 'qg', f'qg<0&pg<0.1&pg>-0.1&({choice})'))
-        address_SHR = self.sheet_q.cell(self.row_q['row_skrm_potr'], column, skrm).coordinate
-        # Генерация Q генераторов
-        address_qg = self.sheet_q.cell(self.row_q['row_qg'], column,
-                                       rm.rastr.Calc('sum', 'node', 'qg', f'(pg>0.1|pg<-0.1)&({choice})')).coordinate
-        # Генерация БСК шунтом и СТК СК
-        address_skrm_gen = self.sheet_q.cell(self.row_q['row_skrm_gen'], column,
-                                             -rm.rastr.Calc('sum', 'node', 'qsh', f'qsh<0&({choice})') + rm.rastr.Calc(
-                                                 'sum', 'node', 'qg', f'qg>0&pg<0.1&pg>-0.1&({choice})')).coordinate
-        # Минимальная генерация реактивной мощности в узлах выборки
-        address_qg_min = self.sheet_q.cell(self.row_q['row_qg_min'], column,
-                                           rm.rastr.Calc('sum', 'node', 'qmin', f'pg>0.1&({choice})')).coordinate
-        # Максимальная генерация реактивной мощности в узлах выборки
-        address_qg_max = self.sheet_q.cell(self.row_q['row_qg_max'], column,
-                                           rm.rastr.Calc('sum', 'node', 'qmax', f'pg>0.1&({choice})')).coordinate
-        # Генерация Q в ЛЭП
-        address_shq_line = self.sheet_q.cell(self.row_q['row_shq_line'], column,
-                                             - rm.rastr.Calc('sum', 'area', 'shq_line', choice)).coordinate
-        address_losses = self.sheet_q.cell(self.row_q['row_dq_sum'], column,
-                                           f'={address_dq_line}+{address_dq_tran}+{address_shq_tran}').coordinate
-        address_load = self.sheet_q.cell(self.row_q['row_sum_port_Q'], column,
-                                         f'={address_qn}+{address_losses}+{address_SHR}').coordinate
-        address_sum_gen = self.sheet_q.cell(self.row_q['row_sum_QG'], column,
-                                            f'={address_qg}+{address_shq_line}+{address_skrm_gen}').coordinate
-        self.sheet_q.cell(self.row_q['row_Q_itog'], column,
-                          f'=-{address_load}+{address_sum_gen}')
-        self.sheet_q.cell(self.row_q['row_Q_itog_gmin'], column,
-                          f'=-{address_load}+{address_qg_min}+{address_shq_line}')
-        self.sheet_q.cell(self.row_q['row_Q_itog_gmax'], column,
-                          f'=-{address_load}+{address_qg_max}+{address_shq_line}')
+            self.balance_q.add_val_balance_q(rm)
 
     def finish(self):
         """
@@ -254,13 +121,6 @@ class PrintXL:
                               header=True,
                               index=False)
 
-        if self.task['print_parameters']['add']:
-            with pd.ExcelWriter(path=self.name_xl_file, mode='a', engine='openpyxl') as writer:
-                self.data_parameters.T.to_excel(excel_writer=writer,
-                                                sheet_name='Значения',
-                                                header=True,
-                                                index=False)
-
         self.book = load_workbook(self.name_xl_file)
         for sheet_name in self.book.sheetnames:
             sheet = self.book[sheet_name]
@@ -270,26 +130,8 @@ class PrintXL:
                 if sheet_name != 'balance_Q':
                     PrintXL.create_table(sheet, sheet_name)  # Создать объект таблица.
 
-        if self.task['print_balance_q']['add']:
-            self.sheet_q = self.book['balance_Q']
-            self.sheet_q.row_dimensions[2].height = 140
-            self.sheet_q.column_dimensions['A'].width = 40
-            thins = Side(border_style='thin', color='000000')
-            for row in range(2, self.sheet_q.max_row + 1):
-                for col in range(1, self.sheet_q.max_column + 1):
-                    if row > 2 and col > 1:
-                        self.sheet_q.cell(row, col).number_format = BUILTIN_FORMATS[1]
-                    self.sheet_q.cell(row, col).border = Border(thins, thins, thins, thins)
-                    self.sheet_q.cell(row, col).font = Font(name='Times New Roman', size=11)
-                    if row == 2:
-                        self.sheet_q.cell(row, col).alignment = Alignment(text_rotation=90,
-                                                                          wrap_text=True, horizontal='center')
-                    if col == 1:
-                        self.sheet_q.cell(row, col).alignment = Alignment(wrap_text=True)
-                    if row in [12, 13, 17, 18]:
-                        self.sheet_q.cell(row, col).fill = PatternFill('solid', fgColor='00FF0000')
-                    if row in [9, 15, 16]:
-                        self.sheet_q.cell(row, col).font = Font(bold=True)
+        # if self.task['print_balance_q']['add']:
+        #     self.balance_q.finish_q(self.book)
 
         self.book.save(self.name_xl_file)
         self.book = None
@@ -398,3 +240,134 @@ class PrintXL:
                                             showRowStripes=True,
                                             showColumnStripes=True)
         sheet.add_table(tab)
+
+
+class BalanceQ:
+
+    def __init__(self, book, sel: str):
+        self.sel = sel
+        self.sheet_q = book.create_sheet('balance_Q')
+        self.row_q = {}
+        # (имя ключа, название в ячейке XL, комментарий ячейки)
+        name_row = (
+            ('row_name',
+             'Наименование', ''),
+            ('row_qn',
+             'Реактивная мощность нагрузки', 'Calc(sum,area,qn,vibor)'),
+            ('row_dq_sum',
+             'Нагрузочные потери', ''),
+            ('row_dq_line',
+             'в т.ч. потери в ЛЭП', 'потери в ЛЭП: \nCalc(sum,area,dq_line,vibor)'),
+            ('row_dq_tran',
+             'потери в трансформаторах', 'Calc(sum,area,dq_tran,vibor)'),
+            ('row_shq_tran',
+             'потери Х.Х. в трансформаторах', 'Calc(sum,area,shq_tran,vibor)'),
+            ('row_skrm_potr',
+             'Потребление реактивной мощности СКРМ (ШР, УШР, СК, СТК)',
+             'Calc(sum,node,qsh,qsh>0 & vibor) - Calc(sum,node,qg,qg<0&pg<0.1&pg>-0.1 & vibor)'),
+            ('row_sum_port_Q',
+             'Суммарное потребление реактивной мощности', ''),
+            ('row_qg',
+             'Генерация реактивной мощности электростанциями', 'Calc(sum,node,qg,(pg>0.1|pg<-0.1) & vibor)'),
+            ('row_skrm_gen',
+             'Генерация реактивной мощности СКРМ (БСК, СК, СТК)', ''),
+            ('row_qg_min',
+             'Минимальная генерация реактивной мощности электростанциями', 'Calc(sum,node,qmin,pg>0.1& vibor)'),
+            ('row_qg_max',
+             'Максимальная генерация реактивной мощности электростанциями', 'Calc(sum,node,qmax,pg>0.1& vibor)'),
+            ('row_shq_line',
+             'Зарядная мощность ЛЭП', 'Calc(sum,area,shq_line, vibor)'),
+            ('row_sum_QG',
+             'Суммарная генерация реактивной мощности', ''),
+            ('row_Q_itog',
+             'Внешний переток реактивной мощности (избыток/дефицит +/-)', ''),
+            ('row_Q_itog_gmin',
+             'Внешний переток реактивной мощности при минимальной генерации '
+             'реактивной мощности электростанциями и КУ(избыток/дефицит +/-)', ''),
+            ('row_Q_itog_gmax',
+             'Внешний переток реактивной мощности при максимальной генерации '
+             'реактивной мощности электростанциями и КУ(избыток/дефицит +/-)',
+             ''),
+        )
+        self.sheet_q.cell(1, 1, 'Таблица 1 - Баланс реактивной мощности, Мвар')
+        for n, row_info in enumerate(name_row, 2):
+            self.row_q[row_info[0]] = n
+            self.sheet_q.cell(n, 1, row_info[1])
+            if row_info[2]:
+                self.sheet_q.cell(n, 1).comment = Comment(row_info[2], '')
+
+    def add_val_balance_q(self, rm):
+
+        column = self.sheet_q.max_column + 1
+        self.sheet_q.cell(2, column,
+                          f'{rm.info_file["Сезон макс/мин"]} {rm.info_file["Год"]} г ({rm.info_file["Доп. имена"]})')
+        area = rm.rastr.Tables('area')
+        area.SetSel(self.sel)
+        # ndx = area.FindNextSel(-1)
+
+        # Реактивная мощность нагрузки
+        address_qn = self.sheet_q.cell(self.row_q['row_qn'], column,
+                                       rm.rastr.Calc('sum', 'area', 'qn', self.sel)).coordinate
+        # Потери Q в ЛЭП
+        address_dq_line = self.sheet_q.cell(self.row_q['row_dq_line'], column,
+                                            rm.rastr.Calc('sum', 'area', 'dq_line', self.sel)).coordinate
+        # Потери Q в трансформаторах
+        address_dq_tran = self.sheet_q.cell(self.row_q['row_dq_tran'], column,
+                                            rm.rastr.Calc('sum', 'area', 'dq_tran', self.sel)).coordinate
+        # Потери Q_ХХ в трансформаторах
+        address_shq_tran = self.sheet_q.cell(self.row_q['row_shq_tran'], column,
+                                             rm.rastr.Calc('sum', 'area', 'shq_tran', self.sel)).coordinate
+        # ШР УШР без бСК
+        skrm = (rm.rastr.Calc('sum', 'node', 'qsh', f'qsh>0&({self.sel})') -
+                rm.rastr.Calc('sum', 'node', 'qg', f'qg<0&pg<0.1&pg>-0.1&({self.sel})'))
+        address_SHR = self.sheet_q.cell(self.row_q['row_skrm_potr'], column, skrm).coordinate
+        # Генерация Q генераторов
+        address_qg = self.sheet_q.cell(self.row_q['row_qg'], column,
+                                       rm.rastr.Calc('sum', 'node', 'qg', f'(pg>0.1|pg<-0.1)&({self.sel})')).coordinate
+        # Генерация БСК шунтом и СТК СК
+        address_skrm_gen = self.sheet_q.cell(self.row_q['row_skrm_gen'], column,
+                                             -rm.rastr.Calc('sum', 'node', 'qsh',
+                                                            f'qsh<0&({self.sel})') + rm.rastr.Calc(
+                                                 'sum', 'node', 'qg', f'qg>0&pg<0.1&pg>-0.1&({self.sel})')).coordinate
+        # Минимальная генерация реактивной мощности в узлах выборки
+        address_qg_min = self.sheet_q.cell(self.row_q['row_qg_min'], column,
+                                           rm.rastr.Calc('sum', 'node', 'qmin', f'pg>0.1&({self.sel})')).coordinate
+        # Максимальная генерация реактивной мощности в узлах выборки
+        address_qg_max = self.sheet_q.cell(self.row_q['row_qg_max'], column,
+                                           rm.rastr.Calc('sum', 'node', 'qmax', f'pg>0.1&({self.sel})')).coordinate
+        # Генерация Q в ЛЭП
+        address_shq_line = self.sheet_q.cell(self.row_q['row_shq_line'], column,
+                                             - rm.rastr.Calc('sum', 'area', 'shq_line', self.sel)).coordinate
+        address_losses = self.sheet_q.cell(self.row_q['row_dq_sum'], column,
+                                           f'={address_dq_line}+{address_dq_tran}+{address_shq_tran}').coordinate
+        address_load = self.sheet_q.cell(self.row_q['row_sum_port_Q'], column,
+                                         f'={address_qn}+{address_losses}+{address_SHR}').coordinate
+        address_sum_gen = self.sheet_q.cell(self.row_q['row_sum_QG'], column,
+                                            f'={address_qg}+{address_shq_line}+{address_skrm_gen}').coordinate
+        self.sheet_q.cell(self.row_q['row_Q_itog'], column,
+                          f'=-{address_load}+{address_sum_gen}')
+        self.sheet_q.cell(self.row_q['row_Q_itog_gmin'], column,
+                          f'=-{address_load}+{address_qg_min}+{address_shq_line}')
+        self.sheet_q.cell(self.row_q['row_Q_itog_gmax'], column,
+                          f'=-{address_load}+{address_qg_max}+{address_shq_line}')
+
+    def finish_q(self, book):
+        sheet_q = book['balance_Q']
+        sheet_q.row_dimensions['2'].height = 140
+        sheet_q.column_dimensions['A'].width = 40
+        thins = Side(border_style='thin', color='000000')
+        for row in range(2, sheet_q.max_row + 1):
+            for col in range(1, sheet_q.max_column + 1):
+                if row > 2 and col > 1:
+                    sheet_q.cell(row, col).number_format = BUILTIN_FORMATS[1]
+                sheet_q.cell(row, col).border = Border(thins, thins, thins, thins)
+                sheet_q.cell(row, col).font = Font(name='Times New Roman', size=11)
+                if row == 2:
+                    sheet_q.cell(row, col).alignment = Alignment(text_rotation=90,
+                                                                 wrap_text=True, horizontal='center')
+                if col == 1:
+                    sheet_q.cell(row, col).alignment = Alignment(wrap_text=True)
+                if row in [12, 13, 17, 18]:
+                    sheet_q.cell(row, col).fill = PatternFill('solid', fgColor='00FF0000')
+                if row in [9, 15, 16]:
+                    sheet_q.cell(row, col).font = Font(bold=True)

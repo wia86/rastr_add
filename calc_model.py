@@ -2,6 +2,7 @@ import logging
 import os
 import sqlite3
 from collections import namedtuple
+from datetime import datetime
 from itertools import combinations
 
 import pandas as pd
@@ -10,13 +11,13 @@ from openpyxl import load_workbook
 from openpyxl.styles import PatternFill, Border, Side, Alignment
 from tabulate import tabulate
 
+from calc import Automation
+from calc import CombinationXL
+from calc import FillTable
+from calc import FilterCombination
 from common import Common
 from print_xl import PrintXL
 from rastr_model import RastrModel
-from calc import Automation
-from calc import FilterCombination
-from calc import CombinationXL
-from calc import FillTable
 
 log_calc = logging.getLogger(f'__main__.{__name__}')
 
@@ -89,6 +90,8 @@ class CalcModel(Common):
                 self.task_full_name = os.path.join(self.config['Import_file'], task_file)
                 log_calc.info(f'Текущий файл задания: {self.task_full_name}')
                 self.run_calc_task()
+                self.config['name_time'] = os.path.join(self.folder_result,
+                                                        datetime.now().strftime(self.time_str_format))
         else:
             if self.config['CB_Import_Rg2']:
                 self.task_full_name = self.config['Import_file']
@@ -474,8 +477,17 @@ class CalcModel(Common):
             rm.rastr.tables('vetv').cols.item('temp1').calc('iq.uhom')
 
             if self.config['cb_tab_KO']:
-                self.fill_table.add_groupid()  # Для отметки всех контролируемых ветвей и ветвей с теми же groupid
                 self.fill_table = FillTable(rm)
+            else:  # Для отметки всех контролируемых ветвей и ветвей с теми же groupid
+                log_calc.info('Добавление в контролируемые элементы ветвей по groupid.')
+                table = rm.rastr.tables('vetv')
+                table.setsel('all_control & groupid>0')
+                if table.count:
+                    for gr in set(table.writesafearray('groupid', '000')):
+                        rm.group_cor(tabl='vetv',
+                                     param='all_control',
+                                     selection=f'groupid={gr[0]}',
+                                     formula=1)
 
         # Нормальная схема сети
         self.info_srs = dict()  # СРС

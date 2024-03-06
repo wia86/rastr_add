@@ -8,8 +8,7 @@ from cor_xl import CorXL
 from import_rm import ImportFromModel
 from print_xl import PrintXL
 from rastr_model import RastrModel
-
-# import loading_sections as ls
+from  pack_rastr_model import ManagerPrintParameters
 log_ed_mod = logging.getLogger(f'__main__.{__name__}')
 
 
@@ -97,7 +96,7 @@ class EditModel(Common):
 
         if self.print_xl:
             self.print_xl.finish()
-
+        ManagerPrintParameters.all_data_in_excel(self.config['name_time'] + ' вывод параметров rm.xlsx')
         return self.the_end()
 
     def cycle_rm(self, path_folder: str, in_dir: str):
@@ -130,9 +129,7 @@ class EditModel(Common):
                 im.import_data_in_rm(rm)
 
         if self.config['cor_beginning_qt']['add']:
-            log_ed_mod.info('\t*** Корректировка моделей в текстовом формате ***')
             rm.cor_rm_from_txt(self.config['cor_beginning_qt']['txt'])
-            log_ed_mod.info('\t*** Конец выполнения корректировки моделей в текстовом формате ***')
 
         # Задать параметры по значениям в таблице excel
         if self.config.get('import_val_XL', False):
