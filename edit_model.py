@@ -4,11 +4,11 @@ import os
 import pandas as pd
 
 from common import Common
-from cor_xl import CorXL
+from edit import CorXL
 from import_rm import ImportFromModel
-from print_xl import PrintXL
+from edit import PrintXL
 from rastr_model import RastrModel
-from  pack_rastr_model import ManagerPrintParameters
+from pack_rastr_model import ManagerPrintParameters
 log_ed_mod = logging.getLogger(f'__main__.{__name__}')
 
 

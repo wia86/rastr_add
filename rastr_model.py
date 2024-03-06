@@ -10,7 +10,7 @@ import win32com.client
 from pack_rastr_model import ManagerPrintParameters
 import collection_func as cf
 from import_rm import ImportFromModel
-from loading_sections import loading_section
+from pack_rastr_model import loading_section
 
 log_rm = logging.getLogger(f'__main__.{__name__}')
 

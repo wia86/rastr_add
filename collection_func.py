@@ -1,5 +1,8 @@
 import re
 
+from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.table import Table, TableStyleInfo
+
 
 def str_yeas_in_list(str_init: str, sep: tuple = ('...', '…')) -> list:
     """
@@ -54,6 +57,24 @@ def split_task_action(txt: str) -> list | bool:
                 part = part.replace(key, dict_key[key])
         result.append(part)
     return result
+
+
+def create_table(sheet, sheet_name, point_start: str = 'A1'):
+    """
+    Создать объект таблица из всего диапазона листа.
+    :param sheet: Объект лист excel
+    :param sheet_name: Имя таблицы.
+    :param point_start:
+    """
+    tab = Table(displayName=sheet_name,
+                ref=f'{point_start}:' + get_column_letter(sheet.max_column) + str(sheet.max_row))
+
+    tab.tableStyleInfo = TableStyleInfo(name='TableStyleMedium9',
+                                        showFirstColumn=False,
+                                        showLastColumn=False,
+                                        showRowStripes=True,
+                                        showColumnStripes=True)
+    sheet.add_table(tab)
 
 
 if __name__ == '__main__':

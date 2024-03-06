@@ -1,3 +1,4 @@
+__all__ = ['PrintXL']
 """Модуль для вывода параметров РМ в таблице excel."""
 import logging
 
@@ -7,9 +8,7 @@ from openpyxl import Workbook, load_workbook
 from openpyxl.comments import Comment
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
 from openpyxl.styles.numbers import BUILTIN_FORMATS
-from openpyxl.utils import get_column_letter
-from openpyxl.worksheet.table import Table, TableStyleInfo
-
+from collection_func import create_table
 log_print_xl = logging.getLogger(f'__main__.{__name__}')
 
 
@@ -128,10 +127,11 @@ class PrintXL:
                 del self.book[sheet_name]  # удалить пустой лист
             else:
                 if sheet_name != 'balance_Q':
-                    PrintXL.create_table(sheet, sheet_name)  # Создать объект таблица.
+                    create_table(sheet, sheet_name)  # Создать объект таблица.
 
-        # if self.task['print_balance_q']['add']:
-        #     self.balance_q.finish_q(self.book)
+        if self.task['print_balance_q']['add']:
+            # self.balance_q.finish_q(self.book)
+            self.balance_q = None
 
         self.book.save(self.name_xl_file)
         self.book = None
@@ -222,24 +222,6 @@ class PrintXL:
 
         self.book.Save()
         self.book.Close()
-
-    @staticmethod
-    def create_table(sheet, sheet_name, point_start: str = 'A1'):
-        """
-        Создать объект таблица из всего диапазона листа.
-        :param sheet: Объект лист excel
-        :param sheet_name: Имя таблицы.
-        :param point_start:
-        """
-        tab = Table(displayName=sheet_name,
-                    ref=f'{point_start}:' + get_column_letter(sheet.max_column) + str(sheet.max_row))
-
-        tab.tableStyleInfo = TableStyleInfo(name='TableStyleMedium9',
-                                            showFirstColumn=False,
-                                            showLastColumn=False,
-                                            showRowStripes=True,
-                                            showColumnStripes=True)
-        sheet.add_table(tab)
 
 
 class BalanceQ:

@@ -16,7 +16,7 @@ from calc import CombinationXL
 from calc import FillTable
 from calc import FilterCombination
 from common import Common
-from print_xl import PrintXL
+from collection_func import create_table
 from rastr_model import RastrModel
 
 log_calc = logging.getLogger(f'__main__.{__name__}')
@@ -233,9 +233,9 @@ class CalcModel(Common):
                     sheet_pic[col + r].alignment = Alignment(horizontal='left')
                     sheet_pic[col + r].border = Border(thins, thins, thins, thins)
                     sheet_pic[col + r].fill = PatternFill(fill_type='solid', fgColor='00B1E76E')
-            PrintXL.create_table(sheet=sheet_pic,
-                                 sheet_name=sheet_name_pic,
-                                 point_start='A5')
+            create_table(sheet=sheet_pic,
+                         sheet_name=sheet_name_pic,
+                         point_start='A5')
             book.save(self.book_path)
 
             # Сохранить макрос rbs.

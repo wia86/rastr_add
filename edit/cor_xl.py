@@ -1,8 +1,8 @@
+__all__ = ['CorXL']
 """Модуль для изменения параметров РМ по заданию в таблице excel."""
 
 from openpyxl import load_workbook
 
-from import_rm import *
 from rastr_model import *
 
 log_cor_xl = logging.getLogger(f'__main__.{__name__}')
@@ -42,7 +42,6 @@ class CorXL:
                     raise ValueError(f'Ошибка в задании, не найден лист: {sheet} в файле {excel_file_name}')
                 else:
                     self.sheets_list.append(CorSheet(name=sheet, obj=self.wb[sheet]))
-
 
     def init_export_model(self) -> None:
         """Экспорт данных из растр в csv"""
