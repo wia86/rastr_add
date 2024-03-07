@@ -71,6 +71,14 @@ class PrintParameters:
         for k, p in self._set_output_parameters:
             table, sel = rm.recognize_key(key=k, back='tab sel')
             key = f'{k}_{p}'
+            if rm.rastr.tables(table).Cols.Find(p) == -1:
+                raise ValueError(f'В таблице {table} отсутствует поле {p}')
+            for name in ['dname', 'name', 'Name']:
+                if rm.rastr.tables(table).Cols.Find(name) != -1:
+                    name_cur = rm.txt_field_return(table, sel, name)
+                    if name_cur:
+                        key = f'{name_cur} ({key})'
+                        break
             if rm.rastr.tables(table).cols(p).Prop(1) == 2:  # если поле типа строка
                 date.loc[key] = rm.txt_field_return(table, sel, p)
             else:

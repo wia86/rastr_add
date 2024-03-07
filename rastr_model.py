@@ -914,11 +914,17 @@ class RastrModel:
         :param cycle_condition: Если истина, то выполнять действие пока условие не станет ложным;
         :return: Информация об отключении
         """
+        if not isinstance(keys, str):
+            raise TypeError('Переменная keys должна иметь строковый тип данных.')
+        if not isinstance(values, str):
+            raise TypeError('Переменная values должна иметь строковый тип данных.')
+
         info = []
         if print_log:
             log_rm.info(f'\t\tФункция cor: {keys=},  {values=}')
         keys = keys.replace(' ', '')
         values = values.strip().replace('  ', ' ')
+
         if not (keys and values.replace(' ', '')):
             raise ValueError(f'{keys=},{values=}')
         for key in keys.split(';'):  # например:['na=11(node)','125', 'g=125', '12,13,0']

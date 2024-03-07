@@ -161,7 +161,11 @@ class CorSheet:
                     if statement:
                         if not rm.conditions_test(statement):
                             continue
-                    log_cor_xl.info(rm.txt_task_cor(name=name_fun, sel=sel, value=value))
+                    all_task = f'{sel}:{value}' if value else sel
+                    log_cor_xl.info(rm.txt_task_cor(name=name_fun,
+                                                    sel=sel,
+                                                    value=value,
+                                                    all_task=all_task))
 
     def tab_cor(self, rm: RastrModel) -> None:
         """
