@@ -50,20 +50,26 @@ class Common(ABC):
             if self.target_path:
                 if self.size_date_source == 'file':
                     dir_ = os.path.dirname(self.target_path)
-                    self.folder_result = os.path.join(dir_, self.mark)
+                    self.folder_result = os.path.join(dir_,
+                                                      self.mark)
                 else:
-                    Path(self.target_path).mkdir(parents=True, exist_ok=True)
-                    self.folder_result = os.path.join(self.target_path, self.mark)
+                    Path(self.target_path).mkdir(parents=True,
+                                                 exist_ok=True)
+                    self.folder_result = os.path.join(self.target_path,
+                                                      self.mark)
 
         if not self.folder_result:
             if self.size_date_source == 'file':
                 dir_ = os.path.dirname(self.source_path)
-                self.folder_result = os.path.join(dir_, self.mark)
+                self.folder_result = os.path.join(dir_,
+                                                  self.mark)
             else:
-                self.folder_result = os.path.join(self.source_path, self.mark)
+                self.folder_result = os.path.join(self.source_path,
+                                                  self.mark)
 
         # Создать папку result.
-        Path(self.folder_result).mkdir(parents=True, exist_ok=True)
+        Path(self.folder_result).mkdir(parents=True,
+                                       exist_ok=True)
 
         self.config['name_time'] = os.path.join(self.folder_result,
                                                 self.time_start.strftime(self.time_str_format))
@@ -112,15 +118,3 @@ class Common(ABC):
 
         return self.config['end_info']
 
-    @staticmethod
-    def read_title(txt: str) -> tuple:
-        """
-        Разделить строку типа 'Рисунок [1] - Южный'.
-        :param txt:
-        :return: (1, ['Рисунок ', ' - Южный']).
-        """
-        txt = txt.strip()
-        num = txt[txt.find('[') + 1: txt.find(']')]
-        txt = txt.split(f'[{num}]')
-        num = int(num) if num.isdigit() else 1
-        return num, txt

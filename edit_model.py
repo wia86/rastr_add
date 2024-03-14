@@ -74,16 +74,19 @@ class EditModel(Common):
             for address, dirs, files in os.walk(self.source_path):
                 in_dir = ''
                 if self.target_path:
-                    in_dir = address.replace(self.source_path, self.target_path)
+                    in_dir = address.replace(self.source_path,
+                                             self.target_path)
                     if not os.path.exists(in_dir):
                         os.makedirs(in_dir)
-                self.cycle_rm(path_folder=address, in_dir=in_dir)
+                self.cycle_rm(path_folder=address,
+                              in_dir=in_dir)
 
         elif self.size_date_source == 'folder':
-            self.cycle_rm(path_folder=self.source_path, in_dir=self.target_path)
+            self.cycle_rm(path_folder=self.source_path,
+                          in_dir=self.target_path)
 
         elif self.size_date_source == 'file':
-            rm = RastrModel(full_name=self.config['init_folder'])
+            rm = RastrModel(full_name=self.config['source_path'])
             log_ed_mod.info('\n\n')
             rm.load()
 

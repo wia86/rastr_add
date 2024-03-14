@@ -11,7 +11,7 @@ def clear_dir():
     shutil.rmtree(r'I:\rastr_add2\test_rm\РМ v1\calc', ignore_errors=True)
 
 
-def test_calc_model_xl(clear_dir, name_file=r'I:\rastr_add2\test_rm\test comb xl.calc'):
+def test_calc_model_xl_draw(clear_dir, name_file=r'I:\rastr_add2\test_rm\test comb xl and drawings.calc'):
     """Отключения по excel."""
     with open(name_file) as f:
         print(CalcModel(yaml.safe_load(f)).run())

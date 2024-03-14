@@ -145,12 +145,15 @@ class FillTable:
         if not (len(self._control_I) or len(self._control_U)):
             return
 
-        num_tab = re.findall('\[(\d+?)]', name_table)[0]
+        num_tab = re.findall('\[(\d+?)]',
+                             name_table)[0]
         num_tab = int(num_tab) + file_count - 1
 
         name_table = f'{name_table} {name_rm}'
 
-        file_name = re.sub('\[]', '', file_name)
+        file_name = re.sub('\[]',
+                           '',
+                           file_name)
 
         control_df_dict = {}  # имя листа: df
         if len(self._control_I):
@@ -163,7 +166,7 @@ class FillTable:
         # https://www.geeksforgeeks.org/how-to-write-pandas-dataframes-to-multiple-excel-sheets/
         if not os.path.exists(self._path_xl):
             Workbook().save(self._path_xl)
-
+        # TODO вынести в отдельную функцию
         with pd.ExcelWriter(path=self._path_xl, mode='a', engine='openpyxl') as writer:
             for name_sheet, df_control in control_df_dict.items():
                 if '_I' in name_sheet:

@@ -523,9 +523,9 @@ class RastrModel:
         """
         Сохранить файл. Указать полное имя или имя файла (без расширения) с папкой.
         :param full_name_new:
-        :param file_name:
+        :param file_name: Укорачивается если больше допустимой длины.
         :param folder_name:
-        :return:
+        :return: Полный путь к сохраненному файлу.
         """
         if not full_name_new:
             if file_name and folder_name:

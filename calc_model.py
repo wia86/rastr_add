@@ -15,8 +15,9 @@ from calc import Automation
 from calc import CombinationXL
 from calc import FillTable
 from calc import FilterCombination
-from common import Common
+from calc.drawinds import Drawings
 from collection_func import create_table
+from common import Common
 from rastr_model import RastrModel
 
 log_calc = logging.getLogger(f'__main__.{__name__}')
@@ -27,10 +28,11 @@ class CalcModel(Common):
     Расчет нормативных возмущений.
     """
     fill_table = None
+    drawings = None
     mark = 'calc'
 
     def __init__(self, config: dict):
-        """
+        self.config_ = """
         :param config: Задание и настройки программы
         """
         super(CalcModel, self).__init__()
@@ -52,19 +54,14 @@ class CalcModel(Common):
 
         self.disable_df_vetv = pd.DataFrame()
 
-        self.num_pic, self.name_pic = list(Common.read_title(self.config['name_pic']))
+        if self.config['results_RG2']:
+            self.drawings = Drawings(name_drawing=self.config['name_pic'])
 
         self.info_action = None
         RastrModel.all_rm = pd.DataFrame()
         self.all_comb = pd.DataFrame()
         self.all_actions = pd.DataFrame()  # действие оперативного персонала или ПА
 
-        # Для хранения имен файлов с рисунками и имен рисунков
-        self.all_pic = pd.DataFrame(dtype='str', columns=['pic_id',
-                                                          'comb_id',
-                                                          'active_id',
-                                                          'Наименование файла',
-                                                          'Наименование рисунка'])
         self.breach = {'i': pd.DataFrame(), 'high_u': pd.DataFrame(), 'low_u': pd.DataFrame()}
         # Для хранения токовой загрузки контролируемых элементов в пределах одной РМ a формате df и добавления в db.
         self.save_i_rm = None
@@ -131,7 +128,10 @@ class CalcModel(Common):
         name_df = {'all_rm': RastrModel.all_rm,
                    'all_comb': self.all_comb,
                    'all_actions': self.all_actions,
-                   'all_pic': self.all_pic}
+                   }
+        if self.drawings:
+            name_df['all_drawings'] = self.drawings.df_drawing
+
         for key in name_df:
             name_df[key].to_sql(key, con, if_exists='replace')
         save_i_for_xl = None
@@ -205,46 +205,11 @@ class CalcModel(Common):
                                        index=False,
                                        freeze_panes=(1, 1),
                                        sheet_name='Макс.ток')
-        # todo Сохранить в Excel таблицу перегрузки.
-        sheet_name_pic = 'Рисунки'
-        if len(self.all_pic):
-            with pd.ExcelWriter(path=self.book_path,
-                                mode='a' if os.path.exists(self.book_path) else 'w') as writer:
-                self.all_pic[['Наименование файла', 'Наименование рисунка']].to_excel(excel_writer=writer,
-                                                                                      startrow=1,
-                                                                                      index=False,
-                                                                                      freeze_panes=(5, 1),
-                                                                                      sheet_name=sheet_name_pic)
-            book = load_workbook(self.book_path)
-            sheet_pic = book[sheet_name_pic]
 
-            sheet_pic.insert_rows(1, amount=3)
-
-            sheet_pic['A1'] = 'Формат листа (3 - А3, 4 - А4):'
-            sheet_pic['A2'] = 'Ориентация(1 - книжная, 0 - альбомная):'
-            sheet_pic['A3'] = 'Имя папки с файлами rg2:'
-            sheet_pic['B1'] = 3
-            sheet_pic['B2'] = 0
-            sheet_pic['B3'] = self.config['name_time']
-            thins = Side(border_style='thin', color='000000')
-            for col in ['A', 'B']:
-                sheet_pic.column_dimensions[col].width = 100
-                for r in ['1', '2', '3']:
-                    sheet_pic[col + r].alignment = Alignment(horizontal='left')
-                    sheet_pic[col + r].border = Border(thins, thins, thins, thins)
-                    sheet_pic[col + r].fill = PatternFill(fill_type='solid', fgColor='00B1E76E')
-            create_table(sheet=sheet_pic,
-                         sheet_name=sheet_name_pic,
-                         point_start='A5')
-            book.save(self.book_path)
-
-            # Сохранить макрос rbs.
-            with open(self.config['other']['path_project'] + '\help\Сделать рисунки в word.rbs') as f:
-                rbs = ''.join(f.readlines())
-            rbs = rbs.replace('папка с файлами', self.book_path)
-            f2 = open(self.book_path.rsplit('.', 1)[0] + '.rbs', 'w')
-            f2.write(rbs)
-            f2.close()
+        if self.drawings:
+            self.drawings.add_to_xl(book_path=f'{self.config["name_time"]} рисунки.xlsx',
+                                    drawing_rg2_path=self.config['name_time'])
+            self.drawings.add_macro(path_project=self.config['other']['path_project'])
 
         # Сводная.
         if len(full_breach):
@@ -1008,25 +973,11 @@ class CalcModel(Common):
         # Добавить рисунки.
         if self.config['results_RG2'] and (not self.config['pic_overloads'] or
                                            (self.config['pic_overloads'] and violation)):
-            log_calc.debug('Добавить рисунки.')
-            pic_name_file = rm.save(folder_name=self.config['name_time'],
-                                    file_name=f'{rm.name_base} '
-                                              f'[{self.comb_id}_{self.info_action["active_id"]}] '
-                                              f'рис {self.num_pic} {self.info_srs["Наименование СРС без()"]}')
-
-            # Южный р-н. Зимний максимум нагрузки 2026 г (-32°C/ПЭВТ). Нормальная схема сети. Действия...Загрузка...
-            # todo Действия...Загрузка...
-            add_name = f' ({", ".join(rm.additional_name_list)})' if rm.additional_name_list else ""
-            picture_name = (f'{self.name_pic[0]}{self.num_pic}{self.name_pic[1]} '
-                            f'{rm.info_file["Сезон макс/мин"]} {rm.info_file["Год"]} г'
-                            f'{add_name}. {self.info_srs["Наименование СРС"]}')
-            pic_name_file = os.path.basename(pic_name_file)
-            self.all_pic.loc[len(self.all_pic.index)] = (self.num_pic,
-                                                         self.comb_id,
-                                                         self.info_action['active_id'],
-                                                         pic_name_file,
-                                                         picture_name)
-            self.num_pic += 1
+            self.drawings.draw(rm,
+                               folder_name=self.config['name_time'],
+                               comb_id=self.comb_id,
+                               active_id=self.info_action["active_id"],
+                               name_srs=self.info_srs["Наименование СРС без()"])
         return None
 
     @staticmethod
