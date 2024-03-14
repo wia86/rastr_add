@@ -4,6 +4,19 @@ from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
 
 
+def s_key_vetv_in_tuple(s_key: str) -> tuple:
+    """ Преобразовать '1,2' в (1, 2, 0) """
+    if not isinstance(s_key, str):
+        raise TypeError('Неверный тип данных')
+    key = s_key.split(',')
+    if len(key) == 2:
+        key.append('0')
+    key = tuple(map(int, key))
+    if len(key) != 3:
+        raise ValueError(f'//Ошибка входных параметров {s_key}')
+    return key
+
+
 def str_yeas_in_list(str_init: str, sep: tuple = ('...', '…')) -> list:
     """
     Преобразует перечень годов с диапазонами в отсортированный массив.

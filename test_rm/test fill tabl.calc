@@ -1,6 +1,6 @@
 source_path: I:\rastr_add2\test_rm\РМ v1
 filter_file: true
-max_count_file: 9999
+max_count_file: 2
 criterion:
   years: ''
   season: ''
@@ -38,8 +38,8 @@ txt_Import_Rg2: 'таблица:node, vetv; тип:2; поле: disable, control, repair_schem
 cb_disable_comb: true
 SRS:
   n-1: true
-  n-2_abv: true
-  n-2_gd: true
+  n-2_abv: false
+  n-2_gd: false
   n-3: false
 cb_auto_disable: false
 auto_disable_choice: na=11
@@ -77,6 +77,6 @@ Settings:
   шаблон anc: C:\Users\User\Documents\RastrWin3\SHABLON\анцапфы.anc
   load_add: true
 save_form_folder_edit:
-  path: I:\rastr_add2\test_rm\РМ v1
+  path: I:\ОЭС Урала\Тюм_ЭС\КПР Тюменьэнерго до 2030 года\ИД СО\RG2 v2
 save_form_folder_calc:
   path: I:\rastr_add2\test_rm\РМ v1

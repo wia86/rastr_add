@@ -20,3 +20,4 @@ def test_edit_models_all(clear_dir, name_file=r'I:\rastr_add2\test_rm\test cor r
 def test_edit_model_section(clear_dir, name_file=r'I:\rastr_add2\test_rm\test section.cor'):
     with open(name_file) as f:
         print(EditModel(yaml.safe_load(f)).run())
+

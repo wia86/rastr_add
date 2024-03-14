@@ -9,12 +9,12 @@ criterion:
   add_name: ''
 cor_beginning_qt:
   add: true
-  txt: "print[15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech]\nанализ[na>0]\
-    \ # [-] только анализ\nудалить*[15181; 15105,15113]{years : 2025...2026& season:зим&\
-    \ max_min:макс& add_name:0°C}  \nизм[15105:name=Новое имя; pn=qn*2+10] \nизм[15106:qn=100]\
-    \ {years : 2026&(ny=15106:vras>110)}  \nизм[15106:qn=100] {years : 2026&(ny=15037:vras<110)}\
-    \  \nизм[(vetv);(area);(area2);(darea): Tc=0]\nизм[15512,15518: x=(10+15511,15517:r)+ip.uhom]\
-    \  \nснять отметку\nдобавить[vetv:ip=15113;iq=15105;np=3;x=2;r=1.5;b=-0,000182]\n\
+  txt: "print[15177,16095:r;x;b / 15106;15138:pn;qn / ns=2(sechen):psech]\nprint[15177,16095:r;x;b]\n\
+    анализ[na>0] # [-] только анализ\nудалить*[15181; 15105,15113]{years : 2025...2026&\
+    \ season:зим& max_min:макс& add_name:0°C}  \nизм[15105:name=Новое имя; pn=qn*2+10]\
+    \ \nизм[15106:qn=100] {years : 2026&(ny=15106:vras>110)}  \nизм[15106:qn=100]\
+    \ {years : 2026&(ny=15037:vras<110)}  \nизм[(vetv);(area);(area2);(darea): Tc=0]\n\
+    изм[15512,15518: x=(10+15511,15517:r)+ip.uhom]  \nснять отметку\nдобавить[vetv:ip=15113;iq=15105;np=3;x=2;r=1.5;b=-0,000182]\n\
     текст[node: name, dname; vetv:dname; Generator: Name]  \nСХН[na=11]{add_name:AutoBsh}\
     \  \nнапряжения[na=11]  \nСКРМ*[na=11]\nимпорт[папка: (I:\\rastr_add2\\test_rm\\\
     файлы импорта\\файл для импорта.rg2); таблица:Generator; тип:2; поле: Pmax; выборка:Num=300]"
@@ -165,6 +165,6 @@ Settings:
   шаблон anc: C:\Users\User\Documents\RastrWin3\SHABLON\анцапфы.anc
   load_add: true
 save_form_folder_edit:
-  path: I:\rastr_add2\test_rm\РМ v1
+  path: I:\ОЭС Урала\Тюм_ЭС\КПР Тюменьэнерго до 2030 года\ИД СО\RG2 v2
 save_form_folder_calc:
   path: I:\rastr_add2\test_rm\РМ v1

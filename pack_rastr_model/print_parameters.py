@@ -103,9 +103,10 @@ class PrintParameters:
                                            sheet_name=self._receive_name_sheet(),
                                            header=True,
                                            index=False)
-        self._data_processing(path_excel)
+        # self._data_processing(path_excel)
 
     def _data_processing(self, path_excel):
+        # todo удалить
         # Салехард без графиков
         file_names = self._data_parameters['Имя файла'].unique().tolist()
         for file_name in file_names:

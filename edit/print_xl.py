@@ -222,6 +222,7 @@ class PrintXL:
 
         self.book.Save()
         self.book.Close()
+        excel.Quit()
 
 
 class BalanceQ:

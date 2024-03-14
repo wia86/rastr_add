@@ -26,14 +26,14 @@ class CalcModel(Common):
     """
     Расчет нормативных возмущений.
     """
+    fill_table = None
+    mark = 'calc'
 
     def __init__(self, config: dict):
         """
         :param config: Задание и настройки программы
         """
         super(CalcModel, self).__init__()
-        self.fill_table = None
-        self.mark = 'calc'
         self.config = self.config | config
         RastrModel.config = config['Settings']
 
@@ -362,11 +362,12 @@ class CalcModel(Common):
                 pt.ManualUpdate = False  # обновить сводную
             book.Save()
             book.Close()
+            excel.Quit()
         else:
             log_calc.info('Отклонений параметров режима от допустимых значений не выявлено.')
 
         # Вставить таблицы К-О в word.
-        if self.config['cb_tab_KO']:
+        if self.config['cb_tab_KO'] and self.fill_table:
             self.fill_table.insert_word()
 
     def cycle_rm(self, path_folder: str):
@@ -477,7 +478,8 @@ class CalcModel(Common):
             rm.rastr.tables('vetv').cols.item('temp1').calc('iq.uhom')
 
             if self.config['cb_tab_KO']:
-                self.fill_table = FillTable(rm)
+                self.fill_table = FillTable(rm=rm,
+                                            setsel='all_control')
             else:  # Для отметки всех контролируемых ветвей и ветвей с теми же groupid
                 log_calc.info('Добавление в контролируемые элементы ветвей по groupid.')
                 table = rm.rastr.tables('vetv')
@@ -570,6 +572,7 @@ class CalcModel(Common):
             self.disable_df_vetv.sort_values(by=['tip', 'uhom', 'name'],  # столбцы сортировки
                                              ascending=(False, False, True),  # обратный порядок
                                              inplace=True)  # изменить df
+            # todo использовать s_key_vetv_in_tuple
             self.disable_df_vetv['s_key'] = None
             for i in self.disable_df_vetv.index:
                 self.disable_df_vetv.at[i, 's_key'] = (self.disable_df_vetv.at[i, 'ip'],
@@ -712,7 +715,11 @@ class CalcModel(Common):
             con.close()
         # Вывод таблиц К-О в excel
         if self.config['cb_tab_KO']:
-            self.fill_table.finish()
+            self.fill_table.insert_tables_to_xl(name_rm=rm.info_file["Имя режима"],
+                                                file_name=rm.info_file["Имя файла"],
+                                                file_count=self.file_count,
+                                                name_table=self.config['te_tab_KO_info'],
+                                                path_xl=f'{self.config["name_time"]} таблицы К-О.xlsx')
 
     def calc_comb(self, rm, comb: pd.DataFrame, source: str = 'combinatorics'):
         """
@@ -994,7 +1001,10 @@ class CalcModel(Common):
 
             # Таблица КОНТРОЛЬ - ОТКЛЮЧЕНИЕ
             if self.config['cb_tab_KO']:
-                self.fill_table.add_value()
+                self.fill_table.add_value(rm,
+                                          name_srs=self.info_srs['Наименование СРС'],
+                                          comb_id=self.comb_id,
+                                          active_id=self.info_action["active_id"])
         # Добавить рисунки.
         if self.config['results_RG2'] and (not self.config['pic_overloads'] or
                                            (self.config['pic_overloads'] and violation)):

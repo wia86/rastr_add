@@ -1831,6 +1831,7 @@ class DataRM:
             self.t_name[tab_name] = {}
             self.t_name[tab_name][-1] = 'Режим не моделируется'
         self.ny_join_vetv = defaultdict(list)  # {ny: все присоединенные ветви}
+        self.ny_unom = {}  # {ny: номинальное напряжение}
 
         # self.ny_pqng = defaultdict(tuple)  # {ny: (pn, qn, pg, qn)} - все с pn pg > 0 | qn pg > 0 | pg > 0 | qg > 0
         self.v_gr = {}  # {(ip, iq, np): groupid} - все c groupid > 0
@@ -1865,10 +1866,11 @@ class DataRM:
         for ny, sta, pn, qn, pg, qg, vzd, bsh in self.data_save['node']:
             self.t_sta['node'][ny] = sta
 
-        t = self.rm.rastr.tables('node').writesafearray('ny,name,dname', '000')
-        for index, (ny, name, dname) in enumerate(t):
+        t = self.rm.rastr.tables('node').writesafearray('ny,name,dname,uhom', '000')
+        for index, (ny, name, dname, uhom) in enumerate(t):
             self.t_key_i['node'][ny] = index
             self.t_i_key['node'][index] = ny
+            self.ny_unom[ny] = uhom
             if dname.strip():
                 self.t_name['node'][ny] = dname
             else:
