@@ -153,7 +153,7 @@ class CalcModel(Common):
 
         # Считать из SQL данные токовой загрузки и запись в xl.
         if self.save_i:
-            self.save_i.max_i_to_xl(book_path=f'{self.config["name_time"]} Imax.xlsx')
+            self.save_i.max_i_to_xl(path_xl=f'{self.config["name_time"]} Imax.xlsx')
 
         # Вставить таблицы К-О в word.
         if self.fill_table:
@@ -651,6 +651,7 @@ class CalcModel(Common):
             if len(self.breach[key]):
                 sel = self.breach[key].comb_id >= comb_min
                 if len(self.breach[key][sel]):
+                    # todo заменить vetv_name
                     tabl = rm.dt.vetv_name if key == 'i' else rm.dt.node_name
                     self.breach[key].loc[sel, 'Контролируемые элементы'] = \
                         self.breach[key].loc[sel, ['s_key']] \
@@ -936,7 +937,8 @@ class CalcModel(Common):
             if self.save_i:
                 self.save_i.add_data(rm,
                                      comb_id=self.comb_id,
-                                     active_id=self.info_action['active_id'])
+                                     active_id=self.info_action['active_id'],
+                                     setsel='all_control')
 
             # Таблица КОНТРОЛЬ - ОТКЛЮЧЕНИЕ
             if self.fill_table:

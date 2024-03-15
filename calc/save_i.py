@@ -5,6 +5,8 @@ import sqlite3
 
 import pandas as pd
 
+from collection_func import s_key_vetv_in_tuple
+
 
 class SaveI:
     """Класс для хранения токовой загрузки"""
@@ -18,7 +20,8 @@ class SaveI:
     def add_data(self,
                  rm,
                  comb_id: int,
-                 active_id: int):
+                 active_id: int,
+                 setsel: str):
         data = rm.df_from_table(table_name='vetv',
                                 fields='s_key,'  # 'Ключ контроль,'
                                        'i_max,'  # 'Iрасч.(A),'
@@ -26,7 +29,7 @@ class SaveI:
                                        'i_zag,'  # 'Iзагр.ддтн(%),'
                                        'i_dop_r_av,'  # 'Iадтн(A),'
                                        'i_zag_av',  # 'Iзагр.адтн(%),'
-                                setsel='all_control')
+                                setsel=setsel)
         data['comb_id'] = comb_id
         data['active_id'] = active_id
         self._save_i_rm = pd.concat([self._save_i_rm, data],
@@ -34,9 +37,14 @@ class SaveI:
 
     def end_for_rm(self, rm,
                    path_db: str):
-        # todo заменить vetv_name
+        """Сохранить в db токовую загрузку элементов сети для текущей РМ"""
         self.path_db = path_db
-        self._save_i_rm = self._save_i_rm.merge(rm.dt.vetv_name, how='left')
+
+        self._save_i_rm.insert(0,
+                               'Контролируемые элементы',
+                               self._save_i_rm.s_key.apply(
+                                   lambda x: rm.dt.t_name['vetv'][s_key_vetv_in_tuple(x)]))
+
         con = sqlite3.connect(self.path_db)
         self._save_i_rm.to_sql('save_i',
                                con,
@@ -50,8 +58,12 @@ class SaveI:
         con = sqlite3.connect(self.path_db)
 
         group_i_max = pd.read_sql_query("""
-        SELECT s_key, "Контролируемые элементы", "Год", "Сезон макс/мин", 
-        "Темп.(°C)", "Кол. откл. эл.", 
+        SELECT s_key, 
+        "Контролируемые элементы", 
+        "Год", 
+        "Сезон макс/мин", 
+        "Темп.(°C)", 
+        "Кол. откл. эл.", 
         count(*) AS "Кол.СРС", 
         "Наименование СРС", 
         max(i_max) AS "Iрасч.,A", 
