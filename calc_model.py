@@ -7,16 +7,13 @@ from itertools import combinations
 
 import pandas as pd
 import win32com.client
-from openpyxl import load_workbook
-from openpyxl.styles import PatternFill, Border, Side, Alignment
 from tabulate import tabulate
 
 from calc import Automation
 from calc import CombinationXL
 from calc import FillTable
 from calc import FilterCombination
-from calc.drawinds import Drawings
-from collection_func import create_table
+from calc import Drawings
 from common import Common
 from rastr_model import RastrModel
 
@@ -32,7 +29,7 @@ class CalcModel(Common):
     mark = 'calc'
 
     def __init__(self, config: dict):
-        self.config_ = """
+        """
         :param config: Задание и настройки программы
         """
         super(CalcModel, self).__init__()
@@ -73,7 +70,7 @@ class CalcModel(Common):
         """
         Запуск расчета нормативных возмущений (НВ) в РМ.
         """
-        log_calc.info('Запуск расчета нормативных возмущений (НВ) в расчетной модели (РМ).')
+        log_calc.info('Запуск расчета нормативных возмущений (НВ) в расчетной модели (РМ).\n')
         self.run_common()
 
         if self.config['cb_disable_excel']:  # Отключаемые элементы сети по excel.
@@ -85,7 +82,7 @@ class CalcModel(Common):
             task_files = list(filter(lambda x: x.endswith('.rg2'), task_files))
             for task_file in task_files:  # цикл по файлам '.rg2' в папке
                 self.task_full_name = os.path.join(self.config['Import_file'], task_file)
-                log_calc.info(f'Текущий файл задания: {self.task_full_name}')
+                log_calc.info(f'Текущий файл задания: {self.task_full_name}\n')
                 self.run_calc_task()
                 self.config['name_time'] = os.path.join(self.folder_result,
                                                         datetime.now().strftime(self.time_str_format))
@@ -105,7 +102,6 @@ class CalcModel(Common):
         """
         Запуск расчета с текущим файлом импорта задания или без него.
         """
-        excel = None
 
         # папка с вложенными папками
         if self.size_date_source == 'nested_folder':
@@ -207,9 +203,9 @@ class CalcModel(Common):
                                        sheet_name='Макс.ток')
 
         if self.drawings:
-            self.drawings.add_to_xl(book_path=f'{self.config["name_time"]} рисунки.xlsx',
-                                    drawing_rg2_path=self.config['name_time'])
-            self.drawings.add_macro(path_project=self.config['other']['path_project'])
+            self.drawings.add_to_xl(book_path=f'{self.config["name_time"]} рисунки.xlsx')
+            self.drawings.add_macro(macro_path=f'{self.config["other"]["path_project"]}'
+                                               f'\help\Сделать рисунки в word.rbs')
 
         # Сводная.
         if len(full_breach):
@@ -974,7 +970,7 @@ class CalcModel(Common):
         if self.config['results_RG2'] and (not self.config['pic_overloads'] or
                                            (self.config['pic_overloads'] and violation)):
             self.drawings.draw(rm,
-                               folder_name=self.config['name_time'],
+                               folder_path=self.config['name_time'],
                                comb_id=self.comb_id,
                                active_id=self.info_action["active_id"],
                                name_srs=self.info_srs["Наименование СРС без()"])

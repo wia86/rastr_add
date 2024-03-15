@@ -96,6 +96,7 @@ class FillTable:
         :param active_id:
         """
         log_fill_tb.debug('Запись параметров УР в таблицу КО.')
+
         if len(self._control_I):
             ci = rm.df_from_table(table_name='vetv',
                                   fields='key,i_max,i_zag,i_zag_av',
@@ -166,35 +167,11 @@ class FillTable:
         # https://www.geeksforgeeks.org/how-to-write-pandas-dataframes-to-multiple-excel-sheets/
         if not os.path.exists(self._path_xl):
             Workbook().save(self._path_xl)
-        # TODO вынести в отдельную функцию
+
         with pd.ExcelWriter(path=self._path_xl, mode='a', engine='openpyxl') as writer:
             for name_sheet, df_control in control_df_dict.items():
                 if '_I' in name_sheet:
-                    # Поиск столбцов с одинаковыми dname; ДДТН, А; АДТН, А; groupid
-                    # https/www.geeksforgeeks.org/how-to-find-drop-duplicate-columns-in-a-pandas-dataframe/
-                    df_control_head = df_control.iloc[:4].T  # включая groupid
-                    duplicated_true = df_control_head.duplicated(keep=False)
-                    groupid_true = df_control.loc['-', '-', 'groupid'] > 0
-                    # Выборка в столбцах df_control для проверки
-                    selection_columns = duplicated_true & groupid_true
-
-                    # {номер:[перечень индексов столбцов с одинаковыми колонками]}
-                    dict_equals = defaultdict(list)
-                    if selection_columns.any():
-                        df_control_head = df_control_head[selection_columns]
-                        duplicated_unique = df_control_head.drop_duplicates()
-                        for i in range(len(duplicated_unique)):
-                            col_unique = duplicated_unique.iloc[i, :]
-                            for ii in range(len(df_control_head)):
-                                control_col = df_control_head.iloc[ii, :]
-                                if col_unique.equals(control_col):
-                                    dict_equals[str(i)].append(control_col.name)
-                    # Объединить столбцы с одинаковыми dname; ДДТН, А; АДТН, А; groupid
-                    if dict_equals:
-                        for cols in dict_equals.values():
-                            df_control[cols[0]] = df_control[cols].max(axis=1)
-                            df_control.drop(columns=cols[1:], inplace=True)
-                    df_control.drop(index=('-', '-', 'groupid'), inplace=True)
+                    df_control = self._marge_duplicated(df_control)
 
                 df_control.to_excel(excel_writer=writer,
                                     sheet_name=name_sheet,
@@ -261,6 +238,37 @@ class FillTable:
                 ws[f'C{row}'].alignment = alignment
             ws.row_dimensions[2].height = 145
         wb.save(self._path_xl)
+
+    @staticmethod
+    def _marge_duplicated(df_control):
+        """Поиск столбцов с одинаковыми dname; ДДТН, А; АДТН, А; groupid"""
+
+        # https/www.geeksforgeeks.org/how-to-find-drop-duplicate-columns-in-a-pandas-dataframe/
+        df_control_head = df_control.iloc[:4].T  # включая groupid
+        duplicated_true = df_control_head.duplicated(keep=False)
+        groupid_true = df_control.loc['-', '-', 'groupid'] > 0
+        # Выборка в столбцах df_control для проверки
+        selection_columns = duplicated_true & groupid_true
+
+        # {номер:[перечень индексов столбцов с одинаковыми колонками]}
+        dict_equals = defaultdict(list)
+        if selection_columns.any():
+            df_control_head = df_control_head[selection_columns]
+            duplicated_unique = df_control_head.drop_duplicates()
+            for i in range(len(duplicated_unique)):
+                col_unique = duplicated_unique.iloc[i, :]
+                for ii in range(len(df_control_head)):
+                    control_col = df_control_head.iloc[ii, :]
+                    if col_unique.equals(control_col):
+                        dict_equals[str(i)].append(control_col.name)
+
+        # Объединить столбцы с одинаковыми dname; ДДТН, А; АДТН, А; groupid
+        if dict_equals:
+            for cols in dict_equals.values():
+                df_control[cols[0]] = df_control[cols].max(axis=1)
+                df_control.drop(columns=cols[1:], inplace=True)
+        df_control.drop(index=('-', '-', 'groupid'), inplace=True)
+        return df_control
 
     def insert_word(self):
         """Вставить таблицы из excel в word."""

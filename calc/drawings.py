@@ -1,3 +1,5 @@
+__all__ = ['Drawings']
+
 import logging
 import os
 import re
@@ -12,8 +14,9 @@ log_draw = logging.getLogger(f'__main__.{__name__}')
 
 
 class Drawings:
-    _num_drawing = 1
-    book_path = ''
+    """Сохранение смоделированной СМС в формате rg2, для последующей вставки в word"""
+    _folder_path = ''
+    _book_path = ''
 
     def __init__(self, name_drawing: str):
         assert bool(name_drawing)
@@ -32,25 +35,34 @@ class Drawings:
 
     def draw(self,
              rm,
-             folder_name: str,
+             folder_path: str,
              name_srs: str,
              comb_id: int,
              active_id: int):
+        """
+        Сохранение смоделированной СМС в формате rg2
+        :param rm:
+        :param folder_path: Имя папки для сохранения rg2
+        :param name_srs:
+        :param comb_id:
+        :param active_id:
+        """
         assert bool(rm)
-        assert bool(isinstance(folder_name, str))
+        assert bool(isinstance(folder_path, str))
         assert bool(isinstance(name_srs, str))
         assert bool(isinstance(comb_id, int))
         assert bool(isinstance(active_id, int))
 
         log_draw.debug('Сохранение файла rg2 для рисунки.')
 
-        full_name_file = rm.save(folder_name=folder_name,
+        self._folder_path = folder_path
+        full_name_file = rm.save(folder_name=folder_path,
                                  file_name=f'[{comb_id}_{active_id}] '
                                            f'{rm.name_base} '
                                            f'рис_{self._num_drawing} '
                                            f'{name_srs}')
 
-        # Южный р-н. Зимний максимум нагрузки 2026 г (-32°C/ПЭВТ). Нормальная схема сети. Действия...Загрузка...
+        # Южный р-н. Зимний максимум нагрузки 2026 г (-32°C ПЭВТ). Нормальная схема сети. Действия...Загрузка...
         # todo Действия...Загрузка...
         additional_name_str = ", ".join(rm.additional_name_list)
         additional_name = f' ({additional_name_str})' if rm.additional_name_list else ''
@@ -74,14 +86,16 @@ class Drawings:
                                                            cur_name_drawing)
         self._num_drawing += 1
 
-    def add_to_xl(self,
-                  book_path: str,
-                  drawing_rg2_path: str):
+    def add_to_xl(self, book_path: str):
+        """
+        Сохранить перечень режимов в файл xl
+        :param book_path:
+        """
 
         if not len(self.df_drawing):
             return
 
-        self.book_path = book_path
+        self._book_path = book_path
 
         sheet_name_drawing = 'Рисунки'
         mode = 'a' if os.path.exists(book_path) else 'w'
@@ -103,7 +117,7 @@ class Drawings:
         sheet['A3'] = 'Имя папки с файлами rg2:'
         sheet['B1'] = 3
         sheet['B2'] = 0
-        sheet['B3'] = drawing_rg2_path
+        sheet['B3'] = self._folder_path
         thins = Side(border_style='thin',
                      color='000000')
         for col in 'AB':
@@ -119,15 +133,20 @@ class Drawings:
                      point_start='A5')
         book.save(book_path)
 
-    def add_macro(self, path_project: str):
-        """Скопировать макрос rbs"""
+    def add_macro(self, macro_path: str):
+        """
+        Скопировать макрос rbs в папку calc
+        :param macro_path: Путь в файлу .rbs
+        """
+        assert bool(macro_path)
+        assert bool(isinstance(macro_path, str))
 
-        with open(f'{path_project}\help\Сделать рисунки в word.rbs') as macro:
+        with open(macro_path) as macro:
             content_rbs = ''.join(macro.readlines())
 
-        content_rbs = content_rbs.replace('папка с файлами', self.book_path)
+        content_rbs = content_rbs.replace('папка с файлами', self._book_path)
 
-        path = self.book_path.rsplit('.', 1)
+        path = self._book_path.rsplit('.', 1)
         path = path[0] + '.rbs'
 
         with open(path, 'w') as macro_new:

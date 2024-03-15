@@ -8,5 +8,6 @@
 /__pycache__/
 /settings.ini
 /log_file.log
-/test_rm/РМ v1/result/
 /test_rm/РМ v1/calc/
+/test_rm/РМ v2/
+/test_rm/РМ sect/
