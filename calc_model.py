@@ -14,6 +14,7 @@ from calc import CombinationXL
 from calc import FillTable
 from calc import FilterCombination
 from calc import Drawings
+from calc import SaveI
 from common import Common
 from rastr_model import RastrModel
 
@@ -26,6 +27,7 @@ class CalcModel(Common):
     """
     fill_table = None
     drawings = None
+    save_i = None
     mark = 'calc'
 
     def __init__(self, config: dict):
@@ -60,8 +62,10 @@ class CalcModel(Common):
         self.all_actions = pd.DataFrame()  # действие оперативного персонала или ПА
 
         self.breach = {'i': pd.DataFrame(), 'high_u': pd.DataFrame(), 'low_u': pd.DataFrame()}
-        # Для хранения токовой загрузки контролируемых элементов в пределах одной РМ a формате df и добавления в db.
-        self.save_i_rm = None
+
+        # Для хранения токовой загрузки контролируемых элементов.
+        if self.config['cb_save_i']:
+            self.save_i = SaveI()
 
         self.combination_xl = None  # Для создания объекта класса CombinationXL.
         self.filter_comb = None  # Для создания объекта класса FilterCombination.
@@ -83,44 +87,57 @@ class CalcModel(Common):
             for task_file in task_files:  # цикл по файлам '.rg2' в папке
                 self.task_full_name = os.path.join(self.config['Import_file'], task_file)
                 log_calc.info(f'Текущий файл задания: {self.task_full_name}\n')
-                self.run_calc_task()
+                self.run_task()
                 self.config['name_time'] = os.path.join(self.folder_result,
                                                         datetime.now().strftime(self.time_str_format))
         else:
             if self.config['CB_Import_Rg2']:
                 self.task_full_name = self.config['Import_file']
-                self.run_calc_task()
+                self.run_task()
             else:
-                self.run_calc_task()
+                self.run_task()
         if self.filter_comb:
             self.config['filter_comb_info'] = (f'Рассчитано комбинаций: {self.comb_id}, '
                                                f'отфильтровано {self.filter_comb.count_false_comb} ')
 
         return self.the_end()
 
-    def run_calc_task(self):
+    def run_task(self):
         """
         Запуск расчета с текущим файлом импорта задания или без него.
         """
 
-        # папка с вложенными папками
+        # todo ссылки ниже убрать от сюда
+        self.book_path = self.config['name_time'] + ' результаты расчетов.xlsx'
+        self.book_db = self.config['name_time'] + ' данные.db'
+
+        # Папка с вложенными папками
         if self.size_date_source == 'nested_folder':
             for address, dir_, file_ in os.walk(self.source_path):
                 self.cycle_rm(path_folder=address)
 
-        elif self.size_date_source == 'folder':  # папка без вложенных папок
+        # Папка без вложенных папок
+        elif self.size_date_source == 'folder':
             self.cycle_rm(path_folder=self.source_path)
 
-        elif self.size_date_source == 'file':  # один файл
+        # один файл
+        elif self.size_date_source == 'file':
             rm = RastrModel(self.source_path)
             if not rm.code_name_rg2:
                 raise ValueError(f'Имя файла {self.source_path!r} не подходит.')
             self.run_file(rm=rm)
 
-        # Сохранить таблицы в SQL.
+        self.processing_results()
+
+    def processing_results(self):
+
         con = sqlite3.connect(self.book_db)
+
+        # Записать данные о перегрузках в SQL.
         for key in self.breach:
             self.breach[key].to_sql(key, con, if_exists='replace')
+
+        # Записать данные о выполненных расчетах в SQL.
         name_df = {'all_rm': RastrModel.all_rm,
                    'all_comb': self.all_comb,
                    'all_actions': self.all_actions,
@@ -130,48 +147,40 @@ class CalcModel(Common):
 
         for key in name_df:
             name_df[key].to_sql(key, con, if_exists='replace')
-        save_i_for_xl = None
-        if self.config['cb_save_i']:
-            save_i_for_xl = pd.read_sql_query("""
-            SELECT s_key, "Контролируемые элементы", "Год", "Сезон макс/мин", 
-            "Темп.(°C)", "Кол. откл. эл.", 
-            count(*) AS "Кол.СРС", 
-            "Наименование СРС", 
-            max(i_max) AS "Iрасч.,A", 
-            i_dop_r AS "Iддтн,А", 
-            i_zag AS "Iзагр. ддтн,%", 
-            i_dop_r_av AS "Iадтн,А", 
-            i_zag_av AS "Iзагр. адтн,%"
-            FROM (
-            SELECT *
-            FROM save_i AS si
-               INNER JOIN all_actions AS aa
-                  ON si.comb_id = aa.comb_id AND si.active_id = aa.active_id
-               INNER JOIN all_comb AS ac
-                  ON ac.comb_id = aa.comb_id
-               INNER JOIN all_rm AS ar
-                  ON ar.rm_id = ac.rm_id
-            )
-            GROUP BY s_key, "Год", "Сезон макс/мин", "Темп.(°C)", "Кол. откл. эл.";
-            """, con)
 
         con.commit()
         con.close()
 
+        # Считать из SQL данные токовой загрузки и запись в xl.
+        if self.save_i:
+            self.save_i.max_i_to_xl(book_path=f'{self.config["name_time"]} Imax.xlsx')
+
+        # Вставить таблицы К-О в word.
+        if self.fill_table:
+            self.fill_table.insert_word()
+
+        # Вставить таблицы c перечнем рисунков в xl.
+        if self.drawings:
+            self.drawings.add_to_xl(book_path=f'{self.config["name_time"]} рисунки.xlsx')
+            self.drawings.add_macro(macro_path=f'{self.config["other"]["path_project"]}'
+                                               f'\help\Сделать рисунки в word.rbs')
+
         log_calc.debug(f'Запись параметров режима в excel.')
+        # Запись данных о перегрузке в xl
         full_breach = {}
         for key in self.breach:
             if len(self.breach[key]):
                 full_breach[key] = (RastrModel.all_rm.merge(self.all_comb)
-                                    .merge(self.all_actions)
-                                    .merge(self.breach[key]))
+                                                     .merge(self.all_actions)
+                                                     .merge(self.breach[key]))
 
                 for col in ['Отключение', 'Ремонт 1', 'Ремонт 2', 'Доп. имя']:
                     for col_df in full_breach[key].columns:
                         if col in col_df:
-                            full_breach[key].fillna(value={col_df: 0}, inplace=True)
+                            full_breach[key].fillna(value={col_df: 0},
+                                                    inplace=True)
                             full_breach[key].loc[full_breach[key][col_df] == 0, col_df] = '-'
-                # https://www.geeksforgeeks.org/how-to-write-pandas-dataframes-to-multiple-excel-sheets/
+
                 mode = 'a' if os.path.exists(self.book_path) else 'w'
                 with pd.ExcelWriter(path=self.book_path, mode=mode) as writer:
                     # todo если много элементов в full_breach то будет ошибка
@@ -180,10 +189,11 @@ class CalcModel(Common):
                                               index=False,
                                               freeze_panes=(1, 1),
                                               sheet_name=key)
+        # Запись в xl данных о СРС в которых режим развалился
         crash = self.all_actions[self.all_actions.alive == 0]
         if len(crash):
             full_breach['crash'] = (RastrModel.all_rm.merge(self.all_comb)
-                                    .merge(self.all_actions[self.all_actions.alive == 0]))
+                                                     .merge(self.all_actions[self.all_actions.alive == 0]))
             mode = 'a' if os.path.exists(self.book_path) else 'w'
             with (pd.ExcelWriter(path=self.book_path, mode=mode) as writer):
                 full_breach['crash'].to_excel(excel_writer=writer,
@@ -191,21 +201,6 @@ class CalcModel(Common):
                                               index=False,
                                               freeze_panes=(1, 1),
                                               sheet_name='crash')
-            (RastrModel.all_rm.merge(self.all_comb).merge(self.all_actions[self.all_actions.alive == 0]))
-
-        if self.config['cb_save_i']:
-            mode = 'a' if os.path.exists(self.book_path) else 'w'
-            with (pd.ExcelWriter(path=self.book_path, mode=mode) as writer):
-                save_i_for_xl.to_excel(excel_writer=writer,
-                                       float_format='%.2f',
-                                       index=False,
-                                       freeze_panes=(1, 1),
-                                       sheet_name='Макс.ток')
-
-        if self.drawings:
-            self.drawings.add_to_xl(book_path=f'{self.config["name_time"]} рисунки.xlsx')
-            self.drawings.add_macro(macro_path=f'{self.config["other"]["path_project"]}'
-                                               f'\help\Сделать рисунки в word.rbs')
 
         # Сводная.
         if len(full_breach):
@@ -327,9 +322,6 @@ class CalcModel(Common):
         else:
             log_calc.info('Отклонений параметров режима от допустимых значений не выявлено.')
 
-        # Вставить таблицы К-О в word.
-        if self.config['cb_tab_KO'] and self.fill_table:
-            self.fill_table.insert_word()
 
     def cycle_rm(self, path_folder: str):
         """Цикл по файлам"""
@@ -357,15 +349,11 @@ class CalcModel(Common):
         """
         Рассчитать РМ.
         """
-        if self.config['cb_save_i']:
-            self.save_i_rm = pd.DataFrame()
+        if self.save_i:
+            self.save_i.init_for_rm()
 
         self.set_comb = {}  # {количество отключений: контроль ДТН, 1:'ДДТН',2:'АДТН'}
         self.file_count += 1
-
-        # todo ссылки ниже убрать от сюда
-        self.book_path = self.config['name_time'] + ' результаты расчетов.xlsx'
-        self.book_db = self.config['name_time'] + ' данные.db'
 
         rm.load()
 
@@ -668,14 +656,12 @@ class CalcModel(Common):
                         self.breach[key].loc[sel, ['s_key']] \
                             .merge(tabl, how='left') \
                             .set_index(self.breach[key].loc[sel].index)['Контролируемые элементы']
-        if self.config['cb_save_i']:
-            self.save_i_rm = self.save_i_rm.merge(rm.dt.vetv_name, how='left')
-            con = sqlite3.connect(self.book_db)
-            self.save_i_rm.to_sql('save_i', con, if_exists='append')
-            con.commit()
-            con.close()
+
+        if self.save_i:
+            self.save_i.end_for_rm(rm, path_db=self.book_db)
+
         # Вывод таблиц К-О в excel
-        if self.config['cb_tab_KO']:
+        if self.fill_table:
             self.fill_table.insert_tables_to_xl(name_rm=rm.info_file["Имя режима"],
                                                 file_name=rm.info_file["Имя файла"],
                                                 file_count=self.file_count,
@@ -947,21 +933,13 @@ class CalcModel(Common):
                 violation = True
                 log_calc.info(f'Выявлено {len(high_voltage)} точек недопустимого превышения напряжения.')
 
-            if self.config['cb_save_i']:
-                save_i = rm.df_from_table(table_name='vetv',
-                                          fields='s_key,'  # 'Ключ контроль,'
-                                                 'i_max,'  # 'Iрасч.(A),'
-                                                 'i_dop_r,'  # 'Iддтн(A),'
-                                                 'i_zag,'  # 'Iзагр.ддтн(%),'
-                                                 'i_dop_r_av,'  # 'Iадтн(A),'
-                                                 'i_zag_av',  # 'Iзагр.адтн(%),'
-                                          setsel='all_control')
-                save_i['comb_id'] = self.comb_id
-                save_i['active_id'] = self.info_action['active_id']
-                self.save_i_rm = pd.concat([self.save_i_rm, save_i], axis=0)
+            if self.save_i:
+                self.save_i.add_data(rm,
+                                     comb_id=self.comb_id,
+                                     active_id=self.info_action['active_id'])
 
             # Таблица КОНТРОЛЬ - ОТКЛЮЧЕНИЕ
-            if self.config['cb_tab_KO']:
+            if self.fill_table:
                 self.fill_table.add_value(rm,
                                           name_srs=self.info_srs['Наименование СРС'],
                                           comb_id=self.comb_id,

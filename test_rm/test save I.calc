@@ -1,0 +1,83 @@
+source_path: I:\rastr_add2\test_rm\РМ v1
+filter_file: false
+max_count_file: 9999
+criterion:
+  years: ''
+  season: ''
+  max_min: ''
+  add_name: ''
+cor_rm:
+  add: false
+  txt: "# краткая справка:\n#удалить*[15145; 12,13]  # удалить узел ny=15145 и ветвь\
+    \ 12,13,0 из всех моделей\n#изм[15148:name=Промплощадка: изм name; pg=qn*2+10]\
+    \ \n#изм[(vetv);(area);(area2);(darea): Tc=0]\n#изм[(area);(area2);(darea): set_pop=0]\n\
+    #изм[15,16,1: x=(10.5+15,16,2:r)*ip.uhom]  \n#снять отметку{years: 2026& season:лет&\
+    \ max_min:макс & add_name:0°C& (ny=2:vras>525.5)}\n#добавить[vetv:ip=15524;iq=3;np=3;x=2;r=1,5;b=-0,000182]\n\
+    #текст[node: name, dname; vetv:dname; Generator: Name]  \n#СХН[na=11]{years :\
+    \ 2026...2029& (ny=1: vras>125)|(not (ny=1: na)==2)}\n#напряжения[na=11]  \n#СКРМ*[na=11]\n\
+    #импорт[папка: (I:\\ОЭС Урала\\Тюм_ЭС\\!КПР ХМАО ЯНАО ТО\\Модели4 - 2023\\v29\\\
+    без МДП pop); таблица:node; тип:2; поле: pn,qn; выборка:]\n\n"
+CB_Import_Rg2: true
+Import_file: I:\rastr_add2\test_rm\файлы импорта\файл задания на расчет.rg2
+txt_Import_Rg2: 'таблица:node, vetv; тип:2; поле: disable, control, repair_scheme,
+  disable_scheme, double_repair_scheme, automation; выборка:
+
+  таблица: Generator; тип:2; поле: disable, repair_scheme, disable_scheme, double_repair_scheme;
+  выборка:
+
+
+  таблица:automation, automation_pattern; тип:1; поле: ; выборка:
+
+
+  # тип: "обновить"- 2 , "загрузить"- 1, "присоединить"- 0, "присоединить-обновить"-
+  3
+
+  # поле: если не указано, то все поля
+
+  # выборка: если не указано, то все строки'
+cb_disable_comb: true
+SRS:
+  n-1: true
+  n-2_abv: true
+  n-2_gd: false
+  n-3: true
+cb_auto_disable: false
+auto_disable_choice: na=1
+cb_comb_field: true
+filter_comb: false
+filter_comb_val: 5
+cb_disable_excel: false
+srs_XL_path: I:\rastr_add\test\пример задания.xlsx
+srs_XL_sheets: НВ
+cb_control: true
+cb_control_field: true
+cb_control_sel: false
+control_sel: na=1|na=2
+cb_save_i: true
+cb_tab_KO: false
+te_tab_KO_info: 'Таблица И.[1] - Результаты расчетов нормального и послеаварийных
+  режимов работы электрических сетей 35 кВ и выше. '
+results_RG2: false
+pic_overloads: true
+name_pic: 'Рисунок К.[1] - Южный энергорайон. '
+DEFAULT: {}
+other:
+  path_project: I:\rastr_add2
+CalcSetWindow:
+  gost: true
+  skrm: true
+  avr: true
+  add_disabling_repair: true
+  pa: false
+Settings:
+  шаблон rg2: C:\Users\User\Documents\RastrWin3\SHABLON\режим.rg2
+  шаблон rst: C:\Users\User\Documents\RastrWin3\SHABLON\динамика.rst
+  шаблон sch: C:\Users\User\Documents\RastrWin3\SHABLON\сечения.sch
+  шаблон trn: C:\Users\User\Documents\RastrWin3\SHABLON\трансформаторы.trn
+  шаблон anc: C:\Users\User\Documents\RastrWin3\SHABLON\анцапфы.anc
+  load_add: true
+save_form_folder_edit:
+  path: I:\ОЭС Северо-Запада\КПР 2023\Модели РДУ СЗ\ПРМ УР+КЗ\ЭС Архангельск – Коми\2024-2028
+    v3 Новая без АП
+save_form_folder_calc:
+  path: I:\rastr_add2\test_rm\РМ v1

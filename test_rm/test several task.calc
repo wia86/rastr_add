@@ -1,0 +1,75 @@
+source_path: I:\rastr_add2\test_rm\РМ v1\2026 лет макс (30°C ПЭВТ).rg2
+filter_file: false
+max_count_file: 9999
+criterion:
+  years: ''
+  season: ''
+  max_min: ''
+  add_name: ''
+cor_rm:
+  add: false
+  txt: "удалить*[15050; 15049]  \nрасчет\n\n"
+CB_Import_Rg2: true
+Import_file: I:\rastr_add2\test_rm\файлы импорта
+txt_Import_Rg2: 'таблица:node, vetv; тип:2; поле: disable, control, repair_scheme,
+  disable_scheme, double_repair_scheme, automation; выборка:
+
+  таблица: Generator; тип:2; поле: disable, repair_scheme, disable_scheme, double_repair_scheme;
+  выборка:
+
+
+  таблица:automation, automation_pattern; тип:1; поле: ; выборка:
+
+
+  # тип: "обновить"- 2 , "загрузить"- 1, "присоединить"- 0, "присоединить-обновить"-
+  3
+
+  # поле: если не указано, то все поля
+
+  # выборка: если не указано, то все строки'
+cb_disable_comb: true
+SRS:
+  n-1: true
+  n-2_abv: false
+  n-2_gd: false
+  n-3: false
+cb_auto_disable: false
+auto_disable_choice: na=11
+cb_comb_field: true
+filter_comb: false
+filter_comb_val: 5
+cb_disable_excel: false
+srs_XL_path: I:\rastr_add\test\пример задания.xlsx
+srs_XL_sheets: НВ
+cb_control: true
+cb_control_field: true
+cb_control_sel: false
+control_sel: ''
+cb_save_i: false
+cb_tab_KO: false
+te_tab_KO_info: 'Таблица И.[1] - Результаты расчетов нормального и послеаварийных
+  режимов работы электрических сетей 35 кВ и выше. '
+results_RG2: false
+pic_overloads: true
+name_pic: 'Рисунок К.[1] - Южный энергорайон. '
+DEFAULT: {}
+other:
+  path_project: I:\rastr_add2
+CalcSetWindow:
+  gost: true
+  skrm: true
+  avr: true
+  add_disabling_repair: true
+  pa: false
+Settings:
+  шаблон rg2: C:\Users\User\Documents\RastrWin3\SHABLON\режим.rg2
+  шаблон rst: C:\Users\User\Documents\RastrWin3\SHABLON\динамика.rst
+  шаблон sch: C:\Users\User\Documents\RastrWin3\SHABLON\сечения.sch
+  шаблон trn: C:\Users\User\Documents\RastrWin3\SHABLON\трансформаторы.trn
+  шаблон anc: C:\Users\User\Documents\RastrWin3\SHABLON\анцапфы.anc
+  load_add: true
+save_form_folder_edit:
+  path: I:\ОЭС Северо-Запада\КПР 2023\Модели РДУ СЗ\ПРМ УР+КЗ\ЭС Архангельск – Коми\2024-2028
+    v3 Новая без АП
+save_form_folder_calc:
+  path: I:\rastr_add2\test_rm\РМ v1\2026 лет макс (30°C ПЭВТ).rg2
