@@ -11,9 +11,9 @@ from tabulate import tabulate
 
 from calc import Automation
 from calc import CombinationXL
+from calc import Drawings
 from calc import FillTable
 from calc import FilterCombination
-from calc import Drawings
 from calc import SaveI
 from common import Common
 from rastr_model import RastrModel
@@ -171,8 +171,8 @@ class CalcModel(Common):
         for key in self.breach:
             if len(self.breach[key]):
                 full_breach[key] = (RastrModel.all_rm.merge(self.all_comb)
-                                                     .merge(self.all_actions)
-                                                     .merge(self.breach[key]))
+                                    .merge(self.all_actions)
+                                    .merge(self.breach[key]))
 
                 for col in ['Отключение', 'Ремонт 1', 'Ремонт 2', 'Доп. имя']:
                     for col_df in full_breach[key].columns:
@@ -193,7 +193,7 @@ class CalcModel(Common):
         crash = self.all_actions[self.all_actions.alive == 0]
         if len(crash):
             full_breach['crash'] = (RastrModel.all_rm.merge(self.all_comb)
-                                                     .merge(self.all_actions[self.all_actions.alive == 0]))
+                                    .merge(self.all_actions[self.all_actions.alive == 0]))
             mode = 'a' if os.path.exists(self.book_path) else 'w'
             with (pd.ExcelWriter(path=self.book_path, mode=mode) as writer):
                 full_breach['crash'].to_excel(excel_writer=writer,
@@ -322,7 +322,6 @@ class CalcModel(Common):
         else:
             log_calc.info('Отклонений параметров режима от допустимых значений не выявлено.')
 
-
     def cycle_rm(self, path_folder: str):
         """Цикл по файлам"""
 
@@ -349,13 +348,10 @@ class CalcModel(Common):
         """
         Рассчитать РМ.
         """
-        if self.save_i:
-            self.save_i.init_for_rm()
+        rm.load()
 
         self.set_comb = {}  # {количество отключений: контроль ДТН, 1:'ДДТН',2:'АДТН'}
         self.file_count += 1
-
-        rm.load()
 
         if self.config['cor_rm']['add']:
             rm.cor_rm_from_txt(self.config['cor_rm']['txt'])
@@ -429,7 +425,13 @@ class CalcModel(Common):
             if self.config['cb_tab_KO']:
                 self.fill_table = FillTable(rm=rm,
                                             setsel='all_control')
-            else:  # Для отметки всех контролируемых ветвей и ветвей с теми же groupid
+
+            if self.save_i:
+                self.save_i.init_for_rm(rm,
+                                        setsel='all_control')
+
+            if not (self.config['cb_tab_KO'] or self.save_i):
+                # Для отметки всех контролируемых ветвей и ветвей с теми же groupid
                 log_calc.info('Добавление в контролируемые элементы ветвей по groupid.')
                 table = rm.rastr.tables('vetv')
                 table.setsel('all_control & groupid>0')
@@ -439,6 +441,8 @@ class CalcModel(Common):
                                      param='all_control',
                                      selection=f'groupid={gr[0]}',
                                      formula=1)
+
+
 
         # Нормальная схема сети
         self.info_srs = dict()  # СРС
@@ -937,15 +941,14 @@ class CalcModel(Common):
             if self.save_i:
                 self.save_i.add_data(rm,
                                      comb_id=self.comb_id,
-                                     active_id=self.info_action['active_id'],
-                                     setsel='all_control')
+                                     active_id=self.info_action['active_id'])
 
             # Таблица КОНТРОЛЬ - ОТКЛЮЧЕНИЕ
             if self.fill_table:
-                self.fill_table.add_value(rm,
-                                          name_srs=self.info_srs['Наименование СРС'],
-                                          comb_id=self.comb_id,
-                                          active_id=self.info_action["active_id"])
+                self.fill_table.add_data(rm,
+                                         name_srs=self.info_srs['Наименование СРС'],
+                                         comb_id=self.comb_id,
+                                         active_id=self.info_action["active_id"])
         # Добавить рисунки.
         if self.config['results_RG2'] and (not self.config['pic_overloads'] or
                                            (self.config['pic_overloads'] and violation)):

@@ -12,12 +12,13 @@ from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
 from openpyxl.utils import get_column_letter
 from openpyxl.workbook import Workbook
 
+from save_i import CommonI
 from collection_func import s_key_vetv_in_tuple
 
 log_fill_tb = logging.getLogger(f'__main__.{__name__}')
 
 
-class FillTable:
+class FillTable(CommonI):
     """Класс для заполнения таблиц контролируемые - отключаемые элементы в excel для каждой РМ."""
     _control_I = None
     _control_U = None
@@ -34,7 +35,13 @@ class FillTable:
 
         # Ветви
         self._control_I = rm.df_from_table(table_name='vetv',
-                                           fields='i_dop_r,i_dop_r_av,groupid,s_key,tip,ip,iq,key',
+                                           fields='i_dop_r,'
+                                                  'i_dop_r_av,'
+                                                  'groupid,'
+                                                  'tip,'
+                                                  'ip,'
+                                                  'iq,'
+                                                  's_key',
                                            setsel=self._setsel)
         if len(self._control_I):
             self._control_I.insert(0,
@@ -49,7 +56,7 @@ class FillTable:
             self._control_I.sort_values(by=['tip', 'uhom', 'dname'],  # столбцы сортировки
                                         ascending=(False, False, True),  # обратный порядок
                                         inplace=True)
-            self._control_I.drop(['ip_unom', 'iq_unom', 'uhom', 'tip', 'ip', 'iq', 's_key'],
+            self._control_I.drop(['ip_unom', 'iq_unom', 'uhom', 'tip', 'ip', 'iq'],
                                  axis=1,
                                  inplace=True)
 
@@ -58,7 +65,7 @@ class FillTable:
             self._control_I.rename(columns={'i_dop_r': 'ДДТН, А',
                                             'i_dop_r_av': 'АДТН, А',
                                             'dname': 'Контролируемый элемент'}, inplace=True)
-            self._control_I.set_index('key', inplace=True)
+            self._control_I.set_index('s_key', inplace=True)
             self._control_I = self._control_I.T
             self._control_I.index = pd.MultiIndex.from_product([['-'],
                                                                 ['-'],
@@ -66,7 +73,10 @@ class FillTable:
 
         # Узлы
         self._control_U = rm.df_from_table(table_name='node',
-                                           fields='ny,umin,umin_av,uhom',
+                                           fields='ny,'
+                                                  'umin,'
+                                                  'umin_av,'
+                                                  'uhom',
                                            setsel=self._setsel)
         if len(self._control_U):
             self._control_U.insert(0,
@@ -87,7 +97,11 @@ class FillTable:
                                                                 ['-'],
                                                                 self._control_U.index])
 
-    def add_value(self, rm, name_srs: str, comb_id: int, active_id: int):
+    def add_data(self,
+                 rm,
+                 name_srs: str,
+                 comb_id: int,
+                 active_id: int):
         """
         Добавить значения
         :param rm:
@@ -98,11 +112,11 @@ class FillTable:
         log_fill_tb.debug('Запись параметров УР в таблицу КО.')
 
         if len(self._control_I):
-            ci = rm.df_from_table(table_name='vetv',
-                                  fields='key,i_max,i_zag,i_zag_av',
-                                  setsel=self._setsel)
+            ci = self.read_i(rm,
+                             self._setsel,
+                             key=(comb_id, active_id))
 
-            ci.set_index('key', inplace=True)
+            ci.set_index('s_key', inplace=True)
             ci = ci.round({'i_max': 0, 'i_zag': 0, 'i_zag_av': 0})
             ci = ci.T
             ci.index = pd.MultiIndex.from_product([[name_srs],
@@ -115,7 +129,10 @@ class FillTable:
 
         if len(self._control_U):
             cu = rm.df_from_table(table_name='node',
-                                  fields='vras,otv_min,otv_min_av,ny',
+                                  fields='vras,'
+                                         'otv_min,'
+                                         'otv_min_av,'
+                                         'ny',
                                   setsel=self._setsel)
             cu.set_index('ny', inplace=True)
             cu = cu.round({'vras': 1, 'otv_min': 2, 'otv_min_av': 2})
