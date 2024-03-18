@@ -12,7 +12,7 @@ from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
 from openpyxl.utils import get_column_letter
 from openpyxl.workbook import Workbook
 
-from save_i import CommonI
+from .save_i import CommonI
 from collection_func import s_key_vetv_in_tuple
 
 log_fill_tb = logging.getLogger(f'__main__.{__name__}')

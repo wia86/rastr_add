@@ -20,7 +20,8 @@ class Common(ABC):
     target_path = None  # Путь к папке для сохранения РМ.
     folder_result = None  # Путь к папке для сохранения результатов работы программы.
 
-    def __init__(self):
+    def __init__(self, config):
+        self.config_freeze = config
         # коллекция для хранения информации о расчете
         self.config = {'collapse': [],
                        'end_info': ''}
@@ -85,15 +86,15 @@ class Common(ABC):
                         path_new_log)
 
     @staticmethod
-    def save_config(config, extension):
+    def save_config(config,
+                    file_name):
         """
         Сохранить файл задания и конфигураций.
 
         :param config: Словарь для сохранения.
-        :param extension: Расширение нового файла
-        :return:
+        :param file_name: Имя файла для сохранения.
         """
-        with open(f'{config["name_time"]} задание.{extension}', 'w') as f:
+        with open(file_name, 'w') as f:
             yaml.dump(data=config,
                       stream=f,
                       default_flow_style=False,
@@ -114,7 +115,8 @@ class Common(ABC):
         if self.config.get('filter_comb_info'):
             self.config['end_info'] = f'{self.config["end_info"]}\n{self.config.get("filter_comb_info")}'
         log_comm.info(self.config['end_info'])
-        self.save_config(self.config, self.mark)
+        self.save_config(config=self.config_freeze,
+                         file_name=f'{self.config["name_time"]} задание.{self.mark}')
 
         return self.config['end_info']
 

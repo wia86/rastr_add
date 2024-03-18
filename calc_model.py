@@ -2,6 +2,7 @@ import logging
 import os
 import sqlite3
 from collections import namedtuple
+from copy import deepcopy
 from datetime import datetime
 from itertools import combinations
 
@@ -34,8 +35,8 @@ class CalcModel(Common):
         """
         :param config: Задание и настройки программы
         """
-        super(CalcModel, self).__init__()
-        self.config = self.config | config
+        super(CalcModel, self).__init__(config)
+        self.config = self.config | deepcopy(config)
         RastrModel.config = config['Settings']
 
         RastrModel.overwrite_new_file = 'question'
@@ -441,8 +442,6 @@ class CalcModel(Common):
                                      param='all_control',
                                      selection=f'groupid={gr[0]}',
                                      formula=1)
-
-
 
         # Нормальная схема сети
         self.info_srs = dict()  # СРС

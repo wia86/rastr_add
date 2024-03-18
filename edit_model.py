@@ -1,5 +1,6 @@
 import logging
 import os
+from copy import deepcopy
 
 import pandas as pd
 
@@ -21,14 +22,14 @@ class EditModel(Common):
         """
         :param config: Задание и настройки программы
         """
-        super(EditModel, self).__init__()
+        super(EditModel, self).__init__(config)
         self.mark = 'cor'
-        self.config = self.config | config
+        self.config = self.config | deepcopy(config)
         name_tab = self.config['set_printXL']['таблица на выбор']['tab_name']
         self.config['set_printXL'][name_tab] = self.config['set_printXL']['таблица на выбор']
         del self.config['set_printXL']['таблица на выбор']
 
-        RastrModel.config = config['Settings']
+        RastrModel.config = self.config['Settings']
         RastrModel.overwrite_new_file = 'question'
         self.cor_xl = None
         self.print_xl = None
