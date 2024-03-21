@@ -39,8 +39,6 @@ class DataRM:
         # self.ny_pqng = defaultdict(tuple)  # {ny: (pn, qn, pg, qn)} - все с pn pg > 0 | qn pg > 0 | pg > 0 | qg > 0
         self.v_gr = {}  # {(ip, iq, np): groupid} - все c groupid > 0
         self.v_rxb = {}  # {(ip, iq, np): (r, x, b)} - все
-        self.vetv_name = None  # df[s_key, 'Контролируемые элементы']
-        self.node_name = None  # df[s_key, 'Контролируемые элементы']
 
     def save_date_tables(self):
         """
@@ -112,23 +110,6 @@ class DataRM:
                 self.t_name['Generator'][Num] = Name
             else:
                 self.t_name['Generator'][Num] = f'генератор номер {Num} в узле {self.t_name["node"][Node]}'
-
-        # Создать df ['s_key', 'Контролируемые элементы']] для таблиц узлов и ветвей
-        self.node_name = pd.DataFrame.from_dict(self.t_name['node'],
-                                                orient='index',
-                                                columns=['Контролируемые элементы'])
-        self.node_name['s_key'] = self.node_name.index
-        self.node_name.reset_index(drop=True, inplace=True)
-
-        self.vetv_name = pd.DataFrame.from_dict(self.t_name['vetv'],
-                                                orient='index',
-                                                columns=['Контролируемые элементы'])
-        self.vetv_name['s_key'] = self.vetv_name.index
-        self.vetv_name.s_key = self.vetv_name.s_key.apply(lambda xx: str(xx).replace(' ', '')
-                                                          .replace('(', '')
-                                                          .replace(')', '')
-                                                          .replace(',0', ''))
-        self.vetv_name.reset_index(drop=True, inplace=True)
 
     def recover_date_tables(self, restore_only_state: bool) -> bool:
         """

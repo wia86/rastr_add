@@ -48,12 +48,13 @@ class CombinationXL:
             for key_type, scheme_xl_name in (('Ключ откл.', 'Схема при отключении'),
                                              ('Ключ рем.1', 'Ремонтная схема1'),
                                              ('Ключ рем.2', 'Ремонтная схема2')):
-                key = row[key_type]
-                if key:
-                    key = str(key)
+                str_key = row[key_type]
+                if str_key:
+                    str_key = str(str_key)
+                    table, key, s_key_digit, s_key = cf.recognize_key(common_key=str_key)
+                    index = rm.dt.t_key_i[table][s_key_digit]
+
                     status_repair = False if key_type == 'Ключ откл.' else True
-                    table, s_key = rm.recognize_key(key=key, back='tab s_key')
-                    index = rm.index(table_name=table, key_int=s_key)
                     if table and index >= 0:
                         repair_scheme = False
                         disable_scheme = False

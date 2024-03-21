@@ -8,6 +8,8 @@ from matplotlib.ticker import MultipleLocator
 import openpyxl
 import pandas as pd
 
+from collection_func import recognize_key
+
 
 class ManagerPrintParameters(ABC):
     _dict_obj = {}  # строка задания: объект PrintParameters
@@ -73,7 +75,7 @@ class PrintParameters:
 
         date = pd.Series(dtype='object')
         for k, p in self._set_output_parameters:
-            table, sel = rm.recognize_key(key=k, back='tab sel')
+            table, sel = recognize_key(common_key=k, back='tab sel')
             key = f'{k}_{p}'
             if rm.rastr.tables(table).Cols.Find(p) == -1:
                 raise ValueError(f'В таблице {table} отсутствует поле {p}')

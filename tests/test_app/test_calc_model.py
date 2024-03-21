@@ -35,6 +35,12 @@ def test_calc_model_n1(clear_dir, name_file=r'I:\rastr_add2\test_rm\test n1.calc
         print(CalcModel(yaml.safe_load(f)).run())
 
 
+def test_calc_model_n2(clear_dir, name_file=r'I:\rastr_add2\test_rm\test n2 for disable.calc'):
+    """Все возможные отключения н-2."""
+    with open(name_file) as f:
+        print(CalcModel(yaml.safe_load(f)).run())
+
+
 def test_calc_model_n3(clear_dir, name_file=r'I:\rastr_add2\test_rm\test n3.calc'):
     """Все возможные отключения н-3."""
     with open(name_file) as f:

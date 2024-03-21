@@ -26,15 +26,7 @@ class RastrModel:
     U_LARGEST_WORKING = [7.2, 12, 42, 126, 180, 252, 363, 525, 787]  # наибольшее рабочее напряжения
 
     # U_LARGEST_WORKING_dict = {6: 7.2, 10: 12, 35: 42, 110: 126,150: 180,220: 252, 330: 363,500: 525,750: 787}
-    KEY_TABLES = {'ny': 'node',
-                  'ip': 'vetv',
-                  'Num': 'Generator',
-                  # 'g': 'Generator',
-                  'na': 'area',
-                  'npa': 'area2',
-                  'no': 'darea',
-                  'nga': 'ngroup',
-                  'ns': 'sechen'}
+
     rm_id = 0
     all_rm = pd.DataFrame()
     config = None  # todo переместить в __init__
@@ -385,17 +377,6 @@ class RastrModel:
             if all_v_disable:
                 log_rm.info(f'{len(all_v_disable)} отключаемых ветвей')
                 vetv.ReadSafeArray(2, 'ip,iq,np,' + field, all_v_disable)
-
-    @staticmethod
-    def name_table_from_key(task_key: str):
-        """
-        По ключу строки (нр ny=1) определяет имя таблицы.
-        :return: table:str 'node' or False если не найдено.
-        """
-        for key_tables in RastrModel.KEY_TABLES:
-            if key_tables in task_key:
-                return RastrModel.KEY_TABLES[key_tables]
-        return False
 
     def sta(self, table_name: str, ndx: int | None = None, key_int: int | tuple = 0) -> bool:
         """
@@ -929,7 +910,8 @@ class RastrModel:
         if not (keys and values.replace(' ', '')):
             raise ValueError(f'{keys=},{values=}')
         for key in keys.split(';'):  # например:['na=11(node)','125', 'g=125', '12,13,0']
-            rastr_table, selection_in_table = self.recognize_key(key, 'tab sel')
+            rastr_table, selection_in_table = cf.recognize_key(common_key=key,
+                                                               back='tab sel')
 
             for value in values.split(';'):  # разделение задания, например:['pn=10.2', 'qn=5.4']
                 param = ''
@@ -956,86 +938,6 @@ class RastrModel:
                                            cycle_condition=cycle_condition))
         return ', '.join(info)
 
-    def recognize_key(self, key: str, back: str = 'all'):
-        """
-        Распознать:
-         -имя таблицы;
-         -короткий ключ (s_key);
-         -выборку в таблице.
-        :param key: например:['na=11(node)','125', 'g=125', '12,13,0', '12,13', 'ip=5&iq=3&np=0']
-        :param back: тип возвращаемого значения
-        :return:'all' (имя таблицы: str, выборка: str, ключ: int|tuple(int,int,int?))
-                'tab' имя таблицы: str
-                's_key'  ключ: int|tuple(int,int,int)
-                'tab s_key'
-                'sel' выборка: str
-                'tab sel'
-        """
-        if isinstance(key, str):
-            key = key.replace(' ', '')
-        else:
-            key = str(int(key))
-        selection_in_table = key  # выборка в таблице
-        if key == '-1':
-            rastr_table = 'vetv'
-            s_key = -1
-        else:
-            rastr_table = ''  # имя таблицы
-            # проверка наличия явного указания таблицы
-            match = re.search(re.compile(r'\((.+?)\)'), key)
-            s_key = 0
-            if match:  # таблица указана
-                rastr_table = match[1]
-                selection_in_table = selection_in_table.split('(', 1)[0]
-
-            if selection_in_table:
-                # разделение ключей для распознания
-                key_comma = selection_in_table.split(',')  # нр для ветви [ , , ], прочее []
-                key_equally = selection_in_table.split('=')  # есть = [, ], нет равно []
-                if ',' in selection_in_table:  # vetv
-                    if len(key_comma) > 3:
-                        raise ValueError(f'Ошибка в задании {key=}')
-                    rastr_table = 'vetv'
-                    if len(key_comma) == 3:
-                        selection_in_table = f'ip={key_comma[0]}&iq={key_comma[1]}&np={key_comma[2]}'
-                        s_key = (int(key_comma[0]), int(key_comma[1]), int(key_comma[2]),)
-                    if len(key_comma) == 2:
-                        selection_in_table = f'ip={key_comma[0]}&iq={key_comma[1]}&np=0'
-                        s_key = (int(key_comma[0]), int(key_comma[1]), 0)
-                else:
-                    if selection_in_table.isdigit():
-                        rastr_table = 'node'
-                        s_key = int(selection_in_table)
-                        selection_in_table = 'ny=' + selection_in_table
-                    elif 'g' == key_equally[0]:
-                        rastr_table = 'Generator'
-                        s_key = int(key_equally[1])
-                        selection_in_table = 'Num=' + key_equally[1]
-                    elif len(key_equally) == 2:
-                        s_key = int(key_equally[1])
-                        if not rastr_table:
-                            if key_equally[0] in self.KEY_TABLES:
-                                rastr_table = self.KEY_TABLES[key_equally[0]]  # вернет имя таблицы
-                    elif len(key_equally) > 2:  # 'ip = 1&iq = 2&np = 0'
-                        rastr_table = 'vetv'
-                        ip = int(key_equally[1].split('&')[0])
-                        iq = int(key_equally[2].split('&')[0])
-                        np_ = 0 if len(key_equally) == 3 else int(key_equally[3])
-                        s_key = (ip, iq, np_)  # if np_ else (ip, iq)
-            if not rastr_table:
-                raise ValueError(f'Таблица не определена: {key=}')
-
-        if back == 's_key':
-            return s_key
-        elif back == 'sel':
-            return selection_in_table
-        elif back == 'tab':
-            return rastr_table
-        elif back == 'tab s_key':
-            return rastr_table, s_key
-        elif back == 'tab sel':
-            return rastr_table, selection_in_table
-        return rastr_table, selection_in_table, s_key
 
     def group_cor(self,
                   tabl: str,
@@ -1640,7 +1542,7 @@ class RastrModel:
                 else:
                     log_rm.debug(f'В таблицу {name_table} поле {field} уже имеется.')
 
-    def df_from_table(self, table_name: str, fields: str = '', setsel: str = ''):
+    def df_from_table(self, table_name: str, fields: str = '', setsel: str = '') -> pd.DataFrame | None:
         """
         Возвращает DataFrame из таблицы.
         :param table_name:
@@ -1650,11 +1552,19 @@ class RastrModel:
         """
         table = self.rastr.tables(table_name)
         table.setsel(setsel)
+        if not table.count:
+            return None
+
         if not fields:
             fields = self.all_cols(table_name)
-        fields = fields.replace(' ', '').replace(',,', ',').strip(',')
+
+        fields = (fields.replace(' ', '')
+                        .replace(',,', ',')
+                        .strip(','))
         part_table = table.writesafearray(fields, '000')
-        return pd.DataFrame(data=part_table, columns=fields.split(','))
+
+        return pd.DataFrame(data=part_table,
+                            columns=fields.split(','))
 
     def table_from_df(self, df: pd.DataFrame, table_name: str, fields: str = '', type_import: int = 2):
         """
@@ -1706,7 +1616,8 @@ class RastrModel:
                 if any([txt in formula_i for txt in ['years', 'season', 'max_min', 'add_name']]):
                     continue
                 sel_all, field = formula_i.replace(' ', '').split(':')
-                name_table, sel = self.recognize_key(sel_all, 'tab sel')
+                name_table, sel = cf.recognize_key(common_key=sel_all,
+                                                   back='tab sel')
                 self.rgm(f'для определения значения {formula}')
                 index = self.index(table_name=name_table, key_str=sel)
                 if index > -1:
