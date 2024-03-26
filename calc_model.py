@@ -138,8 +138,7 @@ class CalcModel(Common):
 
         con = sqlite3.connect(self.book_db)
 
-        # Записать данные о перегрузках в SQL.
-        self.breach_storage.save_to_sql(con)
+
 
         # Записать данные о выполненных расчетах в SQL.
         name_df = {'all_rm': all_rm,
@@ -155,9 +154,11 @@ class CalcModel(Common):
         con.commit()
         con.close()
 
+        # Записать данные о перегрузках в SQL.
+        self.breach_storage.save_to_sql(path_db=self.book_db)
         # Запись данных о перегрузке в xl
         self.breach_storage.save_to_xl(all_rm=all_rm,
-                                       book_path=self.book_path,
+                                       path_xl_book=self.book_path,
                                        all_comb=self.all_comb,
                                        all_actions=self.all_actions)
 
@@ -712,7 +713,7 @@ class CalcModel(Common):
         breach = Breach()
 
         if not test_rgm:
-            dead = Dead(value=-1, name='dead_mode')
+            dead = Dead(value=1, name='dead_mode')
             dead.add()
             breach.add(name='dead', obj=dead)
             log_calc.debug(f'Режим развалился.')

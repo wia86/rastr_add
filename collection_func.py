@@ -214,6 +214,22 @@ def create_table(sheet, sheet_name, point_start: str = 'A1'):
     sheet.add_table(tab)
 
 
+def from_list1_only_exists_in_list2(list1: list, list2) -> list:
+    """
+    Вернуть лист с элементами list1 которые есть в list2 (в той же очередности)
+    :param list1: Итерируемый объект не строка
+    :param list2: Итерируемый объект не строка
+    :return: Отфильтрованный лист list1
+    """
+    if isinstance(list1, str) or isinstance(list2, str):
+        raise TypeError
+    list1_filter = []
+    for x in list1:
+        if x in list2:
+            list1_filter.append(x)
+    return list1_filter
+
+
 if __name__ == '__main__':
     # print(str_yeas_in_list('2021...2025'))
     print(split_task_action('[1,2,0:sta=1],[2,3:sta=0]{5,7:sta==1},[9,8:sta=1],6'))
