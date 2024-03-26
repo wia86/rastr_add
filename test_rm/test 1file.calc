@@ -29,6 +29,7 @@ txt_Import_Rg2: 'таблица:node, vetv; тип:2; поле: disable, control, repair_schem
   # выборка: если не указано, то все строки'
 cb_disable_comb: true
 SRS:
+  nr: true
   n-1: true
   n-2_abv: false
   n-2_gd: false

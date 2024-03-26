@@ -16,8 +16,13 @@ from calc import Drawings
 from calc import FillTable
 from calc import FilterCombination
 from calc import SaveI
-from calc.breach_mode import Dead, OverloadsI, LowVoltages, HighVoltages
-from collection_func import s_key_vetv_in_tuple, convert_s_key
+from calc import DataCalc
+from calc import (Dead,
+                  OverloadsI,
+                  LowVoltages,
+                  HighVoltages)
+from collection_func import (s_key_vetv_in_tuple,
+                             convert_s_key)
 from common import Common
 from rastr_model import RastrModel
 
@@ -63,10 +68,9 @@ class CalcModel(Common):
         if self.config['results_RG2']:
             self.drawings = Drawings(name_drawing=self.config['name_pic'])
 
+        self.dt = DataCalc()
         self.info_action = None
         RastrModel.all_rm = pd.DataFrame()
-        self.all_comb = pd.DataFrame()
-        self.all_actions = pd.DataFrame()  # действие оперативного персонала или ПА
 
         # Для хранения токовой загрузки контролируемых элементов.
         if self.config['cb_save_i']:
@@ -136,15 +140,14 @@ class CalcModel(Common):
     def processing_results(self,
                            all_rm):
 
+
+        self.dt.save_to_sql(self.book_db)
+
         con = sqlite3.connect(self.book_db)
 
-
-
         # Записать данные о выполненных расчетах в SQL.
-        name_df = {'all_rm': all_rm,
-                   'all_comb': self.all_comb,
-                   'all_actions': self.all_actions
-                   }
+        name_df = {'all_rm': all_rm}
+
         if self.drawings:
             name_df['all_drawings'] = self.drawings.df_drawing
 
@@ -159,8 +162,8 @@ class CalcModel(Common):
         # Запись данных о перегрузке в xl
         self.breach_storage.save_to_xl(all_rm=all_rm,
                                        path_xl_book=self.book_path,
-                                       all_comb=self.all_comb,
-                                       all_actions=self.all_actions)
+                                       all_comb=self.dt.all_comb,
+                                       all_actions=self.dt.all_actions)
 
         # Считать из SQL данные токовой загрузки и запись в xl.
         if self.save_i:
@@ -290,17 +293,17 @@ class CalcModel(Common):
                                      param='all_control',
                                      selection=f'groupid={gr[0]}',
                                      formula=1)
-
-        # Нормальная схема сети
-        self.info_srs = dict()  # СРС
-        self.info_srs['Наименование СРС'] = 'Нормальная схема сети.'
-        self.info_srs['Наименование СРС без()'] = 'Нормальная схема сети'
-        self.info_srs['comb_id'] = self.comb_id
-        self.info_srs['Кол. откл. эл.'] = 0
-        self.info_srs['Контроль ДТН'] = 'ДДТН'
-        self.info_srs['rm_id'] = RastrModel.rm_id
-        log_calc.info(f"Сочетание {self.comb_id}: {self.info_srs['Наименование СРС']}")
-        self.do_action(rm)
+        if self.config['SRS']['nr']:
+            # Нормальная схема сети
+            self.info_srs = dict()  # СРС
+            self.info_srs['Наименование СРС'] = 'Нормальная схема сети.'
+            self.info_srs['Наименование СРС без()'] = 'Нормальная схема сети'
+            self.info_srs['comb_id'] = self.comb_id
+            self.info_srs['Кол. откл. эл.'] = 0
+            self.info_srs['Контроль ДТН'] = 'ДДТН'
+            self.info_srs['rm_id'] = RastrModel.rm_id
+            log_calc.info(f"Сочетание {self.comb_id}: {self.info_srs['Наименование СРС']}")
+            self.do_action(rm)
 
         # Отключаемые элементы сети. Расчет всех возможных сочетаний.
         if self.config['cb_disable_comb']:
@@ -414,11 +417,13 @@ class CalcModel(Common):
                     break
                 log_calc.info(f"Количество отключаемых элементов в комбинации: {n_} ({self.info_srs['Контроль ДТН']}).")
 
-                if n_ == 1 and 'uhom' not in disable_df_all.columns:
-                    disable_all = disable_df_all.copy()
-                else:
+                if n_ > 1 and 'uhom' in disable_df_all.columns:
                     disable_all = \
                         disable_df_all[(disable_df_all['uhom'] > 300) | (disable_df_all['table'] != 'node')]
+
+                else:
+                    disable_all = disable_df_all.copy()
+
                 if 'uhom' in disable_df_all.columns:
                     disable_all.drop(['uhom'], axis=1, inplace=True)
 
@@ -662,8 +667,8 @@ class CalcModel(Common):
         :param comb:
         """
         self.info_srs['comb_id'] = self.comb_id
-        self.all_comb = pd.concat([self.all_comb, pd.Series(self.info_srs).to_frame().T],
-                                  axis=0, ignore_index=True)
+        self.dt.add_all_comb(self.info_srs)
+
         self.info_action = dict()
         self.info_action['comb_id'] = self.comb_id
         self.info_action['active_id'] = 1
@@ -685,8 +690,8 @@ class CalcModel(Common):
                     self.pa.reset()
                 self.info_action['End'] = True
 
-            self.all_actions = pd.concat([self.all_actions, pd.Series(self.info_action).to_frame().T],
-                                         axis=0, ignore_index=True)
+            self.dt.add_all_actions(self.info_action)
+
             if self.info_action['End']:
                 self.comb_id += 1  # код комбинации
                 return

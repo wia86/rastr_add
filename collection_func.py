@@ -1,4 +1,5 @@
 import re
+import sqlite3
 
 from openpyxl.utils import get_column_letter
 from openpyxl.worksheet.table import Table, TableStyleInfo
@@ -228,6 +229,18 @@ def from_list1_only_exists_in_list2(list1: list, list2) -> list:
         if x in list2:
             list1_filter.append(x)
     return list1_filter
+
+
+def save_to_sqlite(path_db: str,
+                   dict_df: dict):
+
+    con = sqlite3.connect(path_db)
+    for key in dict_df:
+        dict_df[key].to_sql(key,
+                            con,
+                            if_exists='replace')
+    con.commit()
+    con.close()
 
 
 if __name__ == '__main__':

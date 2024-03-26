@@ -306,7 +306,8 @@ class CalcWindow(QtWidgets.QMainWindow, Ui_calc_ur, Window):
             'txt_Import_Rg2': self.te_import_rg2,
             # Расчет всех возможных сочетаний. Отключаемые элементы.
             'cb_disable_comb': self.cb_disable_comb,
-            'SRS': {'n-1': self.cb_n1,
+            'SRS': {'nr': self.cb_nr,
+                    'n-1': self.cb_n1,
                     'n-2_abv': self.cb_n2_abv,
                     'n-2_gd': self.cb_n2_gd,
                     'n-3': self.cb_n3},

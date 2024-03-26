@@ -1,4 +1,4 @@
-__all__ = ['Breach']
+__all__ = ['Breach', 'Dead', 'OverloadsI', 'LowVoltages', 'HighVoltages']
 
 import logging
 from abc import ABC

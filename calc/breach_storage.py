@@ -2,12 +2,11 @@ __all__ = ['BreachStorage']
 
 import logging
 import os
-import sqlite3
 from collections import defaultdict
 
 import pandas as pd
 
-from collection_func import from_list1_only_exists_in_list2
+from collection_func import from_list1_only_exists_in_list2, save_to_sqlite
 from pivot_table import make_pivot_tables
 
 log_breach_storage = logging.getLogger(f'__main__.{__name__}')
@@ -59,15 +58,11 @@ class BreachStorage:
             log_breach_storage.debug('Данные для сохранения в db отсутствуют.')
             return
 
-        con = sqlite3.connect(path_db)
+        save_to_sqlite(path_db=path_db,
+                       dict_df=self.collection_all)
 
         for key in self.collection_all:
-            self.collection_all[key].to_sql(key,
-                                            con,
-                                            if_exists='replace')
             log_breach_storage.debug(f'Данные {key} добавлены в db {path_db}.')
-        con.commit()
-        con.close()
 
     def save_to_xl(self,
                    path_xl_book: str,
