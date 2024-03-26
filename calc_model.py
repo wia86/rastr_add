@@ -12,15 +12,15 @@ from calc import Automation
 from calc import Breach
 from calc import BreachStorage
 from calc import CombinationXL
-from calc import Drawings
-from calc import FillTable
-from calc import FilterCombination
-from calc import SaveI
 from calc import DataCalc
 from calc import (Dead,
                   OverloadsI,
                   LowVoltages,
                   HighVoltages)
+from calc import Drawings
+from calc import FillTable
+from calc import FilterCombination
+from calc import SaveI
 from collection_func import (s_key_vetv_in_tuple,
                              convert_s_key)
 from common import Common
@@ -116,7 +116,7 @@ class CalcModel(Common):
         """
 
         # todo ссылки ниже убрать от сюда
-        self.book_path = self.config['name_time'] + ' результаты расчетов.xlsx'
+        self.book_path = self.config['name_time'] + ' нарушения.xlsx'
         self.book_db = self.config['name_time'] + ' данные.db'
 
         # Папка с вложенными папками
@@ -140,16 +140,15 @@ class CalcModel(Common):
     def processing_results(self,
                            all_rm):
 
-
         self.dt.save_to_sql(self.book_db)
+
+        if self.drawings:
+            self.drawings.save_to_sql(self.book_db)
 
         con = sqlite3.connect(self.book_db)
 
         # Записать данные о выполненных расчетах в SQL.
         name_df = {'all_rm': all_rm}
-
-        if self.drawings:
-            name_df['all_drawings'] = self.drawings.df_drawing
 
         for key in name_df:
             name_df[key].to_sql(key, con, if_exists='replace')
@@ -293,15 +292,17 @@ class CalcModel(Common):
                                      param='all_control',
                                      selection=f'groupid={gr[0]}',
                                      formula=1)
+
+        self.info_srs = dict()  # СРС
+        self.info_srs['rm_id'] = RastrModel.rm_id
+
         if self.config['SRS']['nr']:
             # Нормальная схема сети
-            self.info_srs = dict()  # СРС
             self.info_srs['Наименование СРС'] = 'Нормальная схема сети.'
             self.info_srs['Наименование СРС без()'] = 'Нормальная схема сети'
             self.info_srs['comb_id'] = self.comb_id
             self.info_srs['Кол. откл. эл.'] = 0
             self.info_srs['Контроль ДТН'] = 'ДДТН'
-            self.info_srs['rm_id'] = RastrModel.rm_id
             log_calc.info(f"Сочетание {self.comb_id}: {self.info_srs['Наименование СРС']}")
             self.do_action(rm)
 
@@ -412,10 +413,11 @@ class CalcModel(Common):
             disable_df_all = pd.concat(df_all)
 
             # Цикл по всем возможным сочетаниям отключений
-            for n_, self.info_srs['Контроль ДТН'] in self.set_comb.items():  # Цикл н-1 н-2 н-3.
+            for n_, control_dtn in self.set_comb.items():  # Цикл н-1 н-2 н-3.
+                self.info_srs['Контроль ДТН'] = control_dtn
                 if n_ > len(disable_df_all):
                     break
-                log_calc.info(f"Количество отключаемых элементов в комбинации: {n_} ({self.info_srs['Контроль ДТН']}).")
+                log_calc.info(f"Количество отключаемых элементов в комбинации: {n_} ({control_dtn}).")
 
                 if n_ > 1 and 'uhom' in disable_df_all.columns:
                     disable_all = \
@@ -463,7 +465,7 @@ class CalcModel(Common):
 
                         # Если в ремонте 2 элемента.
                         double_repair = True if (n_ == 2 and i == -1) or (n_ == 3) else False
-                        if self.info_srs['Контроль ДТН'] == 'AДТН' and double_repair and n_ == 2:
+                        if control_dtn == 'AДТН' and double_repair and n_ == 2:
                             continue  # Не расчетный случай по ГОСТ.
 
                         comb_df['status_repair'] = True  # Истина, если элемент в ремонте. Ложь отключен.
@@ -766,8 +768,8 @@ class CalcModel(Common):
                                          active_id=self.info_action["active_id"])
 
         # Добавить рисунки.
-        if self.config['results_RG2'] and (not self.config['pic_overloads'] or
-                                           (self.config['pic_overloads'] and breach.yes())):
+        if self.drawings and (not self.config['pic_overloads'] or
+                              (self.config['pic_overloads'] and breach.yes())):
             self.drawings.draw(rm,
                                folder_path=self.config['name_time'],
                                comb_id=self.comb_id,

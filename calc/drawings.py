@@ -8,7 +8,7 @@ import pandas as pd
 from openpyxl.reader.excel import load_workbook
 from openpyxl.styles import Side, Alignment, Border, PatternFill
 
-from collection_func import create_table
+from collection_func import create_table, save_to_sqlite
 
 log_draw = logging.getLogger(f'__main__.{__name__}')
 
@@ -152,3 +152,9 @@ class Drawings:
         with open(path, 'w') as macro_new:
             macro_new.write(content_rbs)
 
+    def save_to_sql(self, path_db: str):
+
+        dict_df = {'all_drawings': self.df_drawing}
+
+        save_to_sqlite(path_db=path_db,
+                       dict_df=dict_df)

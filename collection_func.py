@@ -232,13 +232,20 @@ def from_list1_only_exists_in_list2(list1: list, list2) -> list:
 
 
 def save_to_sqlite(path_db: str,
-                   dict_df: dict):
-
+                   dict_df: dict,
+                   if_exists: str = 'replace'):
+    """
+    Сохранить в базу данных sqlite.
+    :param if_exists: 'replace' или 'append'
+    :param path_db: Путь к базе данных
+    :param dict_df: Словарь [имя_таблицы] = pandas.DataFrame
+    """
     con = sqlite3.connect(path_db)
+
     for key in dict_df:
         dict_df[key].to_sql(key,
                             con,
-                            if_exists='replace')
+                            if_exists=if_exists)
     con.commit()
     con.close()
 

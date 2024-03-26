@@ -84,9 +84,10 @@ class BreachStorage:
 
         for key in self.collection_all:
             log_breach_storage.debug(f'Данные {key} добавлены в excel {path_xl_book}.')
-            self.collection_all[key] = (all_rm.merge(all_comb)
-                                        .merge(all_actions)
-                                        .merge(self.collection_all[key]))
+
+            self.collection_all[key] = (all_rm.merge(all_comb, how='right', on='rm_id')
+                                        .merge(all_actions, how='right', on='comb_id')
+                                        .merge(self.collection_all[key], how='right', on=['comb_id', 'active_id']))
 
             self.collection_all[key].dropna(axis=1, how='all', inplace=True)
             self.collection_all[key].fillna('-', inplace=True)

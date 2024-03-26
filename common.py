@@ -85,22 +85,6 @@ class Common(ABC):
         shutil.copyfile(name_file_source,
                         path_new_log)
 
-    @staticmethod
-    def save_config(config,
-                    file_name):
-        """
-        Сохранить файл задания и конфигураций.
-
-        :param config: Словарь для сохранения.
-        :param file_name: Имя файла для сохранения.
-        """
-        with open(file_name, 'w') as f:
-            yaml.dump(data=config,
-                      stream=f,
-                      default_flow_style=False,
-                      sort_keys=False,
-                      allow_unicode=True)
-
     def the_end(self):  # по завершению
         time_end = datetime.now()
         execution_time = time_end - self.time_start
@@ -119,4 +103,20 @@ class Common(ABC):
                          file_name=f'{self.config["name_time"]} задание.{self.mark}')
 
         return self.config['end_info']
+
+    @staticmethod
+    def save_config(config,
+                    file_name):
+        """
+        Сохранить файл задания и конфигураций.
+
+        :param config: Словарь для сохранения.
+        :param file_name: Имя файла для сохранения.
+        """
+        with open(file_name, 'w') as f:
+            yaml.dump(data=config,
+                      stream=f,
+                      default_flow_style=False,
+                      sort_keys=False,
+                      allow_unicode=True)
 

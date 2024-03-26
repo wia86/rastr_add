@@ -6,7 +6,7 @@ from abc import ABC
 
 import pandas as pd
 
-from collection_func import s_key_vetv_in_tuple
+from collection_func import s_key_vetv_in_tuple, save_to_sqlite
 
 
 class CommonI(ABC):
@@ -83,12 +83,9 @@ class SaveI(CommonI):
                                self._save_i_rm.s_key.apply(
                                    lambda x: rm.dt.t_name['vetv'][s_key_vetv_in_tuple(x)]))
 
-        con = sqlite3.connect(self.path_db)
-        self._save_i_rm.to_sql('save_i',
-                               con,
-                               if_exists='append')
-        con.commit()
-        con.close()
+        save_to_sqlite(path_db=self.path_db,
+                       dict_df={'save_i': self._save_i_rm},
+                       if_exists='append')
 
     def max_i_to_xl(self, path_xl: str):
         """Данные токовой загрузки из db сгруппировать по элементам и сохранить в xl"""

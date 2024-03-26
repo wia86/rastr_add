@@ -160,8 +160,11 @@ class RastrModel:
         if self.additional_name_list:
             for i, additional_name_i in enumerate(self.additional_name_list, 1):
                 self.info_file['Доп. имя' + str(i)] = additional_name_i
+
         RastrModel.all_rm = pd.concat([RastrModel.all_rm, pd.Series(self.info_file).to_frame().T],
-                                      axis=0, ignore_index=True)
+                                      axis=0,
+                                      ignore_index=True)
+
         log_rm.info(self.info_file['Имя режима'])
 
     def network_analysis(self, disable_on: bool = True,
