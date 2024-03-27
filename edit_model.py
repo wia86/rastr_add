@@ -6,6 +6,7 @@ import pandas as pd
 
 from common import Common
 from edit import CorXL
+from edit import BalanceQ
 from import_rm import ImportFromModel
 from edit import PrintXL
 from rastr_model import RastrModel
@@ -33,6 +34,7 @@ class EditModel(Common):
         RastrModel.overwrite_new_file = 'question'
         self.cor_xl = None
         self.print_xl = None
+        self.balance_q = None
         RastrModel.all_rm = pd.DataFrame()
 
         # Добавление импорта данных из РМ с формы.
@@ -99,7 +101,11 @@ class EditModel(Common):
                     rm.save(full_name_new=self.target_path)
 
         if self.print_xl:
-            self.print_xl.finish()
+            self.print_xl.save_to_xl(self.config['name_time'] + ' вывод данных таблиц.xlsx')
+
+        if self.balance_q:
+            self.balance_q.save_to_xl(self.config['name_time'] + ' баланс Q.xlsx')
+
         ManagerPrintParameters.all_data_in_excel(self.config['name_time'] + ' вывод параметров rm.xlsx')
         return self.the_end()
 
@@ -144,6 +150,14 @@ class EditModel(Common):
                 self.config['collapse'].append(rm.name_base)
 
         if self.config.get('printXL', False):
-            if not isinstance(self.print_xl, PrintXL):
+
+            if not self.print_xl:
                 self.print_xl = PrintXL(self.config)
             self.print_xl.add_val(rm)
+
+            if self.config['print_balance_q']['add']:
+                if not self.balance_q:
+                    self.balance_q = BalanceQ(self.config['print_balance_q']['sel'])
+                self.balance_q.add_val(rm)
+
+

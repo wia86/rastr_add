@@ -109,13 +109,12 @@ class BreachStorage:
                                                   sheet_name=key)
             dict_columns[key] = tuple(self.collection_all[key].columns)
 
-        if dict_columns:
-            task_pivot = self.add_pivot_tables(dict_columns)
-            make_pivot_tables(book_path=path_xl_book,
-                              sheets_info=task_pivot)
+        task_pivot = self.create_task_for_pivot_tables(dict_columns)
+        make_pivot_tables(book_path=path_xl_book,
+                          sheets_info=task_pivot)
 
     @staticmethod
-    def add_pivot_tables(dict_columns: dict) -> dict:
+    def create_task_for_pivot_tables(dict_columns: dict) -> dict:
         """
         Формирование задания для сводной.
         :param dict_columns: Словарь с перечнем имен столбцов.
@@ -158,7 +157,6 @@ class BreachStorage:
             sheet_info['sheet_name'] = f'Сводная_{key}'
             sheet_info['pt_name'] = f'pt_{key}'
 
-            sheet_info['conditional_formatting'] = True if key != 'dead' else False  # todo ?
             sheet_info['row_fields'] = ['Контролируемые элементы',
                                         'Отключение',
                                         'Ремонт 1',

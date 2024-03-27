@@ -1,14 +1,22 @@
-__all__ = ['PrintXL']
+__all__ = ['PrintXL', 'BalanceQ']
+
+import os
+
+from openpyxl.reader.excel import load_workbook
+
+from pivot_table import make_pivot_tables
+
 """Модуль для вывода параметров РМ в таблице excel."""
 import logging
 
 import pandas as pd
-import win32com.client
-from openpyxl import Workbook, load_workbook
+from openpyxl import Workbook
 from openpyxl.comments import Comment
 from openpyxl.styles import PatternFill, Border, Side, Alignment, Font
 from openpyxl.styles.numbers import BUILTIN_FORMATS
-from collection_func import create_table
+
+from collection_func import from_list1_only_exists_in_list2
+
 log_print_xl = logging.getLogger(f'__main__.{__name__}')
 
 
@@ -49,56 +57,60 @@ class PrintXL:
         """
         Добавить листы и первая строка с названиями
         """
-        self.name_xl_file = ''  # Имя файла EXCEL для сохранения
-        self.data_table = {}  # Для хранения ссылок на листы excel {'имя листа=имя таблицы': fd c данными}
+        self.data_table = {}  # {'имя листа=имя таблицы': fd c данными}
         self.task = task
         for tb in self.task['set_printXL']:
             if tb in self.set_param:
                 self.task['set_printXL'][tb] = self.task['set_printXL'][tb] | self.set_param[tb]
 
-        self.book = Workbook()
         #  Создать лист xl и присвоить ссылку на него
         for name_table in self.task['set_printXL']:
             if self.task['set_printXL'][name_table]['add']:
                 self.data_table[name_table] = pd.DataFrame()
 
-        if self.task['print_balance_q']['add']:
-            self.balance_q = BalanceQ(self.book, self.task['print_balance_q']['sel'])
-
     def add_val(self, rm):
+        """
+        Добавить значения.
+        :param rm:
+        """
         log_print_xl.info('\tВывод данных из моделей в XL')
 
-        # Добавить значения в вывод таблиц.
         for name_table in self.data_table:
-            # проверка наличия таблицы
+            # Проверка наличия таблицы
             if rm.rastr.Tables.Find(name_table) < 0:
                 if name_table == 'sechen':
                     rm.downloading_additional_files('sch')
+                else:
+                    raise ValueError(f'Отсутствует таблица {name_table}')
+
             # Считать данные из таблиц растр.
 
             fields = self.task['set_printXL'][name_table]['par'].replace(' ', '')
             setsel = self.task['set_printXL'][name_table]['sel']
+
             if not fields:
                 fields = rm.all_cols(name_table)
 
-            data = rm.df_from_table(table_name=name_table, fields=fields, setsel=setsel)
-            if not data.empty:
-                self.data_table[name_table] = pd.concat([self.data_table[name_table],
-                                                         data.apply(lambda x: pd.Series(rm.info_file), axis=1).join(
-                                                             other=data)])
-        if self.task['print_balance_q']['add']:
-            self.balance_q.add_val_balance_q(rm)
+            data = rm.df_from_table(table_name=name_table,
+                                    fields=fields,
+                                    setsel=setsel)
+            if data is not None:
+                data_extended = data.apply(lambda x: pd.Series(rm.info_file), axis=1).join(other=data)
+                self.data_table[name_table] = pd.concat([self.data_table[name_table], data_extended])
 
-    def finish(self):
+    def save_to_xl(self,
+                   path_xl_book: str):
         """
-        Преобразовать в объект таблицу и удалить листы с одной строкой.
+        Сохранить данные в excel и сформировать сводные.
+        :param path_xl_book: Путь для сохранения excel.
         """
-
-        self.name_xl_file = self.task['name_time'] + ' вывод данных.xlsx'
-        self.book.save(self.name_xl_file)
-        self.book = None
-
+        if not self.data_table:
+            log_print_xl.debug('Данные для сохранения в excel отсутствуют.')
+            return
+        dict_columns = {}
         for name_table, data in self.data_table.items():
+
+            # Добавить столбец difference_p.
             limitation = ''
             value_p = ''
             for lim in ['pmax', 'set_pop']:
@@ -113,123 +125,74 @@ class PrintXL:
             if limitation and val:
                 data.loc[data[limitation] != 0, 'difference_p'] = data.loc[data[limitation] != 0, value_p] - \
                                                                   data.loc[data[limitation] != 0, limitation]
-
-            with pd.ExcelWriter(path=self.name_xl_file, mode='a', engine='openpyxl') as writer:
+            # Записать в excel
+            mode = 'a' if os.path.exists(path_xl_book) else 'w'
+            with pd.ExcelWriter(path=path_xl_book, mode=mode) as writer:
                 data.to_excel(excel_writer=writer,
                               sheet_name=name_table,
-                              header=True,
+                              float_format='%.2f',
+                              freeze_panes=(1, 1),
                               index=False)
+            dict_columns[name_table] = tuple(data.columns)
 
-        self.book = load_workbook(self.name_xl_file)
-        for sheet_name in self.book.sheetnames:
-            sheet = self.book[sheet_name]
-            if sheet.max_row < 2:
-                del self.book[sheet_name]  # удалить пустой лист
-            else:
-                if sheet_name != 'balance_Q':
-                    create_table(sheet, sheet_name)  # Создать объект таблица.
+        task_pivot = self.create_task_for_pivot_tables(dict_columns)
+        make_pivot_tables(book_path=path_xl_book,
+                          sheets_info=task_pivot)
 
-        if self.task['print_balance_q']['add']:
-            # self.balance_q.finish_q(self.book)
-            self.balance_q = None
+    def create_task_for_pivot_tables(self,
+                                     dict_columns: dict) -> dict:
+        """
+        Формирование задания для сводной.
+        :param dict_columns: Словарь с перечнем имен столбцов.
+        :return: См.sheets_info в make_pivot_tables
+        """
+        sheets_info = {}
 
-        self.book.save(self.name_xl_file)
-        self.book = None
+        for key in dict_columns:
+            sheets_info[key] = {}
+            columns = dict_columns[key]
 
-        # Открыть excel через win32com.client и создать сводные.
-        excel = win32com.client.Dispatch('Excel.Application')
-        excel.Visible = False
-        excel.ScreenUpdating = False  # обновление экрана
-        # excel.Calculation = -4135  # xlCalculationManual
-        excel.EnableEvents = False  # отслеживание событий
-        excel.StatusBar = False  # отображение информации в строке статуса excel
-        try:
-            self.book = excel.Workbooks.Open(self.name_xl_file)
-        except Exception:
-            raise Exception(f'Ошибка при открытии файла {self.name_xl_file=}')
+            sheet_info = sheets_info[key]
+            sheet_info['sheet_name'] = f'Сводная_{key}'
+            sheet_info['pt_name'] = f'pt_{key}'
 
-        for name_sheet in self.data_table:
-            rows = self.task['set_printXL'][name_sheet]['rows'].split(',')
-            rows = list(set(rows) & set(self.data_table[name_sheet].columns))
-            columns = self.task['set_printXL'][name_sheet]['columns'].split(',')
-            columns = list(set(columns) & set(self.data_table[name_sheet].columns))
-            values = self.task['set_printXL'][name_sheet]['values'].split(',')
-            values = list(set(values) & set(self.data_table[name_sheet].columns))
+            sheet_info['row_fields'] = self.task['set_printXL'][key]['rows'].split(',')
+            sheet_info['row_fields'] = list(set(sheet_info['row_fields']) & set(self.data_table[key].columns))
 
-            tab_log = self.book.sheets[name_sheet].ListObjects[0]
-            name_pivot_sheet = name_sheet + '_сводная'
-            pivot_sheet = self.book.Sheets.Add(After=name_sheet)
-            pivot_sheet.Name = name_pivot_sheet
+            sheet_info['row_fields'] = from_list1_only_exists_in_list2(sheet_info['row_fields'],
+                                                                       columns)
 
-            pt_cache = self.book.PivotCaches().add(1, tab_log)  # создать КЭШ xlDatabase, ListObjects
-            pt = pt_cache.CreatePivotTable(TableDestination=name_pivot_sheet + '!R1C1',
-                                           TableName='Сводная_' + name_sheet)  # создать сводную таблицу
-            pt.ManualUpdate = True  # не обновить сводную
-            pt.AddFields(RowFields=rows,
-                         ColumnFields=columns,
-                         PageFields=['Имя файла'],
-                         AddToTable=False)
+            sheet_info['column_fields'] = self.task['set_printXL'][key]['columns'].split(',')
+            sheet_info['column_fields'] = list(set(sheet_info['column_fields']) & set(self.data_table[key].columns))
 
-            for val in values:
-                pt.AddDataField(pt.PivotFields(val),
-                                val + ' ',
-                                -4157)  # xlMax -4136 xlSum -4157
-                # Field                      Caption             def формула расчета
-                pt.PivotFields(val + ' ').NumberFormat = '0'
+            # sheet_info['column_fields'] = ['Год', 'Сезон макс/мин'] + [col for col in columns if 'Доп. имя' in col]
+            sheet_info['column_fields'] = from_list1_only_exists_in_list2(sheet_info['column_fields'],
+                                                                          columns)
 
-            # .PivotFields('na').ShowDetail = True #  группировка
-            pt.RowAxisLayout(1)  # xlTabularRow показывать в табличной форме!!!!
-            if len(values) > 1:
-                pt.DataPivotField.Orientation = 1  # xlRowField Значения в столбцах или строках xlColumnField
+            sheet_info['page_fields'] = ['Имя файла']
 
-            # pt.DataPivotField.Position = 1 # позиция в строках
-            pt.RowGrand = False  # удалить строку общих итогов
-            pt.ColumnGrand = False  # удалить столбец общих итогов
-            pt.MergeLabels = True  # объединять одинаковые ячейки
-            pt.HasAutoFormat = False  # не обновлять ширину при обновлении
-            pt.NullString = '--'  # заменять пустые ячейки
-            pt.PreserveFormatting = False  # сохранять формат ячеек при обновлении
-            pt.ShowDrillIndicators = False  # показывать кнопки свертывания
-            # pt.PivotCache.MissingItemsLimit = 0 # xlMissingItemsNone
-            # xlMissingItemsNone для норм отображения уникальных значений автофильтра
-            for row in rows:
-                pt.PivotFields(row).Subtotals = [False, False, False, False, False, False, False, False,
-                                                 False, False,
-                                                 False, False]  # промежуточные итоги и фильтры
-            for column in columns:
-                pt.PivotFields(column).Subtotals = [False, False, False, False, False, False, False, False,
-                                                    False, False,
-                                                    False, False]  # промежуточные итоги и фильтры
-            pt.ManualUpdate = False  # обновить сводную
-            pt.TableStyle2 = ""  # стиль
-            if name_sheet in ['area', 'area2', 'darea']:
-                pt.ColumnRange.ColumnWidth = 10  # ширина строк
-                pt.RowRange.ColumnWidth = 9
-                pt.RowRange.Columns(1).ColumnWidth = 7
-                pt.RowRange.Columns(2).ColumnWidth = 20
-                pt.RowRange.Columns(3).ColumnWidth = 20
-                pt.RowRange.Columns(6).ColumnWidth = 20
-            pt.DataBodyRange.HorizontalAlignment = -4108  # xlCenter
-            # .DataBodyRange.NumberFormat = '#,##0'
-            # формат
-            pt.TableRange1.WrapText = True  # перенос текста в ячейке
-            pt.TableRange1.Borders(7).LineStyle = 1  # лево
-            pt.TableRange1.Borders(8).LineStyle = 1  # верх
-            pt.TableRange1.Borders(9).LineStyle = 1  # низ
-            pt.TableRange1.Borders(10).LineStyle = 1  # право
-            pt.TableRange1.Borders(11).LineStyle = 1  # внутри вертикаль
-            pt.TableRange1.Borders(12).LineStyle = 1  #
+            sheet_info['page_fields'] = from_list1_only_exists_in_list2(sheet_info['page_fields'],
+                                                                        columns)
 
-        self.book.Save()
-        self.book.Close()
-        excel.Quit()
+            data_list = self.task['set_printXL'][key]['values'].split(',')
+            data_list = list(set(data_list) & set(self.data_table[key].columns))
+            sheet_info['data_field'] = {}
+            for i in data_list:
+                sheet_info['data_field'][i] = i + ' '
+            sheet_info['conditional_formatting'] = False
+        return sheets_info
 
 
 class BalanceQ:
 
-    def __init__(self, book, sel: str):
+    def __init__(self, sel: str):
+        """
+        Вывод в excel таблиц c балансом реактивной мощности.
+        :param sel: Выборка в таблице node.
+        """
         self.sel = sel
-        self.sheet_q = book.create_sheet('balance_Q')
+        self.book = Workbook()
+        self.sheet_q = self.book.create_sheet('balance_Q')
         self.row_q = {}
         # (имя ключа, название в ячейке XL, комментарий ячейки)
         name_row = (
@@ -279,7 +242,7 @@ class BalanceQ:
             if row_info[2]:
                 self.sheet_q.cell(n, 1).comment = Comment(row_info[2], '')
 
-    def add_val_balance_q(self, rm):
+    def add_val(self, rm):
 
         column = self.sheet_q.max_column + 1
         self.sheet_q.cell(2, column,
@@ -334,23 +297,29 @@ class BalanceQ:
         self.sheet_q.cell(self.row_q['row_Q_itog_gmax'], column,
                           f'=-{address_load}+{address_qg_max}+{address_shq_line}')
 
-    def finish_q(self, book):
-        sheet_q = book['balance_Q']
-        sheet_q.row_dimensions['2'].height = 140
-        sheet_q.column_dimensions['A'].width = 40
-        thins = Side(border_style='thin', color='000000')
-        for row in range(2, sheet_q.max_row + 1):
-            for col in range(1, sheet_q.max_column + 1):
-                if row > 2 and col > 1:
-                    sheet_q.cell(row, col).number_format = BUILTIN_FORMATS[1]
-                sheet_q.cell(row, col).border = Border(thins, thins, thins, thins)
-                sheet_q.cell(row, col).font = Font(name='Times New Roman', size=11)
-                if row == 2:
-                    sheet_q.cell(row, col).alignment = Alignment(text_rotation=90,
-                                                                 wrap_text=True, horizontal='center')
-                if col == 1:
-                    sheet_q.cell(row, col).alignment = Alignment(wrap_text=True)
-                if row in [12, 13, 17, 18]:
-                    sheet_q.cell(row, col).fill = PatternFill('solid', fgColor='00FF0000')
-                if row in [9, 15, 16]:
-                    sheet_q.cell(row, col).font = Font(bold=True)
+    def save_to_xl(self,
+                   path_xl_book: str):
+        self.book.save(path_xl_book)
+        # self.book = load_workbook(path_xl_book)
+        # sheet_q = self.book['balance_Q']
+        #
+        # sheet_q.row_dimensions['2'].height = 140
+        # sheet_q.column_dimensions['A'].width = 40
+        # thins = Side(border_style='thin', color='000000')
+        # for row in range(2, sheet_q.max_row + 1):
+        #     for col in range(1, sheet_q.max_column + 1):
+        #         if row > 2 and col > 1:
+        #             sheet_q.cell(row, col).number_format = BUILTIN_FORMATS[1]
+        #         sheet_q.cell(row, col).border = Border(thins, thins, thins, thins)
+        #         sheet_q.cell(row, col).font = Font(name='Times New Roman', size=11)
+        #         if row == 2:
+        #             sheet_q.cell(row, col).alignment = Alignment(text_rotation=90,
+        #                                                          wrap_text=True, horizontal='center')
+        #         if col == 1:
+        #             sheet_q.cell(row, col).alignment = Alignment(wrap_text=True)
+        #         if row in [12, 13, 17, 18]:
+        #             sheet_q.cell(row, col).fill = PatternFill('solid', fgColor='00FF0000')
+        #         if row in [9, 15, 16]:
+        #             sheet_q.cell(row, col).font = Font(bold=True)
+        # self.book.save(path_xl_book)
+

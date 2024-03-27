@@ -1,6 +1,9 @@
 import itertools
+import logging
 
 import win32com.client
+
+log_pivot_table = logging.getLogger(f'__main__.{__name__}')
 
 
 def make_pivot_tables(book_path: str,
@@ -48,11 +51,12 @@ def make_pivot_tables(book_path: str,
         obj_table = sheet.ListObjects.Add(SourceType=1,
                                           Source=sheet.Range(sheet.UsedRange.address))
         obj_table.Name = f'Таблица_{sheet_name}'
-        obj_table_columns = get_list_columns(obj_table)
+        obj_table_columns = set(get_list_columns(obj_table))
 
-        assert set(task['row_fields']).issubset(set(obj_table_columns))
-        assert set(task['column_fields']).issubset(set(obj_table_columns))
-        assert set(task['page_fields']).issubset(set(obj_table_columns))
+        for fields_test in ('row_fields', 'column_fields', 'page_fields'):
+            d = set(task[fields_test]) - obj_table_columns
+            if d:
+                raise ValueError(f'В таблице {sheet_name} отсутствуют поля {d} [{fields_test}].')
 
         # Создать КЭШ xlDatabase, ListObjects
         pt_cache = book.PivotCaches().add(1, obj_table)
@@ -144,6 +148,6 @@ def get_list_columns(obj_table) -> list:
     """
     count_columns = obj_table.ListColumns.Count
     list_columns = []
-    for i in range(1, count_columns):
+    for i in range(1, count_columns + 1):
         list_columns.append(obj_table.ListColumns(i).Name)
     return list_columns
